@@ -4,29 +4,29 @@
 
 static u32 address = 0x80000000;
 
-static void heap_tab() {
+static void pools_tab() {
     dbgui_textf("Total: %.2fk / %.2ffk (%.2f%%)",
         (memMonVal0 + memMonVal1 + memMonVal2) / 1024.0f,
-        (gHeapList[0].memAllocated + gHeapList[1].memAllocated + gHeapList[2].memAllocated) / 1024.0f,
-        ((f32)(memMonVal0 + memMonVal1 + memMonVal2) / (gHeapList[0].memAllocated + gHeapList[1].memAllocated + gHeapList[2].memAllocated)) * 100.0f);
+        (gMemoryPools[0].memAllocated + gMemoryPools[1].memAllocated + gMemoryPools[2].memAllocated) / 1024.0f,
+        ((f32)(memMonVal0 + memMonVal1 + memMonVal2) / (gMemoryPools[0].memAllocated + gMemoryPools[1].memAllocated + gMemoryPools[2].memAllocated)) * 100.0f);
 
-    dbgui_textf("\nHeap 1:");
+    dbgui_textf("\nPool 1:");
     dbgui_textf("  Mem: %.2fk / %.2ffk (%.2f%%)", 
-        memMonVal0 / 1024.0f, gHeapList[0].memAllocated / 1024.0f, ((f32)memMonVal0 / gHeapList[0].memAllocated) * 100.0f);
-    dbgui_textf("  Blocks: %d / %d (%.2f%%)", gHeapList[0].blockCount, gHeapList[0].maxBlocks,
-        ((f32)gHeapList[0].blockCount / gHeapList[0].maxBlocks) * 100.0f);
+        memMonVal0 / 1024.0f, gMemoryPools[0].memAllocated / 1024.0f, ((f32)memMonVal0 / gMemoryPools[0].memAllocated) * 100.0f);
+    dbgui_textf("  Slots: %d / %d (%.2f%%)", gMemoryPools[0].numSlots, gMemoryPools[0].maxSlots,
+        ((f32)gMemoryPools[0].numSlots / gMemoryPools[0].maxSlots) * 100.0f);
         
-    dbgui_textf("\nHeap 2:");
+    dbgui_textf("\nPool 2:");
     dbgui_textf("  Mem: %.2fk / %.2fk (%.2f%%)", 
-        memMonVal1 / 1024.0f, gHeapList[1].memAllocated / 1024.0f, ((f32)memMonVal1 / gHeapList[1].memAllocated) * 100.0f);
-    dbgui_textf("  Blocks: %d / %d (%.2f%%)", gHeapList[1].blockCount, gHeapList[1].maxBlocks,
-        ((f32)gHeapList[1].blockCount / gHeapList[1].maxBlocks) * 100.0f);
+        memMonVal1 / 1024.0f, gMemoryPools[1].memAllocated / 1024.0f, ((f32)memMonVal1 / gMemoryPools[1].memAllocated) * 100.0f);
+    dbgui_textf("  Slots: %d / %d (%.2f%%)", gMemoryPools[1].numSlots, gMemoryPools[1].maxSlots,
+        ((f32)gMemoryPools[1].numSlots / gMemoryPools[1].maxSlots) * 100.0f);
 
-    dbgui_textf("\nHeap 3:");
+    dbgui_textf("\nPool 3:");
     dbgui_textf("  Mem: %.2fk / %.2fk (%.2f%%)", 
-        memMonVal2 / 1024.0f, gHeapList[2].memAllocated / 1024.0f, ((f32)memMonVal2 / gHeapList[2].memAllocated) * 100.0f);
-    dbgui_textf("  Blocks: %d / %d (%.2f%%)", gHeapList[2].blockCount, gHeapList[2].maxBlocks,
-        ((f32)gHeapList[2].blockCount / gHeapList[2].maxBlocks) * 100.0f);
+        memMonVal2 / 1024.0f, gMemoryPools[2].memAllocated / 1024.0f, ((f32)memMonVal2 / gMemoryPools[2].memAllocated) * 100.0f);
+    dbgui_textf("  Slots: %d / %d (%.2f%%)", gMemoryPools[2].numSlots, gMemoryPools[2].maxSlots,
+        ((f32)gMemoryPools[2].numSlots / gMemoryPools[2].maxSlots) * 100.0f);
 }
 
 static void memory_viewer_tab() {
@@ -58,8 +58,8 @@ static void memory_viewer_tab() {
 void dbgui_memory_window(s32 *open) {
     if (dbgui_begin("Memory Debug", open)) {
         if (dbgui_begin_tab_bar("mem_tabs")) {
-            if (dbgui_begin_tab_item("Heap", NULL)) {
-                heap_tab();
+            if (dbgui_begin_tab_item("Pools", NULL)) {
+                pools_tab();
                 dbgui_end_tab_item();
             }
             if (dbgui_begin_tab_item("RDRAM", NULL)) {

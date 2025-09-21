@@ -2,7 +2,7 @@ __start = 0x80000000;
 
 /* Dummy addresses that get recompiled into function calls */
 recomp_puts = 0x8F000000;
-malloc_recomp = 0x8F000004;
+mmAlloc_recomp = 0x8F000004;
 read_file_region_recomp = 0x8F000008;
 bzero_recomp = 0x8F00000C;
 dll_relocate_recomp = 0x8F000010;
@@ -59,7 +59,7 @@ dbgui_begin_tab_item = 0x8F000138;
 dbgui_end_tab_item = 0x8F00013C;
 osRecvMesg_recomp = 0x8F000140;
 osSendMesg_recomp = 0x8F000144;
-free_recomp = 0x8F000148;
+mmFree_recomp = 0x8F000148;
 recomp_alloc = 0x8F00014C;
 recomp_free = 0x8F000150;
 recomp_run_ui_callbacks = 0x8F000154;

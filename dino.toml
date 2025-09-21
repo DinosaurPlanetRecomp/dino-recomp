@@ -165,11 +165,11 @@ value = 0x00004825 # lw t1,0x578(t9) -> or t1,zero,zero
 # Skip security dongle checks
 [[patches.hook]]
 before_vram = 0x81012500
-func = "__dll3_func_60AC"
+func = "__dll3_dll_3_func_60AC"
 text = "goto L_8101254C;"
 [[patches.hook]]
 before_vram = 0x811777d4
-func = "__dll210_func_A3FC"
+func = "__dll210_dll_210_func_A3FC"
 text = "goto L_81177828;"
 
 # Increase audio command list buffer size

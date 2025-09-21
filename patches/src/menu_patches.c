@@ -45,7 +45,7 @@ static s32 num_recent_task_strs = 0;
 
 static void free_recent_task_strs() {
     for (s32 i = 0; i < num_recent_task_strs; i++) {
-        free(recent_task_strs[i]);
+        mmFree(recent_task_strs[i]);
         recent_task_strs[i] = NULL;
     }
 

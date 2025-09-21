@@ -24,7 +24,7 @@ RECOMP_PATCH void screens_draw(Gfx **gdl) {
 
     if (!sRenderScreen) {
         if (sLoadedScreen != NULL) {
-            free(sLoadedScreen);
+            mmFree(sLoadedScreen);
             sLoadedScreen = NULL;
             sLoadedScreenByteLength = 0;
             sLoadedScreenNo = -1;
