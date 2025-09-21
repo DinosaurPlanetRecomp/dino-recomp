@@ -11,7 +11,7 @@ static s32 should_skip_splash() {
 }
 
 
-#include "recomp/dlls/engine/60_recomp.h"
+#include "recomp/dlls/engine/60_post_recomp.h"
 
 extern u8 data_0;
 extern u8 data_4;
@@ -65,7 +65,7 @@ RECOMP_PATCH s32 dll_60_update1() {
         if (bss_4 != 0) {
             bss_4 = 0;
             bss_0 = 0.0f;
-            menu_set(MENU_3);
+            menu_set(MENU_RAREWARE);
         }
 
         return 0;
@@ -73,7 +73,7 @@ RECOMP_PATCH s32 dll_60_update1() {
 }
 
 
-#include "recomp/dlls/engine/61_recomp.h"
+#include "recomp/dlls/engine/61_rareware_recomp.h"
 
 extern s32 data_0;
 extern s8 data_4;
@@ -99,7 +99,7 @@ RECOMP_PATCH s32 dll_61_update1() {
     // @recomp: Allow skipping
     if (bss_2 != 0 || should_skip_splash()) {
         set_gplay_bitstring(0x44f, 0);
-        menu_set(MENU_5);
+        menu_set(MENU_GAME_SELECT);
     }
 
     data_0 += delayByte;

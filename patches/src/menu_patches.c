@@ -172,7 +172,7 @@ RECOMP_PATCH void dll_63_draw(Gfx **gdl, Mtx **mtxs, Vertex **vtxs) {
 }
 
 
-#include "recomp/dlls/engine/64_entername_recomp.h"
+#include "recomp/dlls/engine/64_nameentry_recomp.h"
 
 extern GameTextChunk *sGameTextChunk;
 
