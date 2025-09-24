@@ -33,16 +33,17 @@ std::vector<uint8_t> dino::runtime::patch_rom(std::span<const uint8_t> unpatched
     std::vector<uint32_t> dlls_tab{};
     size_t i = 0;
     while (true) {
-        uint32_t entry;
-        memcpy(&entry, unpatched_rom.data() + dlls_tab_rom_offset + (i * 8) + (4 * 4), sizeof(entry));
-        entry = byteswap(entry);
+        // Skip 16 byte header. Each entry is 8 bytes (we only want the first 4, which are DLLS.bin offsets)
+        uint32_t dll_offset;
+        memcpy(&dll_offset, unpatched_rom.data() + dlls_tab_rom_offset + (i * 8) + (4 * 4), sizeof(dll_offset));
+        dll_offset = byteswap(dll_offset);
         i++;
 
-        if (entry == 0xFFFFFFFF) {
+        if (dll_offset == 0xFFFFFFFF) {
             break;
         }
 
-        dlls_tab.push_back(entry);
+        dlls_tab.push_back(dll_offset);
     }
 
     // Patch each DLL
@@ -62,24 +63,24 @@ std::vector<uint8_t> dino::runtime::patch_rom(std::span<const uint8_t> unpatched
             // Skip past GOT
             size_t k = 0;
             while (true) {
-                uint32_t entry;
-                memcpy(&entry, unpatched_rom.data() + dll_rom_offset + rodata_offset + (k * 4), sizeof(entry));
-                entry = byteswap(entry);
+                uint32_t got_entry;
+                memcpy(&got_entry, unpatched_rom.data() + dll_rom_offset + rodata_offset + (k * 4), sizeof(got_entry));
+                got_entry = byteswap(got_entry);
                 k++;
 
-                if (entry == 0xFFFFFFFE) {
+                if (got_entry == 0xFFFFFFFE) {
                     break;
                 }
             }
 
             // Iterate $gp relocations to patch each prologue
             while (true) {
-                uint32_t entry;
-                memcpy(&entry, unpatched_rom.data() + dll_rom_offset + rodata_offset + (k * 4), sizeof(entry));
-                entry = byteswap(entry);
+                uint32_t reloc;
+                memcpy(&reloc, unpatched_rom.data() + dll_rom_offset + rodata_offset + (k * 4), sizeof(reloc));
+                reloc = byteswap(reloc);
                 k++;
 
-                if (entry == 0xFFFFFFFD) {
+                if (reloc == 0xFFFFFFFD) {
                     break;
                 }
                 
@@ -91,9 +92,9 @@ std::vector<uint8_t> dino::runtime::patch_rom(std::span<const uint8_t> unpatched
                 // Change 'ori $gp, $gp, 0x0' -> 'addiu $gp, $gp, 0x0'
                 constexpr uint8_t ori_start_byte = 0x37;
                 constexpr uint8_t addiu_start_byte = 0x27;
-                uint8_t *gp_ptr = patched_rom.data() + dll_rom_offset + text_offset + entry;
-                assert(*(gp_ptr + 0x4) == ori_start_byte);
-                *(gp_ptr + 0x4) = addiu_start_byte;
+                uint8_t *prologue_ptr = patched_rom.data() + dll_rom_offset + text_offset + reloc;
+                assert(*(prologue_ptr + 0x4) == ori_start_byte);
+                *(prologue_ptr + 0x4) = addiu_start_byte;
             }
         }
     }
