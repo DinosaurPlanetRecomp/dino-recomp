@@ -33,7 +33,7 @@
 #include "runtime/rsp.hpp"
 #include "runtime/threads.hpp"
 
-const std::string version_string = "0.1.1";
+const std::string version_string = "0.1.2";
 
 extern "C" void recomp_entrypoint(uint8_t *rdram, recomp_context *ctx);
 gpr get_entrypoint_address();
