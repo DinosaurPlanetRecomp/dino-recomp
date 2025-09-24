@@ -29,6 +29,7 @@
 #include "runtime/support.hpp"
 #include "runtime/patches.hpp"
 #include "runtime/preload.hpp"
+#include "runtime/rom_patcher.hpp"
 #include "runtime/rsp.hpp"
 #include "runtime/threads.hpp"
 
@@ -52,6 +53,10 @@ std::vector<recomp::GameEntry> supported_games = {
         .mod_game_id = "dino-planet",
         .save_type = recomp::SaveType::Flashram,
         .is_enabled = true,
+        // Note: This is *not decompression*! We need to patch DLL $gp prologues for the
+        // live recompiler, just like the patched ROM needed to compile Dinosaur Planet recomp.
+        .decompression_routine =  dino::runtime::patch_rom,
+        .has_compressed_code = true,
         .entrypoint_address = get_entrypoint_address(),
         .entrypoint = recomp_entrypoint,
         .thread_create_callback = dino_thread_create_callback,
