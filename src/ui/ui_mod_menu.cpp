@@ -256,6 +256,9 @@ void ModMenu::refresh_mods(bool scan_mods) {
         recomp::mods::scan_mods();
     }
     mod_details = recomp::mods::get_all_mod_details(game_mod_id);
+    if (active_mod_index >= mod_details.size()) {
+        active_mod_index = -1;
+    }
     create_mod_list();
 }
 
