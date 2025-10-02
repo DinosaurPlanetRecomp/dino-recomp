@@ -145,11 +145,17 @@ RECOMP_EXPORT int recomp_vsprintf(char *s, const char *fmt, va_list args) {
 }
 
 RECOMP_EXPORT const char *recomp_vsprintf_helper(const char *fmt, va_list args) {
-    // 1MB buffer for string formatting... if that's not enough then
+    // 8KiB buffer for string formatting... if that's not enough then
     // you have bigger problems...
-    static char buffer[1024 * 1024];
+    static char buffer[1024 * 8];
     
-    recomp_vsprintf(buffer, fmt, args);
+    int ret = recomp_vsprintf(buffer, fmt, args);
+    
+    if (ret >= (int)sizeof(buffer)) {
+        buffer[sizeof(buffer) - 1] = '\0';
+        recomp_eprintf("ERROR recomp_vsprintf_helper buffer overflow by string:\n%s\n", buffer);
+        recomp_exit_with_error("ERROR recomp_vsprintf_helper buffer overflow!!! Please pass a smaller string! See stderr for the problematic string.\n");
+    }
 
     return buffer;
 }
