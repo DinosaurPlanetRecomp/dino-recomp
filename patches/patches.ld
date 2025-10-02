@@ -16,6 +16,7 @@ SECTIONS {
     .rodata        : { *(.rodata*)                               } >extram AT >rom
     .data          : { *(.data*)                                 } >extram AT >rom
     .bss  (NOLOAD) : { *(.bss*)  *(COMMON)                       } >extram
+    PATCH_BSS_END = .;
     ASSERT(. <= PATCH_RAM_END, "Maxed out recomp extra ram")
     
     .reloc 0 : { *(.reloc*) }

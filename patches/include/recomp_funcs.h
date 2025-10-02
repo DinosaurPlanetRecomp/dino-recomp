@@ -23,3 +23,6 @@ DECLARE_FUNC(RecompAspectRatio, recomp_get_aspect_ratio_mode);
 DECLARE_FUNC(f32, recomp_get_aspect_ratio);
 DECLARE_FUNC(RecompHUDRatio, recomp_get_hud_ratio_mode);
 DECLARE_FUNC(int, recomp_get_refresh_rate);
+
+DECLARE_FUNC(void, recomp_error_message_box, const char *message);
+DECLARE_FUNC(void, recomp_exit_with_error, const char *message);

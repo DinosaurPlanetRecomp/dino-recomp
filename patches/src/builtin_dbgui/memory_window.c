@@ -1,14 +1,21 @@
 #include "dbgui.h"
+#include "../custom_memory.h"
 
 #include "sys/memory.h"
 
 static u32 address = 0x80000000;
 
 static void pools_tab() {
+    s32 memMonTotal = memMonVal0 + memMonVal1 + memMonVal2 + memMonVal3;
+    s32 memAllocatedTotal = 0;
+    for (s32 i = 0; i < gNumMemoryPools; i++) {
+        memAllocatedTotal += gMemoryPools[i].memAllocated;
+    }
+
     dbgui_textf("Total: %.2fk / %.2ffk (%.2f%%)",
-        (memMonVal0 + memMonVal1 + memMonVal2) / 1024.0f,
-        (gMemoryPools[0].memAllocated + gMemoryPools[1].memAllocated + gMemoryPools[2].memAllocated) / 1024.0f,
-        ((f32)(memMonVal0 + memMonVal1 + memMonVal2) / (gMemoryPools[0].memAllocated + gMemoryPools[1].memAllocated + gMemoryPools[2].memAllocated)) * 100.0f);
+        memMonTotal / 1024.0f,
+        memAllocatedTotal / 1024.0f,
+        ((f32)memMonTotal / memAllocatedTotal) * 100.0f);
 
     dbgui_textf("\nPool 1:");
     dbgui_textf("  Mem: %.2fk / %.2ffk (%.2f%%)", 
@@ -27,6 +34,12 @@ static void pools_tab() {
         memMonVal2 / 1024.0f, gMemoryPools[2].memAllocated / 1024.0f, ((f32)memMonVal2 / gMemoryPools[2].memAllocated) * 100.0f);
     dbgui_textf("  Slots: %d / %d (%.2f%%)", gMemoryPools[2].numSlots, gMemoryPools[2].maxSlots,
         ((f32)gMemoryPools[2].numSlots / gMemoryPools[2].maxSlots) * 100.0f);
+
+    dbgui_textf("\nPool 4 (recomp patch mem):");
+    dbgui_textf("  Mem: %.2fk / %.2fk (%.2f%%)", 
+        memMonVal3 / 1024.0f, gMemoryPools[3].memAllocated / 1024.0f, ((f32)memMonVal3 / gMemoryPools[3].memAllocated) * 100.0f);
+    dbgui_textf("  Slots: %d / %d (%.2f%%)", gMemoryPools[3].numSlots, gMemoryPools[3].maxSlots,
+        ((f32)gMemoryPools[3].numSlots / gMemoryPools[3].maxSlots) * 100.0f);
 }
 
 static void memory_viewer_tab() {

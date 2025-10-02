@@ -72,3 +72,5 @@ dbgui_input_int_ext = 0x8F00016C;
 dbgui_input_float_ext = 0x8F000170;
 dbgui_same_line = 0x8F000174;
 dbgui_separator = 0x8F000178;
+recomp_error_message_box = 0x8F00017C;
+recomp_exit_with_error = 0x8F000180;
