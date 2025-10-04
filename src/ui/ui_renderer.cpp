@@ -427,7 +427,7 @@ public:
         }
         if (it == image_from_bytes_map.end()) {
             // Return a transparent texture if the image can't be found.
-            printf("Texture not found: %s\n", source.c_str());
+            fprintf(stderr, "Texture not found: %s\n", source.c_str());
             texture_handle = 1;
             texture_dimensions.x = 1;
             texture_dimensions.y = 1;

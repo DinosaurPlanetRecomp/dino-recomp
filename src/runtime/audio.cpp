@@ -71,7 +71,7 @@ void queue_samples(int16_t* audio_data, size_t sample_count) {
     int ret = SDL_ConvertAudio(&audio_convert);
 
     if (ret < 0) {
-        printf("Error using SDL audio converter: %s\n", SDL_GetError());
+        fprintf(stderr, "Error using SDL audio converter: %s\n", SDL_GetError());
         throw std::runtime_error("Error using SDL audio converter");
     }
 
@@ -123,7 +123,7 @@ void update_audio_converter() {
     int ret = SDL_BuildAudioCVT(&audio_convert, AUDIO_F32, input_channels, sample_rate, AUDIO_F32, output_channels, output_sample_rate);
 
     if (ret < 0) {
-        printf("Error creating SDL audio converter: %s\n", SDL_GetError());
+        fprintf(stderr, "Error creating SDL audio converter: %s\n", SDL_GetError());
         throw std::runtime_error("Error creating SDL audio converter");
     }
 

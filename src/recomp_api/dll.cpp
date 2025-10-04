@@ -70,10 +70,10 @@ extern "C" void recomp_on_dll_unload(uint32_t id) {
 }
 
 extern "C" void recomp_on_dll_load_too_few_exports(uint32_t id, uint32_t exports, uint32_t expectedExports) {
-    printf("Failed to load DLL %u! Expected at least %u exports, found %u.\n", 
+    fprintf(stderr, "Failed to load DLL %u! Expected at least %u exports, found %u.\n", 
         id, expectedExports, exports);
 }
 
 extern "C" void recomp_on_dll_load_too_many_dlls(uint32_t id) {
-    printf("Failed to load DLL %u! Too many DLLs are already loaded.\n", id);
+    fprintf(stderr, "Failed to load DLL %u! Too many DLLs are already loaded.\n", id);
 }

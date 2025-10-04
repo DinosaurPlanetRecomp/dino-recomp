@@ -816,7 +816,7 @@ void recompui::set_render_hooks() {
 
 void recompui::message_box(const char* msg) {
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, dino::config::program_name.data(), msg, nullptr);
-    printf("[ERROR] %s\n", msg);
+    fprintf(stderr, "[ERROR] %s\n", msg);
 }
 
 void recompui::show_context(ContextId context, std::string_view param) {
