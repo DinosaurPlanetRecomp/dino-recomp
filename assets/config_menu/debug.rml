@@ -48,7 +48,7 @@
                                 data-checked="debug_stdout_enabled"
                                 value="1"
                                 id="debug_stdout_enabled_on"
-                                style="nav-up: #debug_ui_enabled_on; nav-down: #debug_diprintf_enabled_on"
+                                style="nav-up: #debug_ui_enabled_on; nav-down: #debug_dll_logging_enabled_on"
                             />
                             <label class="config-option__tab-label" for="debug_stdout_enabled_on">On</label>
 
@@ -60,37 +60,70 @@
                                 data-checked="debug_stdout_enabled"
                                 value="0"
                                 id="debug_stdout_enabled_off"
-                                style="nav-up: #debug_ui_enabled_off; nav-down: #debug_diprintf_enabled_off"
+                                style="nav-up: #debug_ui_enabled_off; nav-down: #debug_dll_logging_enabled_off"
                             />
                             <label class="config-option__tab-label" for="debug_stdout_enabled_off">Off</label>
                         </div>
                     </div>
 
-                    <!-- debug diprintf -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(2)" id="conf-general__Debug-Diprintf">
-                        <label class="config-option__title">In-Game Debug Interface</label>
+                    <!-- debug dll logging -->
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(2)" id="conf-general__Debug-DllLogging">
+                        <label class="config-option__title">DLL Loader Logging</label>
                         <div class="config-option__list">
                             <input
                                 type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
                                 data-event-focus="set_cur_config_index(2)"
+                                name="debug_dll_logging_enabled"
+                                data-checked="debug_dll_logging_enabled"
+                                value="1"
+                                id="debug_dll_logging_enabled_on"
+                                style="nav-up: #debug_stdout_enabled_on; nav-down: #debug_diprintf_enabled_on"
+                                data-attrif-disabled="!debug_stdout_enabled"
+                            />
+                            <label class="config-option__tab-label" for="debug_dll_logging_enabled_on">On</label>
+
+                            <input
+                                type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(2)"
+                                name="debug_dll_logging_enabled"
+                                data-checked="debug_dll_logging_enabled"
+                                value="0"
+                                id="debug_dll_logging_enabled_off"
+                                style="nav-up: #debug_stdout_enabled_off; nav-down: #debug_diprintf_enabled_off"
+                                data-attrif-disabled="!debug_stdout_enabled"
+                            />
+                            <label class="config-option__tab-label" for="debug_dll_logging_enabled_off">Off</label>
+                            <div class="config-option__details" data-if="!debug_stdout_enabled">Not available when stdout logging is disabled.</div>
+                        </div>
+                    </div>
+
+                    <!-- debug diprintf -->
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(3)" id="conf-general__Debug-Diprintf">
+                        <label class="config-option__title">In-Game Debug Interface</label>
+                        <div class="config-option__list">
+                            <input
+                                type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(3)"
                                 name="debug_diprintf_enabled"
                                 data-checked="debug_diprintf_enabled"
                                 value="1"
                                 id="debug_diprintf_enabled_on"
-                                style="nav-up: #debug_stdout_enabled_on;"
+                                style="nav-up: #debug_dll_logging_enabled_on;"
                             />
                             <label class="config-option__tab-label" for="debug_diprintf_enabled_on">On</label>
 
                             <input
                                 type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(2)"
+                                data-event-focus="set_cur_config_index(3)"
                                 name="debug_diprintf_enabled"
                                 data-checked="debug_diprintf_enabled"
                                 value="0"
                                 id="debug_diprintf_enabled_off"
-                                style="nav-up: #debug_stdout_enabled_off;"
+                                style="nav-up: #debug_dll_logging_enabled_off;"
                             />
                             <label class="config-option__tab-label" for="debug_diprintf_enabled_off">Off</label>
                         </div>
@@ -104,8 +137,15 @@
                     <p data-if="cur_config_index == 1">
                         Whether debug messages from the game should be printed to stdout. 
                         <i>May degrade performance when enabled.</i>
+                        <br/>
+                        <br/>
+                        Note: If disabled, <b>recomp_printf</b> will be turned off for mods.
                     </p>
                     <p data-if="cur_config_index == 2">
+                        Whether debug messages from the game's DLL loader should be printed to stdout.
+                        Implicitly disabled if stdout logging is disabled.
+                    </p>
+                    <p data-if="cur_config_index == 3">
                         Whether the game's own debug overlay (<b>diPrintf</b>) is enabled. The game uses this to display information onscreen in realtime in a handful of places.
                         Mods may also use this functionality.
                     </p>

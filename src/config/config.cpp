@@ -221,6 +221,7 @@ bool save_general_config(const std::filesystem::path& path) {
     config_json["analog_camera_invert_mode"] = get_analog_camera_invert_mode();
     config_json["debug_ui"] = get_debug_ui_enabled();
     config_json["debug_stdout"] = get_debug_stdout_enabled();
+    config_json["debug_dll_logging"] = get_debug_dll_logging_enabled();
     config_json["debug_diprintf"] = get_debug_diprintf_enabled();
     
     return save_json_with_backups(path, config_json);
@@ -239,6 +240,7 @@ void set_general_settings_from_json(const nlohmann::json& config_json) {
     set_analog_camera_invert_mode(from_or_default(config_json, "analog_camera_invert_mode", CameraInvertMode::InvertNone));
     set_debug_ui_enabled(from_or_default(config_json, "debug_ui", true));
     set_debug_stdout_enabled(from_or_default(config_json, "debug_stdout", false));
+    set_debug_dll_logging_enabled(from_or_default(config_json, "debug_dll_logging", false));
     set_debug_diprintf_enabled(from_or_default(config_json, "debug_diprintf", false));
 }
 
