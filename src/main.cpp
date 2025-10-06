@@ -38,12 +38,6 @@ const std::string version_string = "0.1.2";
 extern "C" void recomp_entrypoint(uint8_t *rdram, recomp_context *ctx);
 gpr get_entrypoint_address();
 
-void dino_thread_create_callback(uint8_t *rdram, recomp_context *ctx) {
-    // Dinosaur Planet modifies osCreateThread to enable MIPS3 float mode
-    const uint32_t SR_FR = 0x04000000;
-    cop0_status_write(ctx, SR_FR);
-}
-
 // array of supported GameEntry objects
 std::vector<recomp::GameEntry> supported_games = {
     {
@@ -59,7 +53,6 @@ std::vector<recomp::GameEntry> supported_games = {
         .has_compressed_code = true,
         .entrypoint_address = get_entrypoint_address(),
         .entrypoint = recomp_entrypoint,
-        .thread_create_callback = dino_thread_create_callback,
     },
 };
 

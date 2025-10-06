@@ -30,6 +30,157 @@ renamed = [
     "strncasecmp",
 ]
 
+# Enable mips3 float mode for mips3 hasm
+[[patches.hook]]
+before_vram = 0x80014FEC
+func = "matrix_concat"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) | 0x04000000);"
+[[patches.hook]]
+before_vram = 0x800150DC
+func = "matrix_concat"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
+
+[[patches.hook]]
+before_vram = 0x800150E4
+func = "matrix_concat_4x3"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) | 0x04000000);"
+[[patches.hook]]
+before_vram = 0x800151FC
+func = "matrix_concat_4x3"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
+
+[[patches.hook]]
+before_vram = 0x80015204
+func = "matrix_concat_3x3"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) | 0x04000000);"
+[[patches.hook]]
+before_vram = 0x80015290
+func = "matrix_concat_3x3"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
+
+[[patches.hook]]
+before_vram = 0x80015330
+func = "matrix_f2l_4x3"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) | 0x04000000);"
+[[patches.hook]]
+before_vram = 0x800154CC
+func = "matrix_f2l_4x3"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
+
+[[patches.hook]]
+before_vram = 0x800154D4
+func = "matrix_f2l_translate_only"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) | 0x04000000);"
+[[patches.hook]]
+before_vram = 0x8001557C
+func = "matrix_f2l_translate_only"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
+
+[[patches.hook]]
+before_vram = 0x80015BB8
+func = "matrix_from_yaw"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) | 0x04000000);"
+[[patches.hook]]
+before_vram = 0x80015C68
+func = "matrix_from_yaw"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
+
+[[patches.hook]]
+before_vram = 0x8001621C
+func = "vec3_distance"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) | 0x04000000);"
+[[patches.hook]]
+before_vram = 0x80016254
+func = "vec3_distance"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
+
+[[patches.hook]]
+before_vram = 0x8001625C
+func = "vec3_distance_squared"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) | 0x04000000);"
+[[patches.hook]]
+before_vram = 0x80016290
+func = "vec3_distance_squared"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
+
+[[patches.hook]]
+before_vram = 0x80016298
+func = "vec3_distance_xz"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) | 0x04000000);"
+[[patches.hook]]
+before_vram = 0x800162C0
+func = "vec3_distance_xz"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
+
+[[patches.hook]]
+before_vram = 0x800162C8
+func = "vec3_distance_xz_squared"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) | 0x04000000);"
+[[patches.hook]]
+before_vram = 0x800162EC
+func = "vec3_distance_xz_squared"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
+
+[[patches.hook]]
+before_vram = 0x80016348
+func = "atan2f_to_s"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) | 0x04000000);"
+[[patches.hook]]
+before_vram = 0x800163F8
+func = "atan2f_to_s"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
+[[patches.hook]]
+before_vram = 0x8001643C
+func = "atan2f_to_s"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
+
+[[patches.hook]]
+before_vram = 0x800164A0
+func = "func_8001649C"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) | 0x04000000);"
+[[patches.hook]]
+before_vram = 0x80016574
+func = "func_8001649C" # Can't do an after_vram patch, so this also does the last instruction to get the order right
+text = """CHECK_FR(ctx, 0);
+    CHECK_FR(ctx, 14);
+    CHECK_FR(ctx, 15);
+    NAN_CHECK(ctx->f14.fl); NAN_CHECK(ctx->f15.fl); 
+    ctx->f0.fl = ctx->f14.fl + ctx->f15.fl;
+    cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);
+    return;
+"""
+
+[[patches.hook]]
+before_vram = 0x8001C8D4
+func = "convert_mtxf_to_mtx_in_pool"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) | 0x04000000);"
+[[patches.hook]]
+before_vram = 0x8001CA9C
+func = "convert_mtxf_to_mtx_in_pool"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
+
+[[patches.hook]]
+before_vram = 0x8001CAA4
+func = "func_8001CAA4"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) | 0x04000000);"
+[[patches.hook]]
+before_vram = 0x8001CCF0
+func = "func_8001CAA4"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
+
+[[patches.hook]]
+before_vram = 0x8001F890
+func = "func_8001F890"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) | 0x04000000);"
+[[patches.hook]]
+before_vram = 0x8001FF18
+func = "func_8001F890"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
+[[patches.hook]]
+before_vram = 0x800202E0
+func = "func_8001F890"
+text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
+
 # Patch culling frustum calculation to support the dynamic recomp aspect ratio
 [[patches.hook]]
 before_vram = 0x80044C4C
@@ -206,7 +357,7 @@ text = "assert(ctx->r17 == 0x8001c8b8);"
 [[patches.hook]]
 before_vram = 0x8001B4F0
 func = "func_8001B4F0"
-text = "void recomp_on_func_8001B4F0_entry(); recomp_on_func_8001B4F0_entry();"
+text = "void recomp_on_func_8001B4F0_entry(uint8_t* rdram, recomp_context* ctx); recomp_on_func_8001B4F0_entry(rdram, ctx);"
 
 # Ensure the return routine of func_8001B4F0 doesn't run twice.
 # This can happen as a consequence of how this big asm segment is recompiled.
@@ -214,30 +365,30 @@ text = "void recomp_on_func_8001B4F0_entry(); recomp_on_func_8001B4F0_entry();"
 before_vram = 0x8001C83C
 func = "func_8001C694"
 text = """int recomp_did_func_8001B4F0_return();
-    void recomp_on_func_8001B4F0_ret();
+    void recomp_on_func_8001B4F0_ret(uint8_t* rdram, recomp_context* ctx);
     if (recomp_did_func_8001B4F0_return()) { return; }
-    recomp_on_func_8001B4F0_ret();"""
+    recomp_on_func_8001B4F0_ret(rdram, ctx);"""
 [[patches.hook]]
 before_vram = 0x8001C83C
 func = "func_8001C6C8"
 text = """int recomp_did_func_8001B4F0_return();
-    void recomp_on_func_8001B4F0_ret();
+    void recomp_on_func_8001B4F0_ret(uint8_t* rdram, recomp_context* ctx);
     if (recomp_did_func_8001B4F0_return()) { return; }
-    recomp_on_func_8001B4F0_ret();"""
+    recomp_on_func_8001B4F0_ret(rdram, ctx);"""
 [[patches.hook]]
 before_vram = 0x8001C83C
 func = "func_8001C834"
 text = """int recomp_did_func_8001B4F0_return();
-    void recomp_on_func_8001B4F0_ret();
+    void recomp_on_func_8001B4F0_ret(uint8_t* rdram, recomp_context* ctx);
     if (recomp_did_func_8001B4F0_return()) { return; }
-    recomp_on_func_8001B4F0_ret();"""
+    recomp_on_func_8001B4F0_ret(rdram, ctx);"""
 [[patches.hook]]
 before_vram = 0x8001C83C
 func = "func_8001C83C"
 text = """int recomp_did_func_8001B4F0_return();
-    void recomp_on_func_8001B4F0_ret();
+    void recomp_on_func_8001B4F0_ret(uint8_t* rdram, recomp_context* ctx);
     if (recomp_did_func_8001B4F0_return()) { return; }
-    recomp_on_func_8001B4F0_ret();"""
+    recomp_on_func_8001B4F0_ret(rdram, ctx);"""
 
 # Verify that this is never a function pointer return
 [[patches.hook]]
