@@ -7,7 +7,7 @@ static s32 infinite_health = FALSE;
 static s32 infinite_mana = FALSE;
 
 void dbgui_character_cheat_window(s32 *open) {
-    PlayerStats *char_stats = gDLL_29_Gplay->vtbl->func_ED4();
+    PlayerStats *char_stats = gDLL_29_Gplay->vtbl->get_player_stats();
 
     if (dbgui_begin("Character Cheats", open)) {
         dbgui_checkbox("Infinite Health", &infinite_health);
@@ -44,7 +44,7 @@ void dbgui_character_cheat_game_tick() {
         return;
     }
     
-    PlayerStats *char_stats = gDLL_29_Gplay->vtbl->func_ED4();
+    PlayerStats *char_stats = gDLL_29_Gplay->vtbl->get_player_stats();
 
     if (infinite_health) {
         char_stats->health = char_stats->healthMax;

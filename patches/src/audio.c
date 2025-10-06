@@ -1,10 +1,12 @@
 #include "patches.h"
 
 #include "libnaudio/n_synthInternals.h"
+#include "sys/audio.h"
+
 #include "audio.h"
 
-extern u32 D_800AA998[];
-extern u32 D_8008C8C0;
+extern Acmd *__am_ACMDList[NUM_ACMD_LISTS];
+extern s32 gCurAcmdList;
 
 s32 last_audio_cmdlist_size = 0;
 
@@ -75,7 +77,7 @@ RECOMP_PATCH Acmd *n_alAudioFrame(Acmd *cmdList, s32 *cmdLen, s16 *outBuf, s32 o
 	_n_collectPVoices(); /* collect free physical voices */
 
     // @recomp: Print if the command list overflows its buffer
-    u32 cmdlistSize = (u32)cmdlEnd - D_800AA998[D_8008C8C0];
+    u32 cmdlistSize = (u32)cmdlEnd - (u32)__am_ACMDList[gCurAcmdList];
     last_audio_cmdlist_size = cmdlistSize;
     if (cmdlistSize > 0x4000) {
         recomp_eprintf("Acmd list overflow! at: %p size: %x\n", cmdlEnd, cmdlistSize);

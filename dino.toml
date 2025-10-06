@@ -136,11 +136,11 @@ text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
 
 [[patches.hook]]
 before_vram = 0x800164A0
-func = "func_8001649C"
+func = "func_800164A0"
 text = "cop0_status_write(ctx, cop0_status_read(ctx) | 0x04000000);"
 [[patches.hook]]
 before_vram = 0x80016574
-func = "func_8001649C" # Can't do an after_vram patch, so this also does the last instruction to get the order right
+func = "func_800164A0" # Can't do an after_vram patch, so this also does the last instruction to get the order right
 text = """CHECK_FR(ctx, 0);
     CHECK_FR(ctx, 14);
     CHECK_FR(ctx, 15);
@@ -300,11 +300,11 @@ value = 0x00001025 # lw v0,0x0(v1) -> or v0,zero,zero
 # osAiGetLength got inlined
 [[patches.hook]]
 before_vram = 0x80011cc0
-func = "func_80011C70"
+func = "__amHandleFrameMsg"
 text = "uint32_t recomp_osAiGetLength(); ctx->r25 = recomp_osAiGetLength();"
 [[patches.instruction]]
 vram = 0x80011CC0
-func = "func_80011C70"
+func = "__amHandleFrameMsg"
 value = 0x00000000 # lw t9,0x4(t8) -> nop
 
 # Patch out ROM read
