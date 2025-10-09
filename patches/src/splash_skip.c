@@ -1,6 +1,7 @@
 #include "patches.h"
 
 #include "PR/os.h"
+#include "game/gamebits.h"
 #include "sys/controller.h"
 #include "sys/main.h"
 #include "sys/menu.h"
@@ -98,7 +99,7 @@ RECOMP_PATCH s32 dll_61_update1() {
 
     // @recomp: Allow skipping
     if (bss_2 != 0 || should_skip_splash()) {
-        set_gplay_bitstring(0x44f, 0);
+        main_set_bits(BIT_44F, 0);
         menu_set(MENU_GAME_SELECT);
     }
 
