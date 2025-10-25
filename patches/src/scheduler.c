@@ -49,7 +49,7 @@ RECOMP_PATCH void __scHandleRetrace(OSSched *sc) {
     if ((sc->unkTask) && (sc->frameCount >= 2)) {
         unkTask = sc->unkTask;
         if (unkTask->msgQ) {
-            if ((unkTask->unk0x68) || (unkTask->msg)) {
+            if ((unkTask->unk68) || (unkTask->msg)) {
                 osSendMesg(unkTask->msgQ, unkTask->msg, OS_MESG_BLOCK);
             } else {
                 osSendMesg(unkTask->msgQ, (OSMesg)&D_800918D0, OS_MESG_BLOCK);
@@ -60,7 +60,7 @@ RECOMP_PATCH void __scHandleRetrace(OSSched *sc) {
     }
 
     for (client = sc->clientList; client != NULL; client = client->next) {
-        if (client->unk0x0 == 1) {
+        if (client->unk0 == 1) {
             // Only run this on even calls to this function
             if (gRetraceCounter64 % 2 == 0) {
                 osSendMesg(client->msgQ, sc, OS_MESG_NOBLOCK);
@@ -68,7 +68,7 @@ RECOMP_PATCH void __scHandleRetrace(OSSched *sc) {
                     func_8003B9C0(sc);
                 }
             }
-        } else if (client->unk0x0 == 2) {
+        } else if (client->unk0 == 2) {
             osSendMesg(client->msgQ, sc, OS_MESG_NOBLOCK);
         }
     }

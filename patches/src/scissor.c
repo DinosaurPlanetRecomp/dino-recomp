@@ -229,26 +229,26 @@ RECOMP_PATCH void camera_tick() {
     
     camera = &gCameras[gCameraSelector];
 
-    if (camera->unk_0x5d == 0) {
-        camera->unk_0x5c += -1;
+    if (camera->unk5D == 0) {
+        camera->unk5C--;
 
-        while (camera->unk_0x5c < 0) {
+        while (camera->unk5C < 0) {
             camera->dty = -camera->dty * 0.89999998f;
 
-            camera->unk_0x5c++;
+            camera->unk5C++;
         }
-    } else if (camera->unk_0x5d == 1) {
-        var4 = fexp(-camera->unk_0x3c * camera->unk_0x38, 20);
-        var5 = fcos16_precise(camera->unk_0x34 * 65535.0f * camera->unk_0x38);
-        var5 *= camera->unk_0x30 * var4;
+    } else if (camera->unk5D == 1) {
+        var4 = fexp(-camera->unk3C * camera->unk38, 20);
+        var5 = fcos16_precise(camera->unk34 * 65535.0f * camera->unk38);
+        var5 *= camera->unk30 * var4;
 
         camera->dty = var5;
 
         if (camera->dty < 0.1f && -0.1f < camera->dty) {
-            camera->unk_0x5d = -1;
+            camera->unk5D = -1;
             camera->dty = 0.0f;
         }
 
-        camera->unk_0x38 += delayFloat / 60.0f;
+        camera->unk38 += delayFloat / 60.0f;
     }
 }

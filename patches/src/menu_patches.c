@@ -229,7 +229,7 @@ RECOMP_PATCH void dll_64_draw(Gfx **gdl, Mtx **mtxs, Vertex **vtxs) {
     if (sNameLettersRedrawFrames != 0) {
         if (sMainRedrawFrames == 0) {
             // Make sure we at least redraw the background behind the name letters
-            lry = (sLetterBgBoxTexture->height | ((sLetterBgBoxTexture->unk_0x1b & 0xF) << 8));
+            lry = (sLetterBgBoxTexture->height | ((sLetterBgBoxTexture->unk1B & 0xF) << 8));
             func_800382AC(gdl, sBackgroundTexture, 0, 0, 110, lry + 110, 0xFF, 2);
         }
 
