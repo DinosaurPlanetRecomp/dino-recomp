@@ -56,7 +56,7 @@
                                 data-checked="background_input_mode"
                                 value="On"
                                 id="bg_input_enabled"
-                                style="nav-up: #joystick_deadzone_input;"
+                                style="nav-up: #joystick_deadzone_input; nav-down: #sixty_fps_enabled"
                             />
                             <label class="config-option__tab-label" for="bg_input_enabled">On</label>
 
@@ -68,9 +68,39 @@
                                 data-checked="background_input_mode"
                                 value="Off"
                                 id="bg_input_disabled"
-                                style="nav-up: #joystick_deadzone_input;"
+                                style="nav-up: #joystick_deadzone_input; nav-down: #sixty_fps_disabled"
                             />
                             <label class="config-option__tab-label" for="bg_input_disabled">Off</label>
+                        </div>
+                    </div>
+
+                    <!-- 60 fps -->
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(3)" id="conf-general__sixty-fps">
+                        <label class="config-option__title">60 Hz Gameplay</label>
+                        <div class="config-option__list">
+                            <input
+                                type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(3)"
+                                name="sixty_fps"
+                                data-checked="sixty_fps"
+                                value="1"
+                                id="sixty_fps_enabled"
+                                style="nav-up: #bg_input_enabled;"
+                            />
+                            <label class="config-option__tab-label" for="sixty_fps_enabled">On</label>
+
+                            <input
+                                type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(3)"
+                                name="sixty_fps"
+                                data-checked="sixty_fps"
+                                value="0"
+                                id="sixty_fps_disabled"
+                                style="nav-up: #bg_input_disabled;"
+                            />
+                            <label class="config-option__tab-label" for="sixty_fps_disabled">Off</label>
                         </div>
                     </div>
                 </div>
@@ -86,6 +116,15 @@
                         Allows the game to read controller input when out of focus.
                         <br/>
                         <b>This setting does not affect keyboard input.</b>
+                    </p>
+                    <p data-if="cur_config_index == 3">
+                        Enables gameplay code to run at its full speed (60 Hz) instead of the normal speed (30 Hz). Running at 60 Hz will reduce input lag at the cost of increased CPU load.
+                        <br/>
+                        <br/>
+                        If the <b>Framerate</b> option under the Graphics settings is set to <b>Original</b>, then turning this option on will also make the game render at 60 FPS without frame interpolation.
+                        <br/>
+                        <br/>
+                        <i>Warning:</i> Running at 60 Hz will cause certain gameplay elements to run faster than normal. This option may need to be disabled to complete some parts of the game. These problems may be patched out over time.
                     </p>
                 </div>
             </div>

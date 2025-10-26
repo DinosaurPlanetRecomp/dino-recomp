@@ -1,4 +1,6 @@
 #include "patches.h"
+#include "recomp_funcs.h"
+
 #include "sys/scheduler.h"
 
 extern UnkSchedStruct D_800918D0;
@@ -44,7 +46,8 @@ RECOMP_PATCH void __scHandleRetrace(OSSched *sc) {
 
     gRetraceCounter64++;
     gRetraceCounter32++;
-    sc->frameCount++;
+    // @recomp: Skip 2 frame minimum if 60fps is enabled
+    sc->frameCount += recomp_get_60fps_enabled() ? 2 : 1;
 
     if ((sc->unkTask) && (sc->frameCount >= 2)) {
         unkTask = sc->unkTask;

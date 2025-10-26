@@ -4,6 +4,7 @@
 #include "librecomp/helpers.hpp"
 #include "recomp.h"
 
+#include "config/config.hpp"
 #include "ui/recomp_ui.h"
 #include "common.hpp"
 
@@ -101,6 +102,10 @@ extern "C" void recomp_time_us(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, static_cast<u32>(std::chrono::duration_cast<std::chrono::microseconds>(ultramodern::time_since_start()).count()));
 }
 
+extern "C" void recomp_get_60fps_enabled(uint8_t* rdram, recomp_context* ctx) {
+    _return(ctx, dino::config::get_sixty_fps_enabled() ? 1 : 0);
+}
+
 namespace dino::recomp_api {
     void register_general_exports() {
         REGISTER_EXPORT(recomp_get_window_resolution);
@@ -113,5 +118,6 @@ namespace dino::recomp_api {
         REGISTER_EXPORT(recomp_exit);
         REGISTER_EXPORT(recomp_powf);
         REGISTER_EXPORT(recomp_time_us);
+        REGISTER_EXPORT(recomp_get_60fps_enabled);
     }
 }

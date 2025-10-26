@@ -74,3 +74,4 @@ dbgui_same_line = 0x8F000174;
 dbgui_separator = 0x8F000178;
 recomp_error_message_box = 0x8F00017C;
 recomp_exit_with_error = 0x8F000180;
+recomp_get_60fps_enabled = 0x8F000184;
