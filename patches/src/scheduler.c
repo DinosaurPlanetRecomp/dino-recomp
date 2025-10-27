@@ -63,7 +63,7 @@ RECOMP_PATCH void __scHandleRetrace(OSSched *sc) {
     }
 
     for (client = sc->clientList; client != NULL; client = client->next) {
-        if (client->unk0 == 1) {
+        if (client->id == OS_SC_ID_AUDIO) {
             // Only run this on even calls to this function
             if (gRetraceCounter64 % 2 == 0) {
                 osSendMesg(client->msgQ, sc, OS_MESG_NOBLOCK);
@@ -71,7 +71,7 @@ RECOMP_PATCH void __scHandleRetrace(OSSched *sc) {
                     func_8003B9C0(sc);
                 }
             }
-        } else if (client->unk0 == 2) {
+        } else if (client->id == OS_SC_ID_VIDEO) {
             osSendMesg(client->msgQ, sc, OS_MESG_NOBLOCK);
         }
     }

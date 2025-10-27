@@ -147,47 +147,43 @@ static void camera_tab() {
 }
 
 static void video_tab() {
-    u32 res = get_some_resolution_encoded();
-    u32 width = RESOLUTION_WIDTH(res);
-    u32 height = RESOLUTION_HEIGHT(res);
+    u32 res = vi_get_current_size();
+    u32 width = GET_VIDEO_WIDTH(res);
+    u32 height = GET_VIDEO_HEIGHT(res);
 
-    u32 otherRes = get_some_resolution_encoded();
-    u32 otherWidth = RESOLUTION_WIDTH(otherRes);
-    u32 otherHeight = RESOLUTION_HEIGHT(otherRes);
-
-    dbgui_textf("Resolution: %dx%d", width, height);
-    dbgui_textf("Other resolution: %dx%d", otherWidth, otherHeight);
+    dbgui_textf("VI size: %dx%d", width, height);
     dbgui_textf("gDisplayHertz: %d", gDisplayHertz);
-    dbgui_textf("delayByte: %d", delayByte);
-    dbgui_textf("delayFloat: %f", delayFloat);
-    dbgui_textf("framerate divisor: %d", D_800BCE34);
-    dbgui_textf("osViBlack timer: %d", D_800BCE14);
-    dbgui_textf("aspectRatioFloat: %f", aspectRatioFloat);
+    dbgui_textf("gUpdateRate: %d", gUpdateRate);
+    dbgui_textf("gUpdateRateF: %f", gUpdateRateF);
+    dbgui_textf("gViUpdateRateTarget: %d", gViUpdateRateTarget);
+    dbgui_textf("gViBlackTimer: %d", gViBlackTimer);
+    dbgui_textf("gAspectRatio: %f", gAspectRatio);
+    dbgui_textf("gViHeightRatio: %f", gViHeightRatio);
     dbgui_textf("gHStartMod: %d", gHStartMod);
     dbgui_textf("gVScaleMod: %d", gVScaleMod);
     dbgui_textf("osTvType: %d", osTvType);
     dbgui_textf("gVideoMode: %d", gVideoMode);
-    if (dbgui_tree_node("gOSViModeCustom")) {
-        dbgui_textf("type: %d", gOSViModeCustom.type);
-        dbgui_textf("comRegs.ctrl: %d", gOSViModeCustom.comRegs.ctrl);
-        dbgui_textf("comRegs.width: %d", gOSViModeCustom.comRegs.width);
-        dbgui_textf("comRegs.burst: %d", gOSViModeCustom.comRegs.burst);
-        dbgui_textf("comRegs.vSync: %d", gOSViModeCustom.comRegs.vSync);
-        dbgui_textf("comRegs.hSync: %d", gOSViModeCustom.comRegs.hSync);
-        dbgui_textf("comRegs.leap: %d", gOSViModeCustom.comRegs.leap);
-        dbgui_textf("comRegs.hStart: %d", gOSViModeCustom.comRegs.hStart);
-        dbgui_textf("comRegs.xScale: %d", gOSViModeCustom.comRegs.xScale);
-        dbgui_textf("comRegs.vCurrent: %d", gOSViModeCustom.comRegs.vCurrent);
-        dbgui_textf("fldRegs[0].origin: %d", gOSViModeCustom.fldRegs[0].origin);
-        dbgui_textf("fldRegs[0].yScale: %d", gOSViModeCustom.fldRegs[0].yScale);
-        dbgui_textf("fldRegs[0].vStart: %d", gOSViModeCustom.fldRegs[0].vStart);
-        dbgui_textf("fldRegs[0].vBurst: %d", gOSViModeCustom.fldRegs[0].vBurst);
-        dbgui_textf("fldRegs[0].vIntr: %d", gOSViModeCustom.fldRegs[0].vIntr);
-        dbgui_textf("fldRegs[1].origin: %d", gOSViModeCustom.fldRegs[1].origin);
-        dbgui_textf("fldRegs[1].yScale: %d", gOSViModeCustom.fldRegs[1].yScale);
-        dbgui_textf("fldRegs[1].vStart: %d", gOSViModeCustom.fldRegs[1].vStart);
-        dbgui_textf("fldRegs[1].vBurst: %d", gOSViModeCustom.fldRegs[1].vBurst);
-        dbgui_textf("fldRegs[1].vIntr: %d", gOSViModeCustom.fldRegs[1].vIntr);
+    if (dbgui_tree_node("gTvViMode")) {
+        dbgui_textf("type: %d", gTvViMode.type);
+        dbgui_textf("comRegs.ctrl: %d", gTvViMode.comRegs.ctrl);
+        dbgui_textf("comRegs.width: %d", gTvViMode.comRegs.width);
+        dbgui_textf("comRegs.burst: %d", gTvViMode.comRegs.burst);
+        dbgui_textf("comRegs.vSync: %d", gTvViMode.comRegs.vSync);
+        dbgui_textf("comRegs.hSync: %d", gTvViMode.comRegs.hSync);
+        dbgui_textf("comRegs.leap: %d", gTvViMode.comRegs.leap);
+        dbgui_textf("comRegs.hStart: %d", gTvViMode.comRegs.hStart);
+        dbgui_textf("comRegs.xScale: %d", gTvViMode.comRegs.xScale);
+        dbgui_textf("comRegs.vCurrent: %d", gTvViMode.comRegs.vCurrent);
+        dbgui_textf("fldRegs[0].origin: %d", gTvViMode.fldRegs[0].origin);
+        dbgui_textf("fldRegs[0].yScale: %d", gTvViMode.fldRegs[0].yScale);
+        dbgui_textf("fldRegs[0].vStart: %d", gTvViMode.fldRegs[0].vStart);
+        dbgui_textf("fldRegs[0].vBurst: %d", gTvViMode.fldRegs[0].vBurst);
+        dbgui_textf("fldRegs[0].vIntr: %d", gTvViMode.fldRegs[0].vIntr);
+        dbgui_textf("fldRegs[1].origin: %d", gTvViMode.fldRegs[1].origin);
+        dbgui_textf("fldRegs[1].yScale: %d", gTvViMode.fldRegs[1].yScale);
+        dbgui_textf("fldRegs[1].vStart: %d", gTvViMode.fldRegs[1].vStart);
+        dbgui_textf("fldRegs[1].vBurst: %d", gTvViMode.fldRegs[1].vBurst);
+        dbgui_textf("fldRegs[1].vIntr: %d", gTvViMode.fldRegs[1].vIntr);
         
         dbgui_tree_pop();
     }

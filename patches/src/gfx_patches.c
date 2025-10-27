@@ -9,12 +9,12 @@ s32 snowbike30FPS = FALSE;
 
 static u16 hack_480pFramebuffers[2][640 * 480];
 
-RECOMP_PATCH void initialize_framebuffers(int someBool, s32 width, s32 height) {
+RECOMP_PATCH void vi_init_framebuffers(int someBool, s32 width, s32 height) {
     VideoResolution *resPtr;
     u32 hRes;
     u32 vRes;
 
-    recomp_printf("initialize_framebuffers(%d, %d, %d)\n", someBool, width, height);
+    recomp_printf("vi_init_framebuffers(%d, %d, %d)\n", someBool, width, height);
 
     // Get resolution by current video mode
     resPtr = &gResolutionArray[gVideoMode & 0x7];
@@ -98,11 +98,11 @@ RECOMP_PATCH void alloc_frame_buffers(void) {
     gMainVtx[1] = recompMainVtx[1];
 }
 
-RECOMP_PATCH void func_8005DA00(u32 param1) {
+RECOMP_PATCH void vi_set_update_rate_target(u32 target) {
     // @recomp: Don't let the snowbike race cap the framerate
     if (snowbike30FPS) {
-        param1 = 1;
+        target = 1;
     }
 
-    D_800BCE34 = param1;
+    gViUpdateRateTarget = target;
 }

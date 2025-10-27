@@ -12,9 +12,9 @@ extern u8 D_800917A8;
 
 RECOMP_PATCH void func_80002130(s32 *ulx, s32 *uly, s32 *lrx, s32 *lry)
 {
-    u32 wh = get_some_resolution_encoded();
-    u32 width = wh & 0xffff;
-    u32 height = wh >> 16;
+    u32 wh = vi_get_current_size();
+    u32 width = GET_VIDEO_WIDTH(wh);
+    u32 height = GET_VIDEO_HEIGHT(wh);
 
     // @recomp: remove hardcoded -6/+6 y scissor offset
     *ulx = 0;
@@ -26,7 +26,7 @@ RECOMP_PATCH void func_80002130(s32 *ulx, s32 *uly, s32 *lrx, s32 *lry)
 RECOMP_PATCH void func_80002490(Gfx **gdl)
 {
     s32 ulx, uly, lrx, lry;
-    s32 wh = get_some_resolution_encoded();
+    s32 wh = vi_get_current_size();
     s32 width = wh & 0xffff;
     s32 height = wh >> 16;
 
@@ -122,9 +122,9 @@ RECOMP_PATCH void func_80037A14(Gfx **gdl, Mtx **mtx, s32 param3) {
 
     var1 = func_80004A4C();
 
-    resolution = get_some_resolution_encoded();
-    resWidth = RESOLUTION_WIDTH(resolution);
-    resHeight = RESOLUTION_HEIGHT(resolution);
+    resolution = vi_get_current_size();
+    resWidth = GET_VIDEO_WIDTH(resolution);
+    resHeight = GET_VIDEO_HEIGHT(resolution);
 
     // @recomp: remove hardcoded -1 width/height scissor offset
     gDPSetScissor((*gdl)++, G_SC_NON_INTERLACE, 0, 0, resWidth, resHeight);
@@ -207,7 +207,7 @@ RECOMP_PATCH void camera_tick() {
     }
 
     if (D_8008C518 != 0) {
-        D_8008C518 -= delayByte;
+        D_8008C518 -= gUpdateRate;
 
         if (D_8008C518 < 0) {
             D_8008C518 = 0;
@@ -249,6 +249,6 @@ RECOMP_PATCH void camera_tick() {
             camera->dty = 0.0f;
         }
 
-        camera->unk38 += delayFloat / 60.0f;
+        camera->unk38 += gUpdateRateF / 60.0f;
     }
 }

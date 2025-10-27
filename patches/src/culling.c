@@ -12,7 +12,7 @@ f32 recomp_get_frustum_aspect_hack() {
     return 2.0f * ((4.0f / 3.0f) / recompAspectRatio);
 }
 
-RECOMP_PATCH int is_size_smaller_than_resolution(s32 width, s32 height) {
+RECOMP_PATCH int vi_contains_point(s32 x, s32 y) {
     // @recomp: Adjust for recomp aspect ratio. The game thinks we're running at 4:3 so we need this
     // to return true for negative x values and x values greater than 320, depending on the recomp screen size.
     // TODO: doesnt seem to work for everything...
@@ -29,6 +29,6 @@ RECOMP_PATCH int is_size_smaller_than_resolution(s32 width, s32 height) {
     ulx -= adjust;
     lrx += adjust;
 
-    return width >= ulx && width < lrx
-        && height >= uly && height < lry;
+    return x >= ulx && x < lrx
+        && y >= uly && y < lry;
 }

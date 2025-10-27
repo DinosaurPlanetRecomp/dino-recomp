@@ -28,7 +28,7 @@ RECOMP_PATCH s32 dll_60_update1() {
     if (data_4 == 1) {
         return 0;
     } else {
-        bss_0 += delayFloat;
+        bss_0 += gUpdateRateF;
 
         // @recomp: Allow skipping
         if (should_skip_splash()) {
@@ -50,13 +50,13 @@ RECOMP_PATCH s32 dll_60_update1() {
         }
 
         if (data_0 > 1) {
-            bss_8 -= delayFloat;
+            bss_8 -= gUpdateRateF;
         }
         if (data_0 > 2) {
-            bss_C -= delayFloat;
+            bss_C -= gUpdateRateF;
         }
         if (data_0 > 3) {
-            bss_10 -= delayFloat;
+            bss_10 -= gUpdateRateF;
         }
 
         if (bss_0 > 720.0f) {
@@ -88,7 +88,7 @@ extern f32 bss_8;
 RECOMP_PATCH s32 dll_61_update1() {
     s32 delay;
 
-    delay = delayByte;
+    delay = gUpdateRate;
     if (delay > 3) {
         delay = 3;
     }
@@ -103,7 +103,7 @@ RECOMP_PATCH s32 dll_61_update1() {
         menu_set(MENU_GAME_SELECT);
     }
 
-    data_0 += delayByte;
+    data_0 += gUpdateRate;
     if (data_0 > 620) {
         bss_0 = 1;
     }
@@ -115,10 +115,10 @@ RECOMP_PATCH s32 dll_61_update1() {
     }
 
     if (data_4 > 0) {
-        bss_4 -= delayFloat;
+        bss_4 -= gUpdateRateF;
     }
     if (data_4 > 2) {
-        bss_8 -= delayFloat;
+        bss_8 -= gUpdateRateF;
     }
 
     return 0;
