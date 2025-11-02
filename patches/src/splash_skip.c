@@ -2,13 +2,13 @@
 
 #include "PR/os.h"
 #include "game/gamebits.h"
-#include "sys/controller.h"
+#include "sys/joypad.h"
 #include "sys/main.h"
 #include "sys/menu.h"
 #include "dll.h"
 
 static s32 should_skip_splash() {
-    return (get_button_presses(0) & A_BUTTON) != 0;
+    return (joy_get_pressed_raw(0) & A_BUTTON) != 0;
 }
 
 
