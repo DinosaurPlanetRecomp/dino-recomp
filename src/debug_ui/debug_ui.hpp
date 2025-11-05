@@ -5,7 +5,6 @@
 namespace dino::debug_ui {
 
 bool is_open();
-void set_is_open(bool open);
 
 bool want_capture_keyboard();
 

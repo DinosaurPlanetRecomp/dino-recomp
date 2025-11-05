@@ -3,15 +3,12 @@
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
+#include "ultramodern/error_handling.hpp"
 
 namespace dino::debug_ui {
 
 bool is_open() {
-    return backend::b_is_open;
-}
-
-void set_is_open(bool open) {
-    backend::b_is_open = open;
+    return backend::is_open() && backend::dino_imgui_ctx->Initialized;
 }
 
 bool want_capture_keyboard() {
@@ -20,7 +17,7 @@ bool want_capture_keyboard() {
         return false;
     }
 
-    return backend::b_is_open && backend::dino_imgui_ctx->IO.WantCaptureKeyboard;
+    return backend::is_open() && backend::dino_imgui_ctx->IO.WantCaptureKeyboard;
 }
 
 void ui_frame_begin() {
@@ -32,10 +29,15 @@ void ui_frame_end() {
 }
 
 static void assert_is_open() {
-    assert((!backend::b_is_open || backend::b_in_ui_frame) && "Cannot call debug UI functions while outside of the debug UI frame.");
-    // b_is_open can be set false concurrently while in the middle of calling ImGui functions,
-    // don't fail the assert and instead let the frame finish.
-    assert((backend::b_is_open || backend::b_in_ui_frame) && "Cannot call debug UI functions while the debug UI is closed.");
+    if (!backend::is_open() && backend::in_ui_frame()) {
+        ultramodern::error_handling::message_box("Cannot call debug UI functions while the debug UI is closed.");
+        ultramodern::error_handling::quick_exit(__FILE__, __LINE__, __FUNCTION__);
+    }
+
+    if (!backend::in_ui_frame()) {
+        ultramodern::error_handling::message_box("Cannot call debug UI functions while outside of the debug UI frame.");
+        ultramodern::error_handling::quick_exit(__FILE__, __LINE__, __FUNCTION__);
+    }
 }
 
 bool begin(const char *name, bool *open) {

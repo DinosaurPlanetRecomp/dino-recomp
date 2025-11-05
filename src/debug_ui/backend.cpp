@@ -11,7 +11,6 @@
 #include "common/rt64_user_configuration.h"
 
 #include "concurrentqueue.h"
-#include "lightweightsemaphore.h"
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
@@ -59,7 +58,6 @@ static ImGuiContext *prev_ctx;
 static std::unique_ptr<RT64::RenderDescriptorSet> descriptor_set;
 static std::mutex frame_mutex;
 static moodycamel::ConcurrentQueue<SDL_Event> event_queue{};
-static moodycamel::LightweightSemaphore ui_frame_signal;
 static std::unique_ptr<VulkanContext> vulkanContext;
 
 static RT64::UserConfiguration::GraphicsAPI get_graphics_api() {
@@ -88,8 +86,11 @@ static RT64::UserConfiguration::GraphicsAPI get_graphics_api() {
     }
 }
 
+bool is_open() { return b_is_open; }
+bool in_ui_frame() { return b_in_ui_frame; }
+
 void begin() {
-    assert(dino_imgui_ctx->Initialized);
+    if (!dino_imgui_ctx->Initialized) return;
 
     if (!b_is_open) {
         // Still process the event queue but don't send any to ImGui
@@ -104,6 +105,8 @@ void begin() {
                 }
             }
         }
+    } else if (!dino::config::get_debug_ui_enabled()) {
+        b_is_open = false;
     }
 
     if (!b_is_open) {
@@ -111,6 +114,7 @@ void begin() {
         return;
     }
 
+    assert(!b_in_ui_frame);
     b_in_ui_frame = true;
 
     frame_mutex.lock();
@@ -132,6 +136,8 @@ void begin() {
 
     if (!b_is_open) {
         // Closed after handling key events
+        b_in_ui_frame = false;
+        frame_mutex.unlock();
         return;
     }
     
@@ -160,20 +166,16 @@ void begin() {
 }
 
 void end() {
-    assert(dino_imgui_ctx->Initialized);
+    if (b_in_ui_frame) {
+        assert(dino_imgui_ctx->Initialized);
+        
+        ImGui::Render();
+        ImGui::SetCurrentContext(prev_ctx);
 
-    if (!b_is_open && !b_in_ui_frame) return;
-    
-    ImGui::Render();
-    ImGui::SetCurrentContext(prev_ctx);
+        frame_mutex.unlock();
 
-    frame_mutex.unlock();
-
-    if (ui_frame_signal.availableApprox() == 0) {
-        ui_frame_signal.signal();
+        b_in_ui_frame = false;
     }
-
-    b_in_ui_frame = false;
 }
 
 static int sdl_event_filter(void *userdata, SDL_Event *event) {
@@ -284,16 +286,7 @@ static void rt64_init_hook(RT64::RenderInterface* _interface, RT64::RenderDevice
 }
 
 static void rt64_draw_hook(RT64::RenderCommandList* command_list, RT64::RenderFramebuffer* swap_chain_framebuffer) {
-    if (!dino::config::get_debug_ui_enabled() && b_is_open) {
-        b_is_open = false;
-    }
-
     if (!b_is_open) return;
-    
-    // TODO: With higher framerate settings, sometimes we end up deadlocked here. This timeout of 1/30th of a second
-    // prevents the game from getting locked up while also working as intended on the default framerate option, but
-    // shouldn't be necessary and be fixed at some point.
-    ui_frame_signal.wait((int64_t)((1.0 / 30.0) * 1000000));
     
     const std::lock_guard<std::mutex> frame_lock(frame_mutex);
 
@@ -329,6 +322,8 @@ static void rt64_draw_hook(RT64::RenderCommandList* command_list, RT64::RenderFr
 
 static void rt64_deinit_hook() {
     const std::lock_guard<std::mutex> frame_lock(frame_mutex);
+    assert(!b_in_ui_frame);
+    b_is_open = false;
 
     ImGuiContext *prev_ctx = ImGui::GetCurrentContext();
     ImGui::SetCurrentContext(dino_imgui_ctx);
