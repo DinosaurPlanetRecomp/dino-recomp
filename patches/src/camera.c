@@ -43,7 +43,7 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
     update_camera_for_object(camera);
 
     if (gCameraSelector == 4) {
-        func_80046B58(camera->tx, camera->ty, camera->tz);
+        map_func_80046B58(camera->tx, camera->ty, camera->tz);
     }
 
     x = camera->tx - gWorldX;

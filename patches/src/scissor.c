@@ -6,9 +6,9 @@ extern s16 SHORT_8008c524;
 extern s16 SHORT_8008c528;
 extern s32 gCameraSelector;
 
-extern u8 D_800917A0;
-extern u8 D_800917A4;
-extern u8 D_800917A8;
+extern u8 sBGPrimColourR;
+extern u8 sBGPrimColourG;
+extern u8 sBGPrimColourB;
 
 RECOMP_PATCH void func_80002130(s32 *ulx, s32 *uly, s32 *lrx, s32 *lry)
 {
@@ -161,8 +161,8 @@ RECOMP_PATCH void func_80037A14(Gfx **gdl, Mtx **mtx, s32 param3) {
 
     if ((param3 & 1) != 0 || var1 != 0) {
         dl_set_fill_color(gdl, 
-            (GPACK_RGBA5551(D_800917A0, D_800917A4, D_800917A8, 1) << 16) 
-                | GPACK_RGBA5551(D_800917A0, D_800917A4, D_800917A8, 1));
+            (GPACK_RGBA5551(sBGPrimColourR, sBGPrimColourG, sBGPrimColourB, 1) << 16) 
+                | GPACK_RGBA5551(sBGPrimColourR, sBGPrimColourG, sBGPrimColourB, 1));
 
         // @recomp: remove hardcoded -1 width/height offset
         if ((param3 & 1) != 0) {

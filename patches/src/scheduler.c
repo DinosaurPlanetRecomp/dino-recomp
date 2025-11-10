@@ -3,7 +3,7 @@
 
 #include "sys/scheduler.h"
 
-extern UnkSchedStruct D_800918D0;
+extern GfxTaskMesg D_800918D0;
 extern s32 gRetraceCounter32;
 extern s32 gCurRSPTaskCounter;
 extern s32 gCurRDPTaskCounter;
@@ -68,7 +68,7 @@ RECOMP_PATCH void __scHandleRetrace(OSSched *sc) {
             if (gRetraceCounter64 % 2 == 0) {
                 osSendMesg(client->msgQ, sc, OS_MESG_NOBLOCK);
                 if (sc->audioListHead) {
-                    func_8003B9C0(sc);
+                    sc_signal_do_audio(sc);
                 }
             }
         } else if (client->id == OS_SC_ID_VIDEO) {

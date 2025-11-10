@@ -5,8 +5,8 @@
 #include "dlls/engine/63_gameselect.h"
 #include "sys/memory.h"
 #include "sys/fonts.h"
+#include "sys/rcp.h"
 #include "types.h"
-#include "functions.h"
 #include "dll.h"
 
 // @recomp: This file patches out the partial/conditional redraw behavior of the 
