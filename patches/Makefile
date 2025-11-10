@@ -8,7 +8,7 @@ BUILD_DIR = build
 CFLAGS   := -target mips -mips2 -mabi=32 -O2 -G0 -mno-abicalls -mno-odd-spreg -mno-check-zero-division \
 			-fomit-frame-pointer -ffast-math -fno-unsafe-math-optimizations -fno-builtin-memset \
 			-Wall -Wextra -Wno-incompatible-library-redeclaration -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-variable -Wno-missing-braces -Wno-unsupported-floating-point-opt -fno-strict-aliasing
-CPPFLAGS := -nostdinc -D_LANGUAGE_C -D_MIPS_SZLONG=32 -DF3DEX_GBI_2 -DMIPS -I include -I ../lib/dino-recomp-decomp-bridge/dinosaur-planet/include -I ../lib/dino-recomp-decomp-bridge/dinosaur-planet/src -I ../lib/dino-recomp-decomp-bridge/include -I../lib/rt64/include
+CPPFLAGS := -nostdinc -D_LANGUAGE_C -D_MIPS_SZLONG=32 -DF3DEX_GBI_2 -DMIPS -DAVOID_UB -I include -I ../lib/dino-recomp-decomp-bridge/dinosaur-planet/include -I ../lib/dino-recomp-decomp-bridge/dinosaur-planet/src -I ../lib/dino-recomp-decomp-bridge/include -I../lib/rt64/include
 LDFLAGS  := -nostdlib -T patches.ld -T syms.ld -Map $(BUILD_DIR)/patches.map --unresolved-symbols=ignore-all --emit-relocs
 
 C_SRCS := $(wildcard src/*.c)

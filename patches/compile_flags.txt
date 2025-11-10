@@ -23,6 +23,7 @@ mips
 -D_MIPS_SZLONG=32
 -DF3DEX_GBI_2
 -DMIPS
+-DAVOID_UB
 -I
 include
 -I
