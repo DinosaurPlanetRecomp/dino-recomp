@@ -1,3 +1,7 @@
+#ifdef _WIN32
+#include <intrin.h>
+#endif
+
 #include "ultramodern/config.hpp"
 #include "ultramodern/ultramodern.hpp"
 #include "ultramodern/error_handling.hpp"
@@ -60,7 +64,7 @@ extern "C" void recomp_get_refresh_rate(uint8_t* rdram, recomp_context* ctx) {
             break;
         case ultramodern::renderer::RefreshRate::Original:
         default:
-            _return<int>(ctx, 30);
+            _return<int>(ctx, dino::config::get_sixty_fps_enabled() ? 60 : 30);
             break;
     }
 }
@@ -83,6 +87,15 @@ extern "C" void recomp_exit_with_error(uint8_t* rdram, recomp_context* ctx) {
     ultramodern::error_handling::message_box(message);
 
     free(message);
+
+    // Breakpoint in debug builds so we can get a full stack trace
+#ifndef NDEBUG
+#if _WIN32
+    __debugbreak();
+#elif defined(__linux__)
+    __builtin_trap();
+#endif
+#endif
 
     ultramodern::error_handling::quick_exit(__FILE__, __LINE__, __FUNCTION__);
 }

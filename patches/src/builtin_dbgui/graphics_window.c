@@ -39,32 +39,40 @@ static s32 gCurMtx_overflowed = FALSE;
 static s32 gCurVtx_overflowed = FALSE;
 static s32 gCurPol_overflowed = FALSE;
 
-static void general_tab() {
-    dbgui_textf("gRenderListLength: %d", gRenderListLength);
-    dbgui_textf("gWorldX: %f", gWorldX);
-    dbgui_textf("gWorldZ: %f", gWorldZ);
+static u32 renderListLength;
+static u32 gdlSize;
+static u32 mtxSize;
+static u32 vtxSize;
+static u32 polSize;
 
-    u32 gdlSize = (u32)gCurGfx - (u32)gMainGfx[gFrameBufIdx];
-    u32 mtxSize = (u32)gCurMtx - (u32)gMainMtx[gFrameBufIdx];
-    u32 vtxSize = (u32)gCurVtx - (u32)gMainVtx[gFrameBufIdx];
-    u32 polSize = (u32)gCurPol - (u32)gMainPol[gFrameBufIdx];
+void graphics_window_check_buffer_sizes(void) {
+    renderListLength = gRenderListLength;
+
+    gdlSize = (u32)gCurGfx - (u32)gMainGfx[gFrameBufIdx];
+    mtxSize = (u32)gCurMtx - (u32)gMainMtx[gFrameBufIdx];
+    vtxSize = (u32)gCurVtx - (u32)gMainVtx[gFrameBufIdx];
+    polSize = (u32)gCurPol - (u32)gMainPol[gFrameBufIdx];
 
     if (gdlSize > RECOMP_MAIN_GFX_BUF_SIZE) gCurGfx_overflowed = TRUE;
     if (mtxSize > RECOMP_MAIN_MTX_BUF_SIZE) gCurMtx_overflowed = TRUE;
     if (vtxSize > RECOMP_MAIN_VTX_BUF_SIZE) gCurVtx_overflowed = TRUE;
     if (polSize > RECOMP_MAIN_POL_BUF_SIZE) gCurPol_overflowed = TRUE;
 
+    if (gCurGfx_overflowed) recomp_printf("WARN: gCurGfx overflowed!!!");
+    if (gCurMtx_overflowed) recomp_printf("WARN: gCurMtx overflowed!!!");
+    if (gCurVtx_overflowed) recomp_printf("WARN: gCurVtx overflowed!!!");
+    if (gCurPol_overflowed) recomp_printf("WARN: gCurPol overflowed!!!");
+}
+
+static void general_tab() {
+    dbgui_textf("gRenderListLength: %d", renderListLength);
+    dbgui_textf("gWorldX: %f", gWorldX);
+    dbgui_textf("gWorldZ: %f", gWorldZ);
+
     dbgui_textf("gCurGfx size: %x/%x\t(%f%%)", gdlSize, RECOMP_MAIN_GFX_BUF_SIZE, (f32)gdlSize / (f32)RECOMP_MAIN_GFX_BUF_SIZE);
-    if (gCurGfx_overflowed) dbgui_textf("WARN: gCurGfx overflowed!!!");
-    
     dbgui_textf("gCurMtx size: %x/%x\t(%f%%)", mtxSize, RECOMP_MAIN_MTX_BUF_SIZE, (f32)mtxSize / (f32)RECOMP_MAIN_MTX_BUF_SIZE);
-    if (gCurMtx_overflowed) dbgui_textf("WARN: gCurMtx overflowed!!!");
-    
     dbgui_textf("gCurVtx size: %x/%x\t(%f%%)", vtxSize, RECOMP_MAIN_VTX_BUF_SIZE, (f32)vtxSize / (f32)RECOMP_MAIN_VTX_BUF_SIZE);
-    if (gCurVtx_overflowed) dbgui_textf("WARN: gCurVtx overflowed!!!");
-    
     dbgui_textf("gCurPol size: %x/%x\t(%f%%)", polSize, RECOMP_MAIN_POL_BUF_SIZE, (f32)polSize / (f32)RECOMP_MAIN_POL_BUF_SIZE);
-    if (gCurPol_overflowed) dbgui_textf("WARN: gCurPol overflowed!!!");
 }
 
 static void camera_tab() {

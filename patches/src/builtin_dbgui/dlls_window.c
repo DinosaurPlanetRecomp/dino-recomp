@@ -36,8 +36,8 @@ void dbgui_dlls_window(s32 *open) {
                     dbgui_tree_pop();
                 }
             }
-            dbgui_end_child();
         }
+        dbgui_end_child();
     }
     dbgui_end();
 }

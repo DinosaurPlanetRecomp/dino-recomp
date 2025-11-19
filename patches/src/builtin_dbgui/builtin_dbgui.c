@@ -1,5 +1,6 @@
 #include "dbgui.h"
 #include "builtin_dbgui.h"
+#include "graphics_window.h"
 
 static s32 dllsOpen = FALSE;
 static s32 audioOpen = FALSE;
@@ -47,4 +48,5 @@ void builtin_dbgui() {
 
 void builtin_dbgui_game_tick() {
     dbgui_character_cheat_game_tick();
+    graphics_window_check_buffer_sizes();
 }
