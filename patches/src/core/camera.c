@@ -245,9 +245,9 @@ RECOMP_PATCH void camera_tick() {
     SHORT_8008c524 = SHORT_8008c528;
     // @recomp: Add back +6 offset removed from other scissor patches
     // This is necessary for the cinematic top/bottom black bars during cutscnes to be the correct size
-    // TODO: theres probably a better place for this fix, this kinda screws up the animation for the black bars
-    if (SHORT_8008c524 != 0) {
-        SHORT_8008c524 += 6;
+    // TODO: theres probably a better place for this fix
+    if (SHORT_8008c528 != 0) {
+        SHORT_8008c524 += (s32)(((f32)SHORT_8008c528 / 30.0f) * 6);
     }
 
     if (D_8008C518 != 0) {
