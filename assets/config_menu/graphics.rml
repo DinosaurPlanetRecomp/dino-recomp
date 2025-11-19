@@ -3,8 +3,8 @@
     </head>
     <body>
         <form class="config__form config-graphics">
-            <div class="config__hz-wrapper">
-                <div class="config__wrapper" data-event-mouseout="set_cur_config_index(-1)">
+            <div class="config__hz-wrapper config__hz-wrapper_scroll">
+                <div class="config__wrapper_scroll" data-event-mouseout="set_cur_config_index(-1)">
                     <!-- Window Mode -->
                     <div class="config-option" data-event-mouseover="set_cur_config_index(0)">
                         <label class="config-option__title">Window Mode</label>
@@ -280,7 +280,7 @@
                     </div>
 
                 </div>
-                <div class="config__wrapper">
+                <div class="config__wrapper_scroll">
                     <p data-if="cur_config_index == 0">
                         Sets whether the game should display <b>Windowed</b> or <b>Fullscreen</b>. You can also use <b>F11</b> or <b>Alt + Enter</b> to toggle this option.
                     </p>

@@ -7,19 +7,4 @@
     margin-top: 48px;
     display: block;
   }
-
-  // Shrink font sizes because we don't have enough room on this page
-  .config-option {
-    .config-option__title {
-      @extend %label-sm;
-    }
-
-    .config-option__list .config-option__tab-label {
-      @extend %label-xs;
-    }
-
-    .config-option__range-label {
-      @extend %label-xs;
-    }
-  }
 }
