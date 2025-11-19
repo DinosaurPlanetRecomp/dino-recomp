@@ -445,6 +445,9 @@ bool save_sound_config(const std::filesystem::path& path) {
 
     config_json["main_volume"] = dino::config::get_main_volume();
     config_json["bgm_volume"] = dino::config::get_bgm_volume();
+    config_json["sfx_volume"] = dino::config::get_sfx_volume();
+    config_json["dialog_volume"] = dino::config::get_dialog_volume();
+    config_json["subtitles"] = dino::config::get_subtitles_enabled();
     
     return save_json_with_backups(path, config_json);
 }
@@ -458,6 +461,9 @@ bool load_sound_config(const std::filesystem::path& path) {
     dino::config::reset_sound_settings();
     call_if_key_exists(dino::config::set_main_volume, config_json, "main_volume");
     call_if_key_exists(dino::config::set_bgm_volume, config_json, "bgm_volume");
+    call_if_key_exists(dino::config::set_sfx_volume, config_json, "sfx_volume");
+    call_if_key_exists(dino::config::set_dialog_volume, config_json, "dialog_volume");
+    call_if_key_exists(dino::config::set_subtitles_enabled, config_json, "subtitles");
     return true;
 }
 

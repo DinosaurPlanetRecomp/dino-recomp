@@ -92,6 +92,12 @@ namespace dino::config {
     int get_main_volume();
     void set_bgm_volume(int volume);
     int get_bgm_volume();
+    void set_sfx_volume(int volume);
+    int get_sfx_volume();
+    void set_dialog_volume(int volume);
+    int get_dialog_volume();
+    bool get_subtitles_enabled();
+    void set_subtitles_enabled(bool enabled);
 
     void open_quit_game_prompt();
 

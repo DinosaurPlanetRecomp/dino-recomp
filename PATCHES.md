@@ -6,6 +6,9 @@ The full list of game patches applied by base Dinosaur Planet: Recompiled.
 
 ## Core
 
+### libnaudio/mp3
+- Allow MP3 volume to be adjusted as a game setting.
+
 ### libultra/syncprintf
 - Redirect `proutSyncPrintf` to recomp stdout.
 
@@ -49,6 +52,9 @@ The full list of game patches applied by base Dinosaur Planet: Recompiled.
 
 ### 3 - ANIM
 - Remove security dongle check.
+
+### 5 - AMSEQ
+- Fix volume option setter export not affecting the 4th music player.
 
 ### 20 - screens
 - Center screen texture to prevent it from being stretched in widescreen.

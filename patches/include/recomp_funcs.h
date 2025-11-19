@@ -24,6 +24,10 @@ DECLARE_FUNC(f32, recomp_get_aspect_ratio, void);
 DECLARE_FUNC(RecompHUDRatio, recomp_get_hud_ratio_mode, void);
 DECLARE_FUNC(int, recomp_get_refresh_rate, void);
 DECLARE_FUNC(s32, recomp_get_60fps_enabled, void);
+DECLARE_FUNC(s32, recomp_get_bgm_volume, void);
+DECLARE_FUNC(s32, recomp_get_sfx_volume, void);
+DECLARE_FUNC(s32, recomp_get_dialog_volume, void);
+DECLARE_FUNC(s32, recomp_get_subtitles_enabled, void);
 
 DECLARE_FUNC(void, recomp_error_message_box, const char *message);
 DECLARE_FUNC(void, recomp_exit_with_error, const char *message);

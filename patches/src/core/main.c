@@ -2,6 +2,7 @@
 #include "patches.h"
 #include "patches/main.h"
 #include "dbgui.h"
+#include "recomp_options.h"
 
 #include "sys/gfx/gx.h"
 #include "sys/gfx/map.h"
@@ -71,6 +72,7 @@ RECOMP_PATCH void alloc_frame_buffers(void) {
 static void recomp_game_tick_start_hook(void) {
     recomp_on_game_tick_start();
     recomp_run_ui_callbacks();
+    recomp_pull_game_options();
     dbgui_ui_frame_begin();
 
     if (dbgui_is_open()) {

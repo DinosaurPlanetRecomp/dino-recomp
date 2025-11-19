@@ -119,6 +119,22 @@ extern "C" void recomp_get_60fps_enabled(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, dino::config::get_sixty_fps_enabled() ? 1 : 0);
 }
 
+extern "C" void recomp_get_bgm_volume(uint8_t* rdram, recomp_context* ctx) {
+    _return(ctx, dino::config::get_bgm_volume());
+}
+
+extern "C" void recomp_get_sfx_volume(uint8_t* rdram, recomp_context* ctx) {
+    _return(ctx, dino::config::get_sfx_volume());
+}
+
+extern "C" void recomp_get_dialog_volume(uint8_t* rdram, recomp_context* ctx) {
+    _return(ctx, dino::config::get_dialog_volume());
+}
+
+extern "C" void recomp_get_subtitles_enabled(uint8_t* rdram, recomp_context* ctx) {
+    _return(ctx, dino::config::get_subtitles_enabled() ? 1 : 0);
+}
+
 namespace dino::recomp_api {
     void register_general_exports() {
         REGISTER_EXPORT(recomp_get_window_resolution);
@@ -132,5 +148,9 @@ namespace dino::recomp_api {
         REGISTER_EXPORT(recomp_powf);
         REGISTER_EXPORT(recomp_time_us);
         REGISTER_EXPORT(recomp_get_60fps_enabled);
+        REGISTER_EXPORT(recomp_get_bgm_volume);
+        REGISTER_EXPORT(recomp_get_sfx_volume);
+        REGISTER_EXPORT(recomp_get_dialog_volume);
+        REGISTER_EXPORT(recomp_get_subtitles_enabled);
     }
 }

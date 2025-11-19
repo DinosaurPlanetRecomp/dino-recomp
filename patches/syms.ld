@@ -75,3 +75,7 @@ dbgui_separator = 0x8F000178;
 recomp_error_message_box = 0x8F00017C;
 recomp_exit_with_error = 0x8F000180;
 recomp_get_60fps_enabled = 0x8F000184;
+recomp_get_bgm_volume = 0x8F000188;
+recomp_get_sfx_volume = 0x8F00018C;
+recomp_get_dialog_volume = 0x8F000190;
+recomp_get_subtitles_enabled = 0x8F000194;
