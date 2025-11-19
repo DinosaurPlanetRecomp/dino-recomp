@@ -116,6 +116,14 @@ RECOMP_PATCH void dll_63_draw(Gfx **gdl, Mtx **mtxs, Vertex **vtxs) {
                     y += 40;
                 }
 
+                // @recomp: Fix text wrap for dropshadow (it can wrap differently if the window size isn't adjusted due to the offset)
+                font_window_set_coords(1, 0, 0, 
+                    GET_VIDEO_WIDTH(vi_get_current_size()) - 100 - 2, 
+                    GET_VIDEO_HEIGHT(vi_get_current_size()) - 2);
+                font_window_set_coords(3, 105, 0, 
+                    GET_VIDEO_WIDTH(vi_get_current_size()) - 200 - 2, 
+                    GET_VIDEO_HEIGHT(vi_get_current_size()) - 2);
+
                 y = 232;
                 font_window_set_text_colour(1, 0, 0, 0, 255, 255);
                 font_window_set_text_colour(3, 0, 0, 0, 255, 255);
