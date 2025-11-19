@@ -137,6 +137,7 @@ void begin() {
     if (!b_is_open) {
         // Closed after handling key events
         b_in_ui_frame = false;
+        ImGui::SetCurrentContext(prev_ctx);
         frame_mutex.unlock();
         return;
     }
