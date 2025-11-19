@@ -12,11 +12,19 @@ CPPFLAGS := -nostdinc -D_LANGUAGE_C -D_MIPS_SZLONG=32 -DF3DEX_GBI_2 -DMIPS -DAVO
 LDFLAGS  := -nostdlib -T patches.ld -T syms.ld -Map $(BUILD_DIR)/patches.map --unresolved-symbols=ignore-all --emit-relocs
 
 C_SRCS := $(wildcard src/*.c)
-C_SRCS += $(wildcard src/builtin_dbgui/*.c)
+C_SRCS += $(wildcard src/core/*.c)
+C_SRCS += $(wildcard src/core/libnaudio/*.c)
+C_SRCS += $(wildcard src/core/libultra/*.c)
+C_SRCS += $(wildcard src/custom/*.c)
+C_SRCS += $(wildcard src/custom/builtin_dbgui/*.c)
+C_SRCS += $(wildcard src/dlls/*.c)
 C_OBJS := $(C_SRCS:%.c=$(BUILD_DIR)/%.o)
 C_DEPS := $(C_SRCS:%.c=$(BUILD_DIR)/%.d)
 
-BUILD_DIRS := $(BUILD_DIR) $(BUILD_DIR)/src $(BUILD_DIR)/src/builtin_dbgui
+BUILD_DIRS := $(BUILD_DIR) $(BUILD_DIR)/src \
+	$(BUILD_DIR)/src/core $(BUILD_DIR)/src/core/libnaudio $(BUILD_DIR)/src/core/libultra \
+	$(BUILD_DIR)/src/custom $(BUILD_DIR)/src/custom/builtin_dbgui \
+	$(BUILD_DIR)/src/dlls
 
 $(BUILD_DIR)/$(TARGET): $(C_OBJS) patches.ld syms.ld
 	$(LD) $(C_OBJS) $(LDFLAGS) -o $@

@@ -1,11 +1,10 @@
-#include "gfx_patches.h"
-
 #include "patches.h"
+#include "patches/vi.h"
+#include "recomp_funcs.h"
 
 #include "sys/gfx/gx.h"
-#include "types.h"
 
-s32 snowbike30FPS = FALSE;
+s32 recomp_snowbike30FPS = FALSE;
 
 static u16 hack_480pFramebuffers[2][640 * 480];
 
@@ -62,47 +61,32 @@ RECOMP_PATCH void vi_init_framebuffers(int someBool, s32 width, s32 height) {
     }
 }
 
-extern Gfx *gMainGfx[2];
-extern Gfx *gCurGfx;
-extern Mtx *gMainMtx[2];
-extern Mtx *gCurMtx;
-extern Vertex *gMainVtx[2];
-extern Vertex *gCurVtx;
-extern Triangle *gMainPol[2];
-extern Triangle *gCurPol;
-
-// @recomp: Move graphics buffers into patch memory to save heap memory
-static Gfx recompMainGfx[2][RECOMP_MAIN_GFX_BUF_SIZE / sizeof(Gfx)]; 
-static Mtx recompMainMtx[2][RECOMP_MAIN_MTX_BUF_SIZE / sizeof(Mtx)]; 
-static Vertex recompMainVtx[2][RECOMP_MAIN_VTX_BUF_SIZE / sizeof(Vertex)]; 
-static Triangle recompMainPol[2][RECOMP_MAIN_POL_BUF_SIZE / sizeof(Triangle)]; 
-
-RECOMP_PATCH void alloc_frame_buffers(void) {
-    // @recomp: Use larger buffer sizes
-
-    // in default.dol these have names as well.
-    // alloc graphic display list command buffers. ("main:gfx" in default.dol)
-    gMainGfx[0] = recompMainGfx[0];
-    gMainGfx[1] = recompMainGfx[1];
-
-    // matrix buffers ("main:mtx")
-    gMainMtx[0] = recompMainMtx[0];
-    gMainMtx[1] = recompMainMtx[1];
-
-    // polygon buffers? ("main:pol")
-    gMainPol[0] = recompMainPol[0];
-    gMainPol[1] = recompMainPol[1];
-
-    // vertex buffers ("main:vtx")
-    gMainVtx[0] = recompMainVtx[0];
-    gMainVtx[1] = recompMainVtx[1];
-}
-
 RECOMP_PATCH void vi_set_update_rate_target(u32 target) {
     // @recomp: Don't let the snowbike race cap the framerate
-    if (snowbike30FPS) {
+    if (recomp_snowbike30FPS) {
         target = 1;
     }
 
     gViUpdateRateTarget = target;
+}
+
+RECOMP_PATCH int vi_contains_point(s32 x, s32 y) {
+    // @recomp: Adjust for recomp aspect ratio. The game thinks we're running at 4:3 so we need this
+    // to return true for negative x values and x values greater than 320, depending on the recomp screen size.
+    // TODO: doesnt seem to work for everything...
+    u32 gameResWidth = gCurrentResolutionH[gFramebufferChoice];
+    u32 gameResHeight = gCurrentResolutionV[gFramebufferChoice];
+
+    s32 ulx = 0;
+    s32 uly = 0;
+    s32 lrx = (s32)gameResWidth;
+    s32 lry = (s32)gameResHeight;
+
+    f32 widthScale = (recomp_get_aspect_ratio() / (4.0f / 3.0f)) - 1.0f;
+    s32 adjust = (s32)((gameResWidth * widthScale) / 2.0f);
+    ulx -= adjust;
+    lrx += adjust;
+
+    return x >= ulx && x < lrx
+        && y >= uly && y < lry;
 }

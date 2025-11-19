@@ -63,8 +63,6 @@ RECOMP_PATCH void screens_draw(Gfx **gdl) {
             G_AC_NONE | G_ZS_PIXEL | G_RM_NOOP | G_RM_NOOP2);
         dl_apply_other_mode(gdl);
 
-        gEXEnable((*gdl)++); // TODO: move this to start of gdl
-
         yPos = 0;
         do {
             gDPLoadTextureBlockS((*gdl)++,

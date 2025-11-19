@@ -3,12 +3,12 @@
 #include "libnaudio/n_synthInternals.h"
 #include "sys/audio.h"
 
-#include "audio.h"
+#include "patches/n_synthesizer.h"
 
 extern Acmd *__am_ACMDList[NUM_ACMD_LISTS];
 extern s32 gCurAcmdList;
 
-s32 last_audio_cmdlist_size = 0;
+s32 recomp_lastAudioCmdlistSize = 0;
 
 s32 __n_nextSampleTime(ALPlayer **client);
 s32 _n_timeToSamplesNoRound(s32 micros);
@@ -78,7 +78,7 @@ RECOMP_PATCH Acmd *n_alAudioFrame(Acmd *cmdList, s32 *cmdLen, s16 *outBuf, s32 o
 
     // @recomp: Print if the command list overflows its buffer
     u32 cmdlistSize = (u32)cmdlEnd - (u32)__am_ACMDList[gCurAcmdList];
-    last_audio_cmdlist_size = cmdlistSize;
+    recomp_lastAudioCmdlistSize = cmdlistSize;
     if (cmdlistSize > 0x4000) {
         recomp_eprintf("Acmd list overflow! at: %p size: %x\n", cmdlEnd, cmdlistSize);
     }

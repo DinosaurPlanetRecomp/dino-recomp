@@ -1,13 +1,13 @@
 #include "patches.h"
 #include "recomp_funcs.h"
 
-#include "game/objects/object.h"
 #include "dlls/objects/210_player.h"
-#include "dll.h"
-#include "sys/objects.h"
+#include "dlls/objects/711_IMSnowBike.h"
+#include "game/objects/object.h"
 #include "game/gamebits.h"
 #include "sys/gfx/gx.h"
-#include "dlls/objects/711_IMSnowBike.h"
+#include "sys/objects.h"
+#include "dll.h"
 
 #include "recomp/dlls/objects/408_IMIceMountain_recomp.h"
 

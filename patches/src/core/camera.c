@@ -1,14 +1,139 @@
-#include "common.h"
 #include "patches.h"
+
+#include "sys/math.h"
+#include "sys/gfx/gx.h"
+#include "sys/camera.h"
+#include "sys/main.h"
+#include "functions.h"
+#include "variables.h"
+
+extern Camera gCameras[CAMERA_COUNT];
+extern s32 gCameraSelector;
+extern SRT gCameraSRT;
+extern s8 gUseAlternateCamera;
+extern u32 UINT_800a6a54;
+extern u16 gPerspNorm;
+extern MtxF gViewProjMtx;
+extern Mtx *gRSPMtxList;
+extern MtxF gProjectionMtx;
+extern MtxF gViewMtx;
+extern MtxF gViewMtx2;
+extern Mtx gRSPViewMtx2;
+extern MtxF gAuxMtx;
+extern Mtx *gRSPMatrices[30];
 
 extern u32 UINT_800a66f8;
 extern s16 SHORT_8008c524;
 extern s16 SHORT_8008c528;
 extern s32 gCameraSelector;
 
-extern u8 sBGPrimColourR;
-extern u8 sBGPrimColourG;
-extern u8 sBGPrimColourB;
+extern f32 gFarPlane;
+extern s16 D_8008C518;
+extern s16 D_8008C51C;
+extern f32 D_800A6270;
+extern f32 D_800A6274;
+extern Camera gCameras[CAMERA_COUNT];
+extern MatrixSlot gMatrixPool[100];
+extern u32 gMatrixCount;
+extern s8 gUseAlternateCamera;
+extern s8 gMatrixIndex;
+
+extern f32 fexp(f32 x, u32 iterations);
+
+// Save these separately so we can avoid the precision issue noted below
+// when the game restores the camera viewProj matrix
+static Mtx *recomp_lastCamViewMtx;
+static Mtx *recomp_lastCamProjMtx;
+
+RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
+    s32 prevCameraSel;
+    f32 x,y,z;
+    s32 i;
+    Camera *camera;
+
+    gSPPerspNormalize((*gdl)++, gPerspNorm);
+
+    prevCameraSel = gCameraSelector;
+    
+    if (gUseAlternateCamera) {
+        gCameraSelector += 4;
+    }
+ 
+    camera = &gCameras[gCameraSelector];
+
+    update_camera_for_object(camera);
+
+    if (gCameraSelector == 4) {
+        map_func_80046B58(camera->tx, camera->ty, camera->tz);
+    }
+
+    x = camera->tx - gWorldX;
+    y = camera->ty;
+    z = camera->tz - gWorldZ;
+
+    if (x > 32767.0f || -32767.0f > x || z > 32767.0f || -32767.0f > z) {
+        return;
+    }
+    
+    gCameraSRT.yaw = 0x8000 + camera->yaw;
+    gCameraSRT.pitch = camera->pitch + camera->dpitch;
+    gCameraSRT.roll = camera->roll;
+    gCameraSRT.transl.x = -x;
+    gCameraSRT.transl.y = -y;
+    if (UINT_800a6a54 != 0) {
+        gCameraSRT.transl.y -= camera->dty;
+    }
+    gCameraSRT.transl.z = -z;
+
+    matrix_from_srt_reversed(&gViewMtx, &gCameraSRT);
+    matrix_concat(&gViewMtx, &gProjectionMtx, &gViewProjMtx);
+    matrix_f2l(&gViewProjMtx, *rspMtxs);
+
+    gRSPMtxList = *rspMtxs;
+
+    // @recomp: Submit view and projection matrices separately to avoid a nasty float precision
+    // issue with this game's projection matrix. After viewProj is converted from float -> long -> float
+    // from here to RT64, m[0][2] and m[0][3], which are very small values, end up less precise. When
+    // RT64 decomposes this matrix, this lack of precision is amplified greatly resulting in a very
+    // wrong projection matrix on some frames.
+    matrix_f2l(&gProjectionMtx, *rspMtxs);
+    matrix_f2l(&gViewMtx, *rspMtxs + 1);
+
+    recomp_lastCamProjMtx = (*rspMtxs + 0);
+    recomp_lastCamViewMtx = (*rspMtxs + 1);
+
+    gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_PROJECTION | G_MTX_LOAD);
+    gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_PROJECTION | G_MTX_MUL);
+
+    gCameraSRT.yaw = -0x8000 - camera->yaw;
+    gCameraSRT.pitch = -(camera->pitch + camera->dpitch);
+    gCameraSRT.roll = -camera->roll;
+    gCameraSRT.scale = 1.0f;
+    gCameraSRT.transl.x = x;
+    gCameraSRT.transl.y = y;
+    if (UINT_800a6a54 != 0) {
+        gCameraSRT.transl.y += camera->dty;
+    }
+    gCameraSRT.transl.z = z;
+    
+    matrix_from_srt(&gViewMtx2, &gCameraSRT);
+    matrix_f2l(&gViewMtx2, &gRSPViewMtx2);
+
+    gCameraSelector = prevCameraSel;
+
+    i = 0;
+    while (i < 30) {
+        gRSPMatrices[i++] = 0;
+    }
+}
+
+RECOMP_PATCH void func_80004224(Gfx **gdl)
+{
+    // @recomp: Submit projection and view separately instead of [gRSPMtxList] to avoid precision issues
+    // See above notes in setup_rsp_camera_matrices
+    gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(recomp_lastCamProjMtx), G_MTX_PROJECTION | G_MTX_LOAD);
+    gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(recomp_lastCamViewMtx), G_MTX_PROJECTION | G_MTX_MUL);
+}
 
 RECOMP_PATCH void func_80002130(s32 *ulx, s32 *uly, s32 *lrx, s32 *lry)
 {
@@ -111,87 +236,6 @@ RECOMP_PATCH void func_80002490(Gfx **gdl)
 
     gDPSetScissor((*gdl)++, 0, ulx, uly, lrx, lry);
 }
-
-RECOMP_PATCH void func_80037A14(Gfx **gdl, Mtx **mtx, s32 param3) {
-    s32 resolution;
-    s32 resWidth, resHeight;
-    s32 ulx, uly, lrx, lry;
-    s32 var1;
-
-    func_80002130(&ulx, &uly, &lrx, &lry);
-
-    var1 = func_80004A4C();
-
-    resolution = vi_get_current_size();
-    resWidth = GET_VIDEO_WIDTH(resolution);
-    resHeight = GET_VIDEO_HEIGHT(resolution);
-
-    // @recomp: remove hardcoded -1 width/height scissor offset
-    gDPSetScissor((*gdl)++, G_SC_NON_INTERLACE, 0, 0, resWidth, resHeight);
-
-    gDPSetCombineMode((*gdl), G_CC_PRIMITIVE, G_CC_PRIMITIVE);
-    dl_apply_combine(gdl);
-
-    gDPSetOtherMode((*gdl), 
-        G_AD_PATTERN | G_CD_MAGICSQ | G_CK_NONE | G_TC_FILT | G_TF_BILERP | G_TT_NONE | G_TL_TILE | G_TD_CLAMP | G_TP_PERSP | G_CYC_FILL |  G_PM_NPRIMITIVE, 
-        G_AC_NONE | G_ZS_PIXEL | G_RM_OPA_SURF | G_RM_OPA_SURF2);
-    dl_apply_other_mode(gdl);
-
-    if (gDLBuilder->needsPipeSync) {
-        gDLBuilder->needsPipeSync = FALSE;
-        gDPPipeSync((*gdl)++);
-    }
-
-    gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, resWidth, 0x02000000);
-
-    if ((param3 & 2) != 0) {
-        dl_set_fill_color(gdl, (GPACK_ZDZ(G_MAXFBZ, 0) << 16) | GPACK_ZDZ(G_MAXFBZ, 0));
-
-        gDPFillRectangle((*gdl)++, ulx, uly, lrx, lry);
-
-        gDLBuilder->needsPipeSync = TRUE;
-    }
-
-    if (gDLBuilder->needsPipeSync) {
-        gDLBuilder->needsPipeSync = FALSE;
-        gDPPipeSync((*gdl)++);
-    }
-
-    gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, resWidth, 0x01000000);
-
-    if ((param3 & 1) != 0 || var1 != 0) {
-        dl_set_fill_color(gdl, 
-            (GPACK_RGBA5551(sBGPrimColourR, sBGPrimColourG, sBGPrimColourB, 1) << 16) 
-                | GPACK_RGBA5551(sBGPrimColourR, sBGPrimColourG, sBGPrimColourB, 1));
-
-        // @recomp: remove hardcoded -1 width/height offset
-        if ((param3 & 1) != 0) {
-            gDPFillRectangle((*gdl)++, 0, 0, resWidth, resHeight);
-            gDLBuilder->needsPipeSync = TRUE;
-        } else if (var1 != 0) {
-            gDPFillRectangle((*gdl)++, 0, 0, resWidth, uly);
-            gDLBuilder->needsPipeSync = TRUE;
-
-            gDPFillRectangle((*gdl)++, 0, lry, resWidth, resHeight);
-            gDLBuilder->needsPipeSync = TRUE;
-        }
-    }
-
-    func_80002490(gdl);
-}
-
-extern f32 gFarPlane;
-extern s16 D_8008C518;
-extern s16 D_8008C51C;
-extern f32 D_800A6270;
-extern f32 D_800A6274;
-extern Camera gCameras[CAMERA_COUNT];
-extern MatrixSlot gMatrixPool[100];
-extern u32 gMatrixCount;
-extern s8 gUseAlternateCamera;
-extern s8 gMatrixIndex;
-
-f32 fexp(f32 x, u32 iterations);
 
 RECOMP_PATCH void camera_tick() {
     Camera *camera;

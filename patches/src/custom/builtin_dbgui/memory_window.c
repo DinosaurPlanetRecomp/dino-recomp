@@ -1,5 +1,5 @@
 #include "dbgui.h"
-#include "../custom_memory.h"
+#include "patches/memory.h"
 
 #include "sys/memory.h"
 

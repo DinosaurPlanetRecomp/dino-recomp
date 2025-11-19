@@ -1,7 +1,6 @@
-#include "custom_memory.h"
-
 #include "patches.h"
 #include "recomp_funcs.h"
+#include "patches/memory.h"
 
 #include "PR/ultratypes.h"
 #include "PR/os.h"

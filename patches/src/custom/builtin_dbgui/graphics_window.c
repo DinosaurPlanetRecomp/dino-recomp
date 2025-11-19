@@ -1,5 +1,7 @@
 #include "dbgui.h"
 #include "patches.h"
+#include "patches/main.h"
+#include "patches/vi.h"
 #include "recomp_funcs.h"
 
 #include "sys/camera.h"
@@ -8,8 +10,6 @@
 #include "sys/math.h"
 #include "types.h"
 #include "variables.h"
-
-#include "../gfx_patches.h"
 
 extern f32 gFovY;
 extern f32 gAspect;
@@ -198,7 +198,7 @@ static void video_tab() {
 }
 
 static void hacks_tab() {
-    dbgui_checkbox("30 FPS SnowBike race", &snowbike30FPS);
+    dbgui_checkbox("30 FPS SnowBike race", &recomp_snowbike30FPS);
 }
 
 static void recomp_tab() {
