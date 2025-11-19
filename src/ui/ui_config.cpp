@@ -230,6 +230,7 @@ struct ControlOptionsContext {
     int gyro_sensitivity; // 0 to 100
     int mouse_sensitivity; // 0 to 100
     int joystick_deadzone; // 0 to 100
+    int joystick_range; // 0 to 100
     dino::config::TargetingMode targeting_mode;
     dino::input::BackgroundInputMode background_input_mode;
     dino::config::AutosaveMode autosave_mode;
@@ -264,6 +265,10 @@ int dino::input::get_joystick_deadzone() {
     return control_options_context.joystick_deadzone;
 }
 
+int dino::input::get_joystick_range() {
+    return control_options_context.joystick_range;
+}
+
 void dino::input::set_gyro_sensitivity(int sensitivity) {
     control_options_context.gyro_sensitivity = sensitivity;
     if (general_model_handle) {
@@ -282,6 +287,13 @@ void dino::input::set_joystick_deadzone(int deadzone) {
     control_options_context.joystick_deadzone = deadzone;
     if (general_model_handle) {
         general_model_handle.DirtyVariable("joystick_deadzone");
+    }
+}
+
+void dino::input::set_joystick_range(int range) {
+    control_options_context.joystick_range = range;
+    if (general_model_handle) {
+        general_model_handle.DirtyVariable("joystick_range");
     }
 }
 
@@ -900,6 +912,7 @@ public:
         constructor.Bind("gyro_sensitivity", &control_options_context.gyro_sensitivity);
         constructor.Bind("mouse_sensitivity", &control_options_context.mouse_sensitivity);
         constructor.Bind("joystick_deadzone", &control_options_context.joystick_deadzone);
+        constructor.Bind("joystick_range", &control_options_context.joystick_range);
         bind_option(constructor, "targeting_mode", &control_options_context.targeting_mode);
         bind_option(constructor, "background_input_mode", &control_options_context.background_input_mode);
         bind_option(constructor, "autosave_mode", &control_options_context.autosave_mode);

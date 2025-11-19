@@ -163,9 +163,11 @@ namespace dino::input {
     int get_gyro_sensitivity();
     int get_mouse_sensitivity();
     int get_joystick_deadzone();
+    int get_joystick_range();
     void set_gyro_sensitivity(int strength);
     void set_mouse_sensitivity(int strength);
-    void set_joystick_deadzone(int strength);
+    void set_joystick_deadzone(int deadzone);
+    void set_joystick_range(int range);
     void apply_joystick_deadzone(float x_in, float y_in, float* x_out, float* y_out);
     void set_right_analog_suppressed(bool suppressed);
 

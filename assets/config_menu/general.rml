@@ -6,82 +6,102 @@
             <div class="config__hz-wrapper" id="conf-general__hz-wrapper">
                 <!-- Options -->
                 <div class="config__wrapper" data-event-mouseout="set_cur_config_index(-1)" id="conf-general__wrapper">
-                    <!-- rumble strength -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(0)">
-                        <label class="config-option__title">Rumble Strength</label>
-                        <div class="config-option__range-wrapper config-option__list">
-                            <label class="config-option__range-label">{{rumble_strength}}%</label>
-                            <input
-                                class="nav-vert"
-                                data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(0)"
-                                id="rumble_strength_input"
-                                type="range"
-                                min="0"
-                                max="100"
-                                style="flex: 1; margin: 0dp;"
-                                data-value="rumble_strength"
-                            />
-                        </div>
-                    </div>
-                    
                     <!-- joystick deadzone -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(1)">
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(0)">
                         <label class="config-option__title">Joystick Deadzone</label>
                         <div class="config-option__range-wrapper config-option__list">
                             <label class="config-option__range-label">{{joystick_deadzone}}%</label>
                             <input
                                 class="nav-vert"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(1)"
+                                data-event-focus="set_cur_config_index(0)"
                                 id="joystick_deadzone_input"
                                 type="range"
                                 min="0"
                                 max="100"
-                                style="flex: 1; margin: 0dp; nav-down: #bg_input_enabled"
+                                style="flex: 1; margin: 0dp; nav-down: #joystick_range_input"
                                 data-value="joystick_deadzone"
                             />
                         </div>
                     </div>
 
+                    <!-- joystick range -->
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(1)">
+                        <label class="config-option__title">Joystick Range</label>
+                        <div class="config-option__range-wrapper config-option__list">
+                            <label class="config-option__range-label">{{joystick_range}}%</label>
+                            <input
+                                class="nav-vert"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(1)"
+                                id="joystick_range_input"
+                                type="range"
+                                min="0"
+                                max="100"
+                                style="flex: 1; margin: 0dp; nav-up: #joystick_deadzone_input; nav-down: #rumble_strength_input"
+                                data-value="joystick_range"
+                            />
+                        </div>
+                        <div class="config-option__details" data-if="joystick_range<62">A range less than 62% is not recommended!</div>
+                    </div>
+
+                    <!-- rumble strength -->
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(2)">
+                        <label class="config-option__title">Rumble Strength</label>
+                        <div class="config-option__range-wrapper config-option__list">
+                            <label class="config-option__range-label">{{rumble_strength}}%</label>
+                            <input
+                                class="nav-vert"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(2)"
+                                id="rumble_strength_input"
+                                type="range"
+                                min="0"
+                                max="100"
+                                style="flex: 1; margin: 0dp; nav-up: #joystick_range_input; nav-down: #bg_input_enabled"
+                                data-value="rumble_strength"
+                            />
+                        </div>
+                    </div>
+
                     <!-- background input -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(2)" id="conf-general__Background-Input">
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(3)" id="conf-general__Background-Input">
                         <label class="config-option__title">Background Input</label>
                         <div class="config-option__list">
                             <input
                                 type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(2)"
+                                data-event-focus="set_cur_config_index(3)"
                                 name="background_input_mode"
                                 data-checked="background_input_mode"
                                 value="On"
                                 id="bg_input_enabled"
-                                style="nav-up: #joystick_deadzone_input; nav-down: #sixty_fps_enabled"
+                                style="nav-up: #rumble_strength_input; nav-down: #sixty_fps_enabled"
                             />
                             <label class="config-option__tab-label" for="bg_input_enabled">On</label>
 
                             <input
                                 type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(2)"
+                                data-event-focus="set_cur_config_index(3)"
                                 name="background_input_mode"
                                 data-checked="background_input_mode"
                                 value="Off"
                                 id="bg_input_disabled"
-                                style="nav-up: #joystick_deadzone_input; nav-down: #sixty_fps_disabled"
+                                style="nav-up: #rumble_strength_input; nav-down: #sixty_fps_disabled"
                             />
                             <label class="config-option__tab-label" for="bg_input_disabled">Off</label>
                         </div>
                     </div>
 
                     <!-- 60 fps -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(3)" id="conf-general__sixty-fps">
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(4)" id="conf-general__sixty-fps">
                         <label class="config-option__title">60 Hz Gameplay</label>
                         <div class="config-option__list">
                             <input
                                 type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(3)"
+                                data-event-focus="set_cur_config_index(4)"
                                 name="sixty_fps"
                                 data-checked="sixty_fps"
                                 value="1"
@@ -93,7 +113,7 @@
                             <input
                                 type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(3)"
+                                data-event-focus="set_cur_config_index(4)"
                                 name="sixty_fps"
                                 data-checked="sixty_fps"
                                 value="0"
@@ -107,17 +127,28 @@
                 <!-- Descriptions -->
                 <div class="config__wrapper">
                     <p data-if="cur_config_index == 0">
-                        Controls the strength of rumble when using a controller that supports it. <b>Setting this to zero will disable rumble.</b>
+                        Applies a deadzone to joystick inputs.<br/>
+                        <br/>
+                        <b>Note: Dinosaur Planet contains its own deadzone independent of this setting of about 6%.</b>
                     </p>
                     <p data-if="cur_config_index == 1">
-                        Applies a deadzone to joystick inputs.
+                        Sets the input range the joystick is mapped to. The control stick in Dinosaur Planet is capped to about 62% of its technical maximum range. In practice, a real N64 controller usually doesn't exceed a 63% range.<br/>
+                        <br/>
+                        Values above 62% will increase joystick sensitivity. <i>Warning:</i> It is not recommended to set this option below 62% as you will no longer be able to reach maximum control stick values, which may hinder gameplay.<br/>
+                        <br/>
+                        If your joystick cannot reach 100% in cardinal directions then you will need to adjust this setting to be above 62% to compensate.
                     </p>
                     <p data-if="cur_config_index == 2">
+                        Controls the strength of rumble when using a controller that supports it. <b>Setting this to zero will disable rumble.</b><br/>
+                        <br/>
+                        <b>Note: Dinosaur Planet does not use rumble out of the box but mods may enable and make use of it.</b>
+                    </p>
+                    <p data-if="cur_config_index == 3">
                         Allows the game to read controller input when out of focus.
                         <br/>
                         <b>This setting does not affect keyboard input.</b>
                     </p>
-                    <p data-if="cur_config_index == 3">
+                    <p data-if="cur_config_index == 4">
                         Enables gameplay code to run at its full speed (60 Hz) instead of the normal speed (30 Hz). Running at 60 Hz will reduce input lag at the cost of increased CPU load.
                         <br/>
                         <br/>

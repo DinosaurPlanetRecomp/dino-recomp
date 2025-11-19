@@ -215,6 +215,7 @@ bool save_general_config(const std::filesystem::path& path) {
     config_json["gyro_sensitivity"] = dino::input::get_gyro_sensitivity();
     config_json["mouse_sensitivity"] = dino::input::get_mouse_sensitivity();
     config_json["joystick_deadzone"] = dino::input::get_joystick_deadzone();
+    config_json["joystick_range"] = dino::input::get_joystick_range();
     config_json["autosave_mode"] = get_autosave_mode();
     config_json["camera_invert_mode"] = get_camera_invert_mode();
     config_json["analog_cam_mode"] = get_analog_cam_mode();
@@ -235,6 +236,7 @@ void set_general_settings_from_json(const nlohmann::json& config_json) {
     dino::input::set_gyro_sensitivity(from_or_default(config_json, "gyro_sensitivity", 50));
     dino::input::set_mouse_sensitivity(from_or_default(config_json, "mouse_sensitivity", is_steam_deck ? 50 : 0));
     dino::input::set_joystick_deadzone(from_or_default(config_json, "joystick_deadzone", 5));
+    dino::input::set_joystick_range(from_or_default(config_json, "joystick_range", 66));
     set_autosave_mode(from_or_default(config_json, "autosave_mode", AutosaveMode::On));
     set_camera_invert_mode(from_or_default(config_json, "camera_invert_mode", CameraInvertMode::InvertY));
     set_analog_cam_mode(from_or_default(config_json, "analog_cam_mode", AnalogCamMode::Off));

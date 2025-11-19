@@ -91,8 +91,6 @@ bool get_n64_input(int controller_num, uint16_t* buttons_out, float* x_out, floa
             cur_buttons |= get_input_digital(controller_input_mappings[input_index]) ? n64_button_values[i] : 0;
         }
 
-        float joystick_deadzone = get_joystick_deadzone() / 100.0f;
-
         float joystick_x = get_input_analog(controller_input_mappings[(size_t)GameInput::X_AXIS_POS])
                         - get_input_analog(controller_input_mappings[(size_t)GameInput::X_AXIS_NEG]);
 
@@ -106,6 +104,11 @@ bool get_n64_input(int controller_num, uint16_t* buttons_out, float* x_out, floa
 
         cur_y = get_input_analog(keyboard_input_mappings[(size_t)GameInput::Y_AXIS_POS])
                 - get_input_analog(keyboard_input_mappings[(size_t)GameInput::Y_AXIS_NEG]) + joystick_y;
+
+        float joystick_range = get_joystick_range() / 100.0f;
+        
+        cur_x *= joystick_range;
+        cur_y *= joystick_range;
     }
 
     *buttons_out = cur_buttons;
