@@ -34,9 +34,6 @@ The full list of game patches applied by base Dinosaur Planet: Recompiled.
 ### print
 - Restore diPrintf functionality.
 
-### rsp
-- Remove hardcoded -1/+1 screen scissor offsets.
-
 ### scheduler
 - Remove RSP/RDP stall check.
 - Allow 60 fps when 60 hz gameplay is enabled.
