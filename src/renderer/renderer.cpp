@@ -165,7 +165,7 @@ void set_application_user_config(RT64::Application* application, const ultramode
     application->userConfig.refreshRateTarget = config.rr_manual_value;
     application->userConfig.internalColorFormat = to_rt64(config.hpfb_option);
     application->userConfig.displayBuffering = RT64::UserConfiguration::DisplayBuffering::Triple;
-    application->userConfig.filtering = RT64::UserConfiguration::Filtering::Nearest;
+    application->userConfig.filtering = RT64::UserConfiguration::Filtering::AntiAliasedPixelScaling;
 }
 
 ultramodern::renderer::SetupResult map_setup_result(RT64::Application::SetupResult rt64_result) {
