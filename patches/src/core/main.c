@@ -1,6 +1,7 @@
 #include "builtin_dbgui.h"
 #include "patches.h"
 #include "patches/main.h"
+#include "patches/rcp.h"
 #include "dbgui.h"
 #include "recomp_options.h"
 
@@ -165,16 +166,17 @@ RECOMP_PATCH void game_tick(void) {
     //          so RT64 doesn't factor in the dimensions of the drawing from earlier in the frame,
     //          which does contain fullscreen draws. This also avoids an issue with some transparent
     //          renders like water getting cutoff at certain camera angles.
-    {
-        Gfx **gdl = &gCurGfx;
+    u32 viSize = vi_get_current_size();
+    u32 viWidth = GET_VIDEO_WIDTH(viSize);
+    u32 viHeight = GET_VIDEO_HEIGHT(viSize);
 
-        u32 viSize = vi_get_current_size();
-        u32 viWidth = GET_VIDEO_WIDTH(viSize);
-        u32 viHeight = GET_VIDEO_HEIGHT(viSize);
+    gDPSetScissor((*gdl)++, G_SC_NON_INTERLACE, 0, 0, viWidth, viHeight);
+    gDPSetFillColor((*gdl)++, (GPACK_RGBA5551(0, 0, 0, 0) << 16) | GPACK_RGBA5551(0, 0, 0, 0));
+    gDPFillRectangle((*gdl)++, 0, 0, viWidth, viHeight);
 
-        gDPSetScissor((*gdl)++, G_SC_NON_INTERLACE, 0, 0, viWidth, viHeight);
-        gDPSetFillColor((*gdl)++, (GPACK_RGBA5551(0, 0, 0, 0) << 16) | GPACK_RGBA5551(0, 0, 0, 0));
-        gDPFillRectangle((*gdl)++, 0, 0, viWidth, viHeight);
+    // @recomp: Take pause screenshot with the DP so RT64 can display the high res version instead
+    if (get_pause_state() == 1) {
+        recomp_take_pause_screenshot(gdl);
     }
 
     gDPFullSync(gCurGfx++);
