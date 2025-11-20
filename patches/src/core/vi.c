@@ -3,6 +3,17 @@
 #include "recomp_funcs.h"
 
 #include "sys/gfx/gx.h"
+#include "sys/main.h"
+#include "sys/joypad.h"
+
+extern OSIoMesg D_800BCC90;
+extern OSDevMgr __osViDevMgr;
+extern s8 D_80093064;
+
+extern void vi_swap_buffers(void);
+extern void vi_set_mode(s32 mode);
+extern void vi_update_fb_size_from_current_mode(int framebufferIndex);
+extern void vi_func_8005DEE8(void);
 
 s32 recomp_snowbike30FPS = FALSE;
 
@@ -12,8 +23,6 @@ RECOMP_PATCH void vi_init_framebuffers(int someBool, s32 width, s32 height) {
     VideoResolution *resPtr;
     u32 hRes;
     u32 vRes;
-
-    recomp_printf("vi_init_framebuffers(%d, %d, %d)\n", someBool, width, height);
 
     // Get resolution by current video mode
     resPtr = &gResolutionArray[gVideoMode & 0x7];
@@ -89,4 +98,74 @@ RECOMP_PATCH int vi_contains_point(s32 x, s32 y) {
 
     return x >= ulx && x < lrx
         && y >= uly && y < lry;
+}
+
+RECOMP_PATCH s32 vi_frame_sync(s32 param1) {
+    s32 updateRate;
+    s32 vidMode;
+
+    updateRate = 1;
+
+    if (gViBlackTimer != 0) {
+        gViBlackTimer -= 1;
+
+        if (gViBlackTimer == 0) {
+            osViBlack(FALSE);
+        }
+    }
+
+    if (param1 != 8) {
+        vi_swap_buffers();
+    }
+
+    while (osRecvMesg(&gVideoMesgQueue, NULL, OS_MESG_NOBLOCK) != -1) {
+        updateRate += 1;
+    }
+
+    gViUpdateRate = updateRate;
+
+    if (gViUpdateRate < gViUpdateRateTarget) {
+        gViUpdateRate = gViUpdateRateTarget;
+    }
+
+    while (updateRate < gViUpdateRate) {
+        osRecvMesg(&gVideoMesgQueue, NULL, OS_MESG_BLOCK);
+        updateRate++;
+    }
+
+    if (D_80093060 != 0) {
+        vidMode = vi_get_mode();
+
+        if (D_80093060 == 3) {
+            vi_set_mode(vidMode);
+            vi_update_fb_size_from_current_mode(gFramebufferChoice);
+            osViSwapBuffer(gFramebufferCurrent);
+        } else if (D_80093060 == 2) {
+            vi_update_fb_size_from_current_mode(gFramebufferChoice);
+            osViSwapBuffer(gFramebufferCurrent);
+        } else {
+            D_800BCC90.hdr.type = 0x11;
+            D_800BCC90.hdr.retQueue = (OSMesgQueue*)&gTvViMode;
+            osSendMesg(__osViDevMgr.evtQueue, &D_800BCC90, OS_MESG_BLOCK);
+            osViSwapBuffer(gFramebufferCurrent);
+            D_80093064 ^= 1;
+        }
+
+        D_80093060 -= 1;
+    } else {
+        if (get_pause_state() == 1) {
+            // Create pause screen screenshot
+            set_pause_state(2);
+            // @recomp: Don't copy framebuffer here, we handle this elsewhere in recomp
+            //bcopy(gFramebufferNext, gFramebufferEnd, 0x25800);
+        } else {
+            osViSwapBuffer(gFramebufferCurrent);
+        }
+    }
+
+    joy_read_nonblocking();
+    vi_func_8005DEE8();
+    osRecvMesg(&gVideoMesgQueue, NULL, OS_MESG_BLOCK);
+
+    return updateRate;
 }

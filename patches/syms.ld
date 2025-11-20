@@ -79,3 +79,5 @@ recomp_get_bgm_volume = 0x8F000188;
 recomp_get_sfx_volume = 0x8F00018C;
 recomp_get_dialog_volume = 0x8F000190;
 recomp_get_subtitles_enabled = 0x8F000194;
+osViBlack_recomp = 0x8F000198;
+osViSwapBuffer_recomp = 0x8F00019C;

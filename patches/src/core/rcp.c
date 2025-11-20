@@ -12,9 +12,6 @@ extern u8 sBGPrimColourR;
 extern u8 sBGPrimColourG;
 extern u8 sBGPrimColourB;
 
-// Must be as large as the gameplay framebuffer
-static u16 recomp_PauseScreenshot[320 * 240];
-
 RECOMP_PATCH void func_80037A14(Gfx **gdl, Mtx **mtx, s32 param3) {
     s32 resolution;
     s32 resWidth, resHeight;
@@ -89,7 +86,7 @@ void recomp_take_pause_screenshot(Gfx **gdl) {
     u32 viHeight = GET_VIDEO_HEIGHT(viSize);
 
     // Use DP to copy framebuffer so RT64 uses the high res version when we go to draw it later
-    gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, recomp_PauseScreenshot);
+    gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFramebufferEnd);
     gDPLoadTextureTile((*gdl)++, gFramebufferCurrent, G_IM_FMT_RGBA, G_IM_SIZ_16b, 
         viWidth, viHeight, 
         0, 0, viWidth, viHeight, 
@@ -122,7 +119,7 @@ RECOMP_PATCH void draw_pause_screen_freeze_frame(Gfx** gdl) {
 
     width = 320;
     height = 240;
-    
+
     gSPClearGeometryMode(*gdl, 0xFFFFFF);
     dl_apply_geometry_mode(gdl);
     
@@ -136,7 +133,7 @@ RECOMP_PATCH void draw_pause_screen_freeze_frame(Gfx** gdl) {
     dl_apply_other_mode(gdl);
   
     // @recomp: Let RT64 display the high res screenshot
-    gDPLoadTextureTile((*gdl)++, recomp_PauseScreenshot, G_IM_FMT_RGBA, G_IM_SIZ_16b, 
+    gDPLoadTextureTile((*gdl)++, gFramebufferEnd, G_IM_FMT_RGBA, G_IM_SIZ_16b, 
             width, height, 
             0, 0, width, height, 
             0, 
