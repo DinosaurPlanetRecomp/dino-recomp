@@ -96,17 +96,12 @@ void recomp_take_pause_screenshot(Gfx **gdl) {
         G_TX_NOMASK, G_TX_NOMASK,
         G_TX_NOLOD, G_TX_NOLOD);
     
-    gSPClearGeometryMode(*gdl, 0xFFFFFF);
-    dl_apply_geometry_mode(gdl);
-    
-    gDPSetCombineMode(*gdl, G_CC_DECALRGBA, G_CC_DECALRGBA);
-    dl_apply_combine(gdl);
-
-    gDPSetOtherMode(*gdl, 
+    gSPClearGeometryMode((*gdl)++, 0xFFFFFF);
+    gDPSetCombineMode((*gdl)++, G_CC_DECALRGBA, G_CC_DECALRGBA);
+    gDPSetOtherMode((*gdl)++, 
         G_AD_PATTERN | G_CD_DISABLE | G_CK_NONE | G_TC_FILT | G_TF_POINT | G_TT_NONE | 
             G_TL_TILE | G_TD_CLAMP | G_TP_NONE | G_CYC_COPY | G_PM_NPRIMITIVE, 
         G_AC_NONE | G_ZS_PIXEL | G_RM_NOOP | G_RM_NOOP2);
-    dl_apply_other_mode(gdl);
     
     gSPTextureRectangle((*gdl)++, 0, 0, (320 + 1) * 4, (240 + 1) * 4, 0, 0, 0, 1 << 12, 1 << 10);
 

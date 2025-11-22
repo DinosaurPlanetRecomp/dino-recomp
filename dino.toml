@@ -194,33 +194,6 @@ text = """float _aspectHack;
     }
     ctx->f6.fl = 1.0f / _aspectHack;"""
 
-# Hook DLL loading/unloading up to N64ModernRuntime's overlay system
-[[patches.hook]]
-before_vram = 0x8000BF18
-func = "dll_load"
-text = "gpr dllId = ctx->r7;"
-[[patches.hook]]
-before_vram = 0x8000C028
-func = "dll_load"
-text = "recomp_on_dll_load(dllId, ctx->r2 + MEM_W(0, ctx->r2));"
-[[patches.hook]]
-before_vram = 0x8000bfbc
-func = "dll_load"
-text = "recomp_on_dll_load_too_few_exports(dllId, ctx->r15, ctx->r24);"
-[[patches.hook]]
-before_vram = 0x8000c014
-func = "dll_load"
-text = "recomp_on_dll_load_too_many_dlls(dllId);"
-
-[[patches.hook]]
-before_vram = 0x8000C2B4
-func = "dll_unload"
-text = "gpr dllListIdx = ctx->r2;"
-[[patches.hook]]
-before_vram = 0x8000C340
-func = "dll_unload"
-text = "recomp_on_dll_unload(MEM_W(dllListIdx * 0x10, MEM_W(0, 0xFFFFFFFF800A7D10)));"
-
 # DLL 31 contains the osFlash functions, redirect them to the recomp versions
 [[patches.hook]]
 func = "__dll31_osFlashInit"

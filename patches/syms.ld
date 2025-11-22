@@ -81,3 +81,5 @@ recomp_get_dialog_volume = 0x8F000190;
 recomp_get_subtitles_enabled = 0x8F000194;
 osViBlack_recomp = 0x8F000198;
 osViSwapBuffer_recomp = 0x8F00019C;
+recomp_on_dll_load = 0x8F0001A0;
+recomp_on_dll_unload = 0x8F0001A4;

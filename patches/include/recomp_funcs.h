@@ -2,6 +2,9 @@
 
 #include "patch_helpers.h"
 
+DECLARE_FUNC(void, recomp_on_dll_load, u32 dllno, void *ramAddr);
+DECLARE_FUNC(void, recomp_on_dll_unload, u32 dllno);
+
 DECLARE_FUNC(void, recomp_puts, const char* data, u32 size);
 DECLARE_FUNC(void, recomp_eputs, const char* data, u32 size);
 DECLARE_FUNC(s32, recomp_get_diprintf_enabled, void);
