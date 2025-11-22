@@ -189,12 +189,12 @@ static void show_fatal_error_message_box(const char* funcname, const char* errst
 
 // u32 -> 32-bit value hashmap.
 
-void recomputil_create_u32_value_hashmap(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_create_u32_value_hashmap(uint8_t* rdram, recomp_context* ctx) {
     (void)rdram;
     _return(ctx, u32_value_hashmaps.create());
 }
 
-void recomputil_destroy_u32_value_hashmap(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_destroy_u32_value_hashmap(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
 
     if (!u32_value_hashmaps.erase(mapkey)) {
@@ -202,7 +202,7 @@ void recomputil_destroy_u32_value_hashmap(uint8_t* rdram, recomp_context* ctx) {
     }
 }
 
-void recomputil_u32_value_hashmap_contains(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_value_hashmap_contains(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
     
@@ -214,7 +214,7 @@ void recomputil_u32_value_hashmap_contains(uint8_t* rdram, recomp_context* ctx) 
     _return(ctx, map->contains(key));
 }
 
-void recomputil_u32_value_hashmap_insert(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_value_hashmap_insert(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
     uint32_t value = _arg<2, uint32_t>(rdram, ctx);
@@ -227,7 +227,7 @@ void recomputil_u32_value_hashmap_insert(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, map->insert(key, value));
 }
 
-void recomputil_u32_value_hashmap_get(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_value_hashmap_get(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
     PTR(uint32_t) val_out = _arg<2, PTR(uint32_t)>(rdram, ctx);
@@ -249,7 +249,7 @@ void recomputil_u32_value_hashmap_get(uint8_t* rdram, recomp_context* ctx) {
     }
 }
 
-void recomputil_u32_value_hashmap_erase(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_value_hashmap_erase(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
 
@@ -261,7 +261,7 @@ void recomputil_u32_value_hashmap_erase(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, map->erase(key));
 }
 
-void recomputil_u32_value_hashmap_size(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_value_hashmap_size(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
 
     U32ValueMap* map;
@@ -274,7 +274,7 @@ void recomputil_u32_value_hashmap_size(uint8_t* rdram, recomp_context* ctx) {
 
 // u32 -> memory hashmap.
 
-void recomputil_create_u32_memory_hashmap(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_create_u32_memory_hashmap(uint8_t* rdram, recomp_context* ctx) {
     uint32_t element_size = _arg<0, uint32_t>(rdram, ctx);
     
     // Create the map.
@@ -289,7 +289,7 @@ void recomputil_create_u32_memory_hashmap(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, map_key);
 }
 
-void recomputil_destroy_u32_memory_hashmap(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_destroy_u32_memory_hashmap(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
 
     // Retrieve the map.
@@ -308,7 +308,7 @@ void recomputil_destroy_u32_memory_hashmap(uint8_t* rdram, recomp_context* ctx) 
     u32_memory_hashmaps.erase(mapkey);
 }
 
-void recomputil_u32_memory_hashmap_contains(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_memory_hashmap_contains(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
     
@@ -320,7 +320,7 @@ void recomputil_u32_memory_hashmap_contains(uint8_t* rdram, recomp_context* ctx)
     _return(ctx, map->first.contains(key));
 }
 
-void recomputil_u32_memory_hashmap_create(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_memory_hashmap_create(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
 
@@ -350,7 +350,7 @@ void recomputil_u32_memory_hashmap_create(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, 1);
 }
 
-void recomputil_u32_memory_hashmap_get(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_memory_hashmap_get(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
     
@@ -370,7 +370,7 @@ void recomputil_u32_memory_hashmap_get(uint8_t* rdram, recomp_context* ctx) {
     }
 }
 
-void recomputil_u32_memory_hashmap_erase(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_memory_hashmap_erase(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
 
@@ -390,7 +390,7 @@ void recomputil_u32_memory_hashmap_erase(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, map->first.erase(key));
 }
 
-void recomputil_u32_memory_hashmap_size(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_memory_hashmap_size(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
 
     U32MemoryMap* map;
@@ -403,12 +403,12 @@ void recomputil_u32_memory_hashmap_size(uint8_t* rdram, recomp_context* ctx) {
 
 // u32 hashset.
 
-void recomputil_create_u32_hashset(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_create_u32_hashset(uint8_t* rdram, recomp_context* ctx) {
     (void)rdram;
     _return(ctx, u32_hashsets.create());
 }
 
-void recomputil_destroy_u32_hashset(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_destroy_u32_hashset(uint8_t* rdram, recomp_context* ctx) {
     uint32_t setkey = _arg<0, uint32_t>(rdram, ctx);
 
     if (!u32_hashsets.erase(setkey)) {
@@ -416,7 +416,7 @@ void recomputil_destroy_u32_hashset(uint8_t* rdram, recomp_context* ctx) {
     }
 }
 
-void recomputil_u32_hashset_contains(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_hashset_contains(uint8_t* rdram, recomp_context* ctx) {
     uint32_t setkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
     
@@ -428,7 +428,7 @@ void recomputil_u32_hashset_contains(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, set->contains(key));
 }
 
-void recomputil_u32_hashset_insert(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_hashset_insert(uint8_t* rdram, recomp_context* ctx) {
     uint32_t setkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
 
@@ -440,7 +440,7 @@ void recomputil_u32_hashset_insert(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, set->insert(key));
 }
 
-void recomputil_u32_hashset_erase(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_hashset_erase(uint8_t* rdram, recomp_context* ctx) {
     uint32_t setkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
 
@@ -452,7 +452,7 @@ void recomputil_u32_hashset_erase(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, set->erase(key));
 }
 
-void recomputil_u32_hashset_size(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_hashset_size(uint8_t* rdram, recomp_context* ctx) {
     uint32_t setkey = _arg<0, uint32_t>(rdram, ctx);
 
     U32HashSet* set;
@@ -465,12 +465,12 @@ void recomputil_u32_hashset_size(uint8_t* rdram, recomp_context* ctx) {
 
 // u32 value slotmap.
 
-void recomputil_create_u32_slotmap(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_create_u32_slotmap(uint8_t* rdram, recomp_context* ctx) {
     (void)rdram;
     _return(ctx, u32_slotmaps.create());
 }
 
-void recomputil_destroy_u32_slotmap(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_destroy_u32_slotmap(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
 
     if (!u32_slotmaps.erase(mapkey)) {
@@ -478,7 +478,7 @@ void recomputil_destroy_u32_slotmap(uint8_t* rdram, recomp_context* ctx) {
     }
 }
 
-void recomputil_u32_slotmap_contains(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_slotmap_contains(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
     
@@ -491,7 +491,7 @@ void recomputil_u32_slotmap_contains(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, map->get(key, &dummy_ptr));
 }
 
-void recomputil_u32_slotmap_create(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_slotmap_create(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
 
     U32Slotmap* map;
@@ -502,7 +502,7 @@ void recomputil_u32_slotmap_create(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, map->create());
 }
 
-void recomputil_u32_slotmap_get(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_slotmap_get(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
     PTR(uint32_t) val_out = _arg<2, PTR(uint32_t)>(rdram, ctx);
@@ -520,7 +520,7 @@ void recomputil_u32_slotmap_get(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, 1);
 }
 
-void recomputil_u32_slotmap_set(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_slotmap_set(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
     uint32_t value = _arg<2, uint32_t>(rdram, ctx);
@@ -539,7 +539,7 @@ void recomputil_u32_slotmap_set(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, 1);
 }
 
-void recomputil_u32_slotmap_erase(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_slotmap_erase(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
 
@@ -555,7 +555,7 @@ void recomputil_u32_slotmap_erase(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, 1);
 }
 
-void recomputil_u32_slotmap_size(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_u32_slotmap_size(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
 
     U32Slotmap* map;
@@ -568,7 +568,7 @@ void recomputil_u32_slotmap_size(uint8_t* rdram, recomp_context* ctx) {
 
 // memory slotmap.
 
-void recomputil_create_memory_slotmap(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_create_memory_slotmap(uint8_t* rdram, recomp_context* ctx) {
     uint32_t element_size = _arg<0, uint32_t>(rdram, ctx);
     
     // Create the map.
@@ -583,7 +583,7 @@ void recomputil_create_memory_slotmap(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, map_key);
 }
 
-void recomputil_destroy_memory_slotmap(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_destroy_memory_slotmap(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
 
     // Retrieve the map.
@@ -602,7 +602,7 @@ void recomputil_destroy_memory_slotmap(uint8_t* rdram, recomp_context* ctx) {
     memory_slotmaps.erase(mapkey);
 }
 
-void recomputil_memory_slotmap_contains(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_memory_slotmap_contains(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
     
@@ -615,7 +615,7 @@ void recomputil_memory_slotmap_contains(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, map->first.get(key, &dummy_ptr));
 }
 
-void recomputil_memory_slotmap_create(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_memory_slotmap_create(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
 
     MemorySlotmap* map;
@@ -644,7 +644,7 @@ void recomputil_memory_slotmap_create(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, key);
 }
 
-void recomputil_memory_slotmap_get(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_memory_slotmap_get(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
     PTR(uint32_t) val_out = _arg<2, PTR(uint32_t)>(rdram, ctx);
@@ -661,7 +661,7 @@ void recomputil_memory_slotmap_get(uint8_t* rdram, recomp_context* ctx) {
     MEM_W(0, val_out) = *ret;
 }
 
-void recomputil_memory_slotmap_erase(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_memory_slotmap_erase(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
     uint32_t key = _arg<1, uint32_t>(rdram, ctx);
 
@@ -681,7 +681,7 @@ void recomputil_memory_slotmap_erase(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, map->first.erase(key));
 }
 
-void recomputil_memory_slotmap_size(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomputil_memory_slotmap_size(uint8_t* rdram, recomp_context* ctx) {
     uint32_t mapkey = _arg<0, uint32_t>(rdram, ctx);
 
     MemorySlotmap* map;

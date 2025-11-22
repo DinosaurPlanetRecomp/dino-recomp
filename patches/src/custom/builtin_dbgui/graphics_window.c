@@ -58,10 +58,10 @@ void graphics_window_check_buffer_sizes(void) {
     if (vtxSize > RECOMP_MAIN_VTX_BUF_SIZE) gCurVtx_overflowed = TRUE;
     if (polSize > RECOMP_MAIN_POL_BUF_SIZE) gCurPol_overflowed = TRUE;
 
-    if (gCurGfx_overflowed) recomp_printf("WARN: gCurGfx overflowed!!!");
-    if (gCurMtx_overflowed) recomp_printf("WARN: gCurMtx overflowed!!!");
-    if (gCurVtx_overflowed) recomp_printf("WARN: gCurVtx overflowed!!!");
-    if (gCurPol_overflowed) recomp_printf("WARN: gCurPol overflowed!!!");
+    if (gCurGfx_overflowed) recomp_eprintf("WARN: gCurGfx overflowed!!!\n");
+    if (gCurMtx_overflowed) recomp_eprintf("WARN: gCurMtx overflowed!!!\n");
+    if (gCurVtx_overflowed) recomp_eprintf("WARN: gCurVtx overflowed!!!\n");
+    if (gCurPol_overflowed) recomp_eprintf("WARN: gCurPol overflowed!!!\n");
 }
 
 static void general_tab() {

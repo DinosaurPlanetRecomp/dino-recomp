@@ -1,7 +1,8 @@
 #include "patches.h"
 
 #include "libnaudio/n_libaudio.h"
-#include "recomp/dlls/_asm/5_recomp.h"
+
+#include "recomp/dlls/engine/5_AMSEQ_recomp.h"
 
 // size:0x24C
 typedef struct {

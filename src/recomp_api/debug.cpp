@@ -28,3 +28,7 @@ extern "C" void recomp_eputs(uint8_t* rdram, recomp_context* ctx) {
 extern "C" void recomp_get_diprintf_enabled(uint8_t* rdram, recomp_context* ctx) {
     _return<s32>(ctx, dino::config::get_debug_diprintf_enabled() ? 1 : 0);
 }
+
+extern "C" void recomp_get_debug_dll_logging_enabled(uint8_t* rdram, recomp_context* ctx) {
+    _return<s32>(ctx, dino::config::get_debug_stdout_enabled() && dino::config::get_debug_dll_logging_enabled() ? 1 : 0);
+}

@@ -20,6 +20,10 @@ The full list of game patches applied by base Dinosaur Planet: Recompiled.
 - Remove hardcoded -6/+6 screen scissor offsets.
 - Remove ROM read that triggers the "anti-piracy viewport".
 
+### dll
+- The maximum number of loaded *vanilla* DLLs is increased to 256 (from 128).
+- Support for custom DLLs. A maximum of 256 custom DLLs can be loaded, bringing the technical maximum number of loaded DLLs to 512.
+
 ### main
 - Move main graphics buffers into static patch memory to save on vanilla pool memory.
 - Double the size of the gfx, mtx, pol, and vtx buffers.
