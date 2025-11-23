@@ -25,7 +25,6 @@
 
 RECOMP_DECLARE_EVENT(recomp_on_game_tick_start());
 RECOMP_DECLARE_EVENT(recomp_on_game_tick());
-RECOMP_DECLARE_EVENT(recomp_on_game_tick_end());
 RECOMP_DECLARE_EVENT(recomp_on_dbgui());
 
 extern Gfx *gMainGfx[2];
@@ -92,10 +91,6 @@ static void recomp_game_tick_start_hook(void) {
 static void recomp_game_tick_hook(void) {
     recomp_on_game_tick();
     builtin_dbgui_game_tick();
-}
-
-static void recomp_game_tick_end_hook(void) {
-    recomp_on_game_tick_end();
 }
 
 RECOMP_PATCH void game_tick(void) {
@@ -207,7 +202,4 @@ RECOMP_PATCH void game_tick(void) {
 
     func_80014074();
     write_c_file_label_pointers("main/main.c", 0x37C);
-
-    // @recomp: Hook end of game_tick
-    recomp_game_tick_end_hook();
 }
