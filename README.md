@@ -58,6 +58,9 @@ Install community made mods and texture packs! Mods can change any part of the g
 - Windows: `%LOCALAPPDATA%\DinoPlanetRecompiled\mods`
 - Linux: `~/.config/DinoPlanetRecompiled/mods`
 
+#### Finding mods
+Check out the official [Dinosaur Planet: Recompiled Thunderstore page](https://thunderstore.io/c/dinosaur-planet-recompiled/) to discover existing mods by the community!
+
 #### Creating mods
 If you would like to create your own mods, please see the following resources:
 - [N64 Recomp Modding documentation](https://hackmd.io/fMDiGEJ9TBSjomuZZOgzNg)
