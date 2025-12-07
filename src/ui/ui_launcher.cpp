@@ -38,7 +38,7 @@ void select_rom() {
                     break;
                 case recomp::RomValidationError::IncorrectVersion:
                     recompui::message_box(
-                            "This ROM is the correct game, but the wrong version.\nThis project requires the unmodified beta ROM.");
+                            "This ROM is the correct game, but the wrong version.\nThis project requires the unmodified beta ROM.\nPlease make sure that you are *not* selecting rom_crack.z64.");
                     break;
                 case recomp::RomValidationError::OtherError:
                     recompui::message_box("An unknown error has occurred.");
