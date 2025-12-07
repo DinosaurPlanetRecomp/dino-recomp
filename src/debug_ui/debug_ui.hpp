@@ -72,8 +72,8 @@ void foreground_text(const ImVec2 &pos, ImU32 color, const char *text);
 void foreground_line(const ImVec2 &p1, const ImVec2 &p2, ImU32 color, float thickness);
 void foreground_circle(const ImVec2 &center, float radius, ImU32 color, int num_segments, float thickness);
 void foreground_circle_filled(const ImVec2 &center, float radius, ImU32 color, int num_segments);
-void foreground_ellipse(const ImVec2 &center, float radius_x, float radius_y, ImU32 color, float rot, int num_segments, float thickness);
-void foreground_ellipse_filled(const ImVec2 &center, float radius_x, float radius_y, ImU32 color, float rot, int num_segments);
+void foreground_ellipse(const ImVec2 &center, ImVec2 &radius, ImU32 color, float rot, int num_segments, float thickness);
+void foreground_ellipse_filled(const ImVec2 &center, ImVec2 &radius, ImU32 color, float rot, int num_segments);
 void foreground_rect(const ImVec2 &p_min, const ImVec2 &p_max, ImU32 color, float thickness);
 void foreground_rect_filled(const ImVec2 &p_min, const ImVec2 &p_max, ImU32 color);
 

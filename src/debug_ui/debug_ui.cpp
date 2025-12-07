@@ -259,14 +259,14 @@ void foreground_circle_filled(const ImVec2 &center, float radius, ImU32 color, i
     ImGui::GetForegroundDrawList()->AddCircleFilled(center, radius, color, num_segments);
 }
 
-void foreground_ellipse(const ImVec2 &center, float radius_x, float radius_y, ImU32 color, float rot, int num_segments, float thickness) {
+void foreground_ellipse(const ImVec2 &center, ImVec2 &radius, ImU32 color, float rot, int num_segments, float thickness) {
     assert_is_open();
-    ImGui::GetForegroundDrawList()->AddEllipse(center, radius_x, radius_y, color, rot, num_segments, thickness);
+    ImGui::GetForegroundDrawList()->AddEllipse(center, radius, color, rot, num_segments, thickness);
 }
 
-void foreground_ellipse_filled(const ImVec2 &center, float radius_x, float radius_y, ImU32 color, float rot, int num_segments) {
+void foreground_ellipse_filled(const ImVec2 &center, ImVec2 &radius, ImU32 color, float rot, int num_segments) {
     assert_is_open();
-    ImGui::GetForegroundDrawList()->AddEllipseFilled(center, radius_x, radius_y, color, rot, num_segments);
+    ImGui::GetForegroundDrawList()->AddEllipseFilled(center, radius, color, rot, num_segments);
 }
 
 void foreground_rect(const ImVec2 &p_min, const ImVec2 &p_max, ImU32 color, float thickness) {

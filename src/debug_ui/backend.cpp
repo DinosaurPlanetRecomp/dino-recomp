@@ -14,7 +14,8 @@
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
-#include "imgui/backends/imgui_impl_sdl2.h"
+//#include "imgui/backends/imgui_impl_sdl2.h"
+#include "imgui/imgui_impl_sdl2_custom.h" // from RT64 src
 #include "imgui/backends/imgui_impl_vulkan.h"
 
 #if defined(_WIN32)
@@ -193,27 +194,22 @@ static void checkVulkanResult(VkResult res) {
     fprintf(stderr, "Debug UI ImGui Vulkan Backend failed with error code 0x%X.\n", res);
 }
 
-// TODO: why isn't this available in imgui_impl_vulkan.h? do we have an outdated version?
-static uint32_t ImGui_ImplVulkanH_SelectQueueFamilyIndex(VkPhysicalDevice physical_device)
-{
-    uint32_t count;
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, nullptr);
-    ImVector<VkQueueFamilyProperties> queues_properties;
-    queues_properties.resize((int)count);
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, queues_properties.Data);
-    for (uint32_t i = 0; i < count; i++)
-        if (queues_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
-            return i;
-    return (uint32_t)-1;
-}
-
 static void rt64_init_hook(RT64::RenderInterface* _interface, RT64::RenderDevice* device) {
     IMGUI_CHECKVERSION();
-    
+
     ImGuiContext *prev_ctx = ImGui::GetCurrentContext();
 
     dino_imgui_ctx = ImGui::CreateContext();
     ImGui::SetCurrentContext(dino_imgui_ctx);
+
+    SDL_DisplayMode displayMode;
+    if (SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(dino::runtime::get_window()), &displayMode) == 0) {
+        float scale = (float)displayMode.h / 1080.0f;
+        if (scale > 1.0f) {
+            dino_imgui_ctx->Style.FontScaleDpi = scale;
+            dino_imgui_ctx->Style.ScaleAllSizes(scale);
+        }
+    }
 
     static std::string imgui_ini_path = (dino::config::get_app_folder_path() / "imgui.ini").string();
     dino_imgui_ctx->IO.IniFilename = imgui_ini_path.c_str();
@@ -239,7 +235,8 @@ static void rt64_init_hook(RT64::RenderInterface* _interface, RT64::RenderDevice
         }
         case RT64::UserConfiguration::GraphicsAPI::Vulkan: {
             RT64::VulkanDevice *interfaceDevice = static_cast<RT64::VulkanDevice *>(device);
-            ImGui_ImplVulkan_LoadFunctions([](const char *functionName, void *vulkanInstance) {
+            uint32_t vkApiVersion = interfaceDevice->renderInterface->appInfo.apiVersion;
+            ImGui_ImplVulkan_LoadFunctions(vkApiVersion, [](const char *functionName, void *vulkanInstance) {
                 return vkGetInstanceProcAddr(*(reinterpret_cast<VkInstance *>(vulkanInstance)), functionName);
             }, &interfaceDevice->renderInterface->instance);
 

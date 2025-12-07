@@ -541,14 +541,16 @@ extern "C" void dbgui_foreground_ellipse(uint8_t* rdram, recomp_context* ctx) {
         MEM_F32(0x0, ptr),
         MEM_F32(0x4, ptr)
     );
-    float radius_x = MEM_F32(0x8, ptr);
-    float radius_y = MEM_F32(0xC, ptr);
+    ImVec2 radius(
+        MEM_F32(0x8, ptr),
+        MEM_F32(0xC, ptr)
+    );
     ImU32 color = MEM_W(0x10, ptr);
     float rotation = MEM_F32(0x14, ptr);
     s32 num_segments = MEM_W(0x18, ptr);
     float thickness = MEM_F32(0x1C, ptr);
 
-    dino::debug_ui::foreground_ellipse(center, radius_x, radius_y, color, rotation, num_segments, thickness);
+    dino::debug_ui::foreground_ellipse(center, radius, color, rotation, num_segments, thickness);
 }
 
 extern "C" void dbgui_foreground_ellipse_filled(uint8_t* rdram, recomp_context* ctx) {
@@ -558,13 +560,15 @@ extern "C" void dbgui_foreground_ellipse_filled(uint8_t* rdram, recomp_context* 
         MEM_F32(0x0, ptr),
         MEM_F32(0x4, ptr)
     );
-    float radius_x = MEM_F32(0x8, ptr);
-    float radius_y = MEM_F32(0xC, ptr);
+    ImVec2 radius(
+        MEM_F32(0x8, ptr),
+        MEM_F32(0xC, ptr)
+    );
     ImU32 color = MEM_W(0x10, ptr);
     float rotation = MEM_F32(0x14, ptr);
     s32 num_segments = MEM_W(0x18, ptr);
 
-    dino::debug_ui::foreground_ellipse_filled(center, radius_x, radius_y, color, rotation, num_segments);
+    dino::debug_ui::foreground_ellipse_filled(center, radius, color, rotation, num_segments);
 }
 
 extern "C" void dbgui_foreground_rect(uint8_t* rdram, recomp_context* ctx) {
