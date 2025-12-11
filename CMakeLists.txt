@@ -138,8 +138,8 @@ add_custom_command(OUTPUT
 )
 
 # Download controller db file for controller support via SDL2
-set(GAMECONTROLLERDB_COMMIT "b1e4090b3d4266e55feb0793efa35792e05faf66")
-set(GAMECONTROLLERDB_URL "https://raw.githubusercontent.com/gabomdq/SDL_GameControllerDB/${GAMECONTROLLERDB_COMMIT}/gamecontrollerdb.txt")
+set(GAMECONTROLLERDB_COMMIT "16ac3e553e23068e26819971f2cc6cd088a7f2f6")
+set(GAMECONTROLLERDB_URL "https://raw.githubusercontent.com/mdqinc/SDL_GameControllerDB/${GAMECONTROLLERDB_COMMIT}/gamecontrollerdb.txt")
 
 file(DOWNLOAD ${GAMECONTROLLERDB_URL} ${CMAKE_SOURCE_DIR}/gamecontrollerdb.txt
      TLS_VERIFY ON)
