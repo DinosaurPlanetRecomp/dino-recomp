@@ -2,7 +2,8 @@
 
 #ifdef __APPLE__
 #include <dispatch/dispatch.h>
-#include <Foundation/Foundation.h>
+#include <AppKit/AppKit.h>
+#include <QuartzCore/QuartzCore.h>
 
 namespace dino::runtime {
     void dispatch_on_ui_thread(std::function<void()> func) {
@@ -30,6 +31,16 @@ namespace dino::runtime {
         NSBundle *bundle = [NSBundle mainBundle];
         NSString *bundlePath = [bundle bundlePath];
         return std::filesystem::path([bundlePath UTF8String]);
+    }
+
+    void* get_metal_layer(void* nsWindow) {
+        NSWindow *window = (__bridge NSWindow *)nsWindow;
+        NSView *view = [window contentView];
+        if (view.layer == nil || ![view.layer isKindOfClass:[CAMetalLayer class]]) {
+            view.wantsLayer = YES;
+            view.layer = [CAMetalLayer layer];
+        }
+        return (__bridge void*)view.layer;
     }
 }
 #endif

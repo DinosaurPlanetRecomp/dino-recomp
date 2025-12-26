@@ -74,8 +74,7 @@ static RT64::UserConfiguration::GraphicsAPI get_graphics_api() {
 #elif defined(__gnu_linux__)
             return RT64::UserConfiguration::GraphicsAPI::Vulkan;
 #elif defined(__APPLE__)
-            // TODO: Add MoltenVK option for Mac?
-            return RT64::UserConfiguration::GraphicsAPI::Vulkan;
+            return RT64::UserConfiguration::GraphicsAPI::Metal;
 #else
             static_assert(false && "Unimplemented")
 #endif
@@ -276,6 +275,10 @@ static void rt64_init_hook(RT64::RenderInterface* _interface, RT64::RenderDevice
             ImGui_ImplVulkan_Init(&initInfo);
             break;
         }
+        case RT64::UserConfiguration::GraphicsAPI::Metal: {
+            // Metal not supported for debug UI
+            break;
+        }
         default:
             assert(false && "Unknown Graphics API.");
             break;
@@ -312,6 +315,10 @@ static void rt64_draw_hook(RT64::RenderCommandList* command_list, RT64::RenderFr
                 ImGui_ImplVulkan_RenderDrawData(draw_data, interface_command_list->vk);
                 break;
             }
+            case RT64::UserConfiguration::GraphicsAPI::Metal: {
+                // Metal not supported for debug UI
+                break;
+            }
             default:
                 assert(false && "Unknown Graphics API.");
                 break;
@@ -343,6 +350,10 @@ static void rt64_deinit_hook() {
             ImGui_ImplVulkan_Shutdown();
             vulkanContext.reset(nullptr);
             break;
+        case RT64::UserConfiguration::GraphicsAPI::Metal: {
+            // Metal not supported for debug UI
+            break;
+        }
         default:
             assert(false && "Unknown Graphics API.");
             break;

@@ -6,6 +6,7 @@
 #include "input/input.hpp"
 #include "common/error.hpp"
 #include "common/sdl.hpp"
+#include "support.hpp"
 
 #include "../../lib/rt64/src/contrib/stb/stb_image.h"
 
@@ -90,6 +91,10 @@ ultramodern::renderer::WindowHandle create_window(ultramodern::gfx_callbacks_t::
     flags |= SDL_WINDOW_VULKAN;
 #endif
 
+#if defined(__APPLE__)
+    flags |= SDL_WINDOW_METAL;
+#endif
+
     window = SDL_CreateWindow("Dinosaur Planet: Recompiled", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 320 * 4, 240 * 4, flags );
 #if defined(__linux__)
     SetImageAsIcon("icons/512.png",window);
@@ -100,20 +105,32 @@ ultramodern::renderer::WindowHandle create_window(ultramodern::gfx_callbacks_t::
     }
 #endif
 
+    SDL_ShowWindow(window);
+    SDL_PumpEvents();
+
     if (window == nullptr) {
         exit_error("Failed to create window: %s\n", SDL_GetError());
     }
 
     SDL_SysWMinfo wmInfo;
     SDL_VERSION(&wmInfo.version);
-    SDL_GetWindowWMInfo(window, &wmInfo);
+    if (!SDL_GetWindowWMInfo(window, &wmInfo)) {
+        exit_error("Failed to get window WM info: %s\n", SDL_GetError());
+    }
 
 #if defined(_WIN32)
     return ultramodern::renderer::WindowHandle{ wmInfo.info.win.window, GetCurrentThreadId() };
 #elif defined(__linux__) || defined(__ANDROID__)
     return ultramodern::renderer::WindowHandle{ window };
 #elif defined(__APPLE__)
-    return ultramodern::renderer::WindowHandle{ wmInfo.info.cocoa.window, wmInfo.info.cocoa.window };
+    if (wmInfo.info.cocoa.window == nullptr) {
+        exit_error("Cocoa window is null\n");
+    }
+    void* view = get_metal_layer(wmInfo.info.cocoa.window);
+    if (view == nullptr) {
+        exit_error("Failed to get Metal layer\n");
+    }
+    return ultramodern::renderer::WindowHandle{ wmInfo.info.cocoa.window, view };
 #else
     static_assert(false && "Unimplemented");
 #endif
