@@ -12,7 +12,7 @@
 
 #if defined(_WIN32)
 #include <Shlobj.h>
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(__APPLE__)
 #include <unistd.h>
 #include <pwd.h>
 #endif
@@ -159,6 +159,16 @@ std::filesystem::path get_app_folder_path() {
 
    if (homedir != nullptr) {
        recomp_dir = std::filesystem::path{homedir} / (std::u8string{u8".config/"} + std::u8string{program_id});
+   }
+#elif defined(__APPLE__)
+   const char *homedir;
+
+   if ((homedir = getenv("HOME")) == nullptr) {
+       homedir = getpwuid(getuid())->pw_dir;
+   }
+
+   if (homedir != nullptr) {
+       recomp_dir = std::filesystem::path{homedir} / "Library/Application Support" / program_id;
    }
 #endif
 
