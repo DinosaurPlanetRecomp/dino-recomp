@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(DinoRecomp LANGUAGES C CXX)
+project(DinoRecomp LANGUAGES C CXX OBJCXX)
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -160,6 +160,9 @@ set (SOURCES_EXTRA
     ${CMAKE_SOURCE_DIR}/rsp/aspMain.cpp
     ${CMAKE_SOURCE_DIR}/lib/RmlUi/Backends/RmlUi_Platform_SDL.cpp
 )
+if (APPLE)
+    list(APPEND SOURCES_EXTRA ${CMAKE_SOURCE_DIR}/src/runtime/support_apple.mm)
+endif()
 
 target_include_directories(DinosaurPlanetRecompiled PRIVATE
     ${CMAKE_SOURCE_DIR}/src

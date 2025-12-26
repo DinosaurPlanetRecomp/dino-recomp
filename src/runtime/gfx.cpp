@@ -113,7 +113,7 @@ ultramodern::renderer::WindowHandle create_window(ultramodern::gfx_callbacks_t::
 #elif defined(__linux__) || defined(__ANDROID__)
     return ultramodern::renderer::WindowHandle{ window };
 #elif defined(__APPLE__)
-    return ultramodern::renderer::WindowHandle{ wmInfo.info.cocoa.window, wmInfo.info.cocoa.view };
+    return ultramodern::renderer::WindowHandle{ wmInfo.info.cocoa.window, wmInfo.info.cocoa.window };
 #else
     static_assert(false && "Unimplemented");
 #endif
