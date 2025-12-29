@@ -60,7 +60,7 @@ RSPRecomp
 .DS_Store
 
 # Controller mappings file
-gamecontrollerdb.txt
+recompcontrollerdb.txt
 
 # clangd cache
 .cache/

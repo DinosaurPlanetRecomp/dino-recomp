@@ -58,7 +58,7 @@ jobs:
       - name: Prepare Native Archive
         run: |
           cp cmake-build/DinosaurPlanetRecompiled DinosaurPlanetRecompiled
-          tar -czf DinosaurPlanetRecompiled.tar.gz DinosaurPlanetRecompiled assets/ gamecontrollerdb.txt
+          tar -czf DinosaurPlanetRecompiled.tar.gz DinosaurPlanetRecompiled assets/ recompcontrollerdb.txt
       - name: Archive DinoRecomp (Native)
         uses: actions/upload-artifact@v4
         with:
@@ -82,7 +82,7 @@ jobs:
           mkdir -p AppDir/usr/share/metainfo/
           cp ../io.github.dinosaurplanetrecomp.dino_recomp.metainfo.xml AppDir/usr/share/metainfo/
           cp -R ../../assets/ AppDir/usr/bin/
-          cp ../../gamecontrollerdb.txt AppDir/usr/bin/
+          cp ../../recompcontrollerdb.txt AppDir/usr/bin/
 
           # Create AppImage
           NO_STRIP=true ./linuxdeploy-x86_64.AppImage \
@@ -225,7 +225,7 @@ jobs:
             dxil.dll
             SDL2.dll
             assets/
-            gamecontrollerdb.txt
+            recompcontrollerdb.txt
       - name: Archive Debug Files
         uses: actions/upload-artifact@v4
         with:

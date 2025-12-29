@@ -137,19 +137,24 @@ add_custom_command(OUTPUT
                    DEPENDS ${CMAKE_SOURCE_DIR}/patches/build/patches.elf
 )
 
-# Download controller db file for controller support via SDL2
-set(GAMECONTROLLERDB_COMMIT "16ac3e553e23068e26819971f2cc6cd088a7f2f6")
-set(GAMECONTROLLERDB_URL "https://raw.githubusercontent.com/mdqinc/SDL_GameControllerDB/${GAMECONTROLLERDB_COMMIT}/gamecontrollerdb.txt")
+# Create RecompControllerDB
+# Combine upstream SDL_GameControllerDB with extra database
+set(RECOMP_CONTROLLER_DB_TXT ${CMAKE_SOURCE_DIR}/recompcontrollerdb.txt)
 
-file(DOWNLOAD ${GAMECONTROLLERDB_URL} ${CMAKE_SOURCE_DIR}/gamecontrollerdb.txt
-     TLS_VERIFY ON)
+function(make_recomp_controller_db)
+    file(READ ${CMAKE_SOURCE_DIR}/lib/SDL_GameControllerDB/gamecontrollerdb.txt SDL_DB_CONTENTS)
+    file(READ ${CMAKE_SOURCE_DIR}/gamecontrollerdb-extra.txt CUSTOM_DB_CONTENTS)
 
-add_custom_target(DownloadGameControllerDB
-    DEPENDS ${CMAKE_SOURCE_DIR}/gamecontrollerdb.txt)
+    file(WRITE ${RECOMP_CONTROLLER_DB_TXT} ${SDL_DB_CONTENTS} "\n" ${CUSTOM_DB_CONTENTS})
+endfunction()
+
+make_recomp_controller_db()
+add_custom_target(MakeRecompControllerDB
+    DEPENDS ${RECOMP_CONTROLLER_DB_TXT})
 
 # Main executable
 add_executable(DinosaurPlanetRecompiled)
-add_dependencies(DinosaurPlanetRecompiled DownloadGameControllerDB)
+add_dependencies(DinosaurPlanetRecompiled MakeRecompControllerDB)
 
 file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
 file(GLOB SOURCES_RECURSIVE 
