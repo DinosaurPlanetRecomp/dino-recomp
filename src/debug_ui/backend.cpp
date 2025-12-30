@@ -7,7 +7,7 @@
 #endif
 #include <SDL_events.h>
 
-#include "vulkan/rt64_vulkan.h"
+#include "plume_vulkan.h"
 #include "common/rt64_user_configuration.h"
 
 #include "concurrentqueue.h"
@@ -55,7 +55,7 @@ bool b_is_open = false;
 bool b_in_ui_frame = false;
 
 static ImGuiContext *prev_ctx;
-static std::unique_ptr<RT64::RenderDescriptorSet> descriptor_set;
+static std::unique_ptr<plume::RenderDescriptorSet> descriptor_set;
 static std::mutex frame_mutex;
 static moodycamel::ConcurrentQueue<SDL_Event> event_queue{};
 static std::unique_ptr<VulkanContext> vulkanContext;
@@ -207,7 +207,7 @@ static uint32_t ImGui_ImplVulkanH_SelectQueueFamilyIndex(VkPhysicalDevice physic
     return (uint32_t)-1;
 }
 
-static void rt64_init_hook(RT64::RenderInterface* _interface, RT64::RenderDevice* device) {
+static void rt64_init_hook(plume::RenderInterface* _interface, plume::RenderDevice* device) {
     IMGUI_CHECKVERSION();
     
     ImGuiContext *prev_ctx = ImGui::GetCurrentContext();
@@ -223,11 +223,11 @@ static void rt64_init_hook(RT64::RenderInterface* _interface, RT64::RenderDevice
     switch (get_graphics_api()) {
         case RT64::UserConfiguration::GraphicsAPI::D3D12: {
 #ifdef _WIN32
-            RT64::D3D12Device *interface_device = static_cast<RT64::D3D12Device *>(device);
-            RT64::RenderDescriptorRange descriptor_range(RT64::RenderDescriptorRangeType::TEXTURE, 0, 1);
-            descriptor_set = interface_device->createDescriptorSet(RT64::RenderDescriptorSetDesc(&descriptor_range, 1));
+            plume::D3D12Device *interface_device = static_cast<plume::D3D12Device *>(device);
+            plume::RenderDescriptorRange descriptor_range(plume::RenderDescriptorRangeType::TEXTURE, 0, 1);
+            descriptor_set = interface_device->createDescriptorSet(plume::RenderDescriptorSetDesc(&descriptor_range, 1));
 
-            RT64::D3D12DescriptorSet *interface_descriptor_set = static_cast<RT64::D3D12DescriptorSet *>(descriptor_set.get());
+            plume::D3D12DescriptorSet *interface_descriptor_set = static_cast<plume::D3D12DescriptorSet *>(descriptor_set.get());
             const D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = interface_device->viewHeapAllocator->getShaderCPUHandleAt(interface_descriptor_set->viewAllocation.offset);
             const D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = interface_device->viewHeapAllocator->getShaderGPUHandleAt(interface_descriptor_set->viewAllocation.offset);
             ImGui_ImplDX12_Init(interface_device->d3d, 2, DXGI_FORMAT::DXGI_FORMAT_B8G8R8A8_UNORM, interface_device->viewHeapAllocator->shaderHeap, cpu_handle, gpu_handle);
@@ -238,7 +238,7 @@ static void rt64_init_hook(RT64::RenderInterface* _interface, RT64::RenderDevice
             break;
         }
         case RT64::UserConfiguration::GraphicsAPI::Vulkan: {
-            RT64::VulkanDevice *interfaceDevice = static_cast<RT64::VulkanDevice *>(device);
+            plume::VulkanDevice *interfaceDevice = static_cast<plume::VulkanDevice *>(device);
             ImGui_ImplVulkan_LoadFunctions([](const char *functionName, void *vulkanInstance) {
                 return vkGetInstanceProcAddr(*(reinterpret_cast<VkInstance *>(vulkanInstance)), functionName);
             }, &interfaceDevice->renderInterface->instance);
@@ -250,9 +250,9 @@ static void rt64_init_hook(RT64::RenderInterface* _interface, RT64::RenderDevice
             
             vulkanContext = std::make_unique<VulkanContext>();
             vulkanContext->device = interfaceDevice->vk;
-            vulkanContext->renderPass = RT64::VulkanGraphicsPipeline::createRenderPass(interfaceDevice, requestSurfaceImageFormat, 
+            vulkanContext->renderPass = plume::VulkanGraphicsPipeline::createRenderPass(interfaceDevice, requestSurfaceImageFormat, 
                 (size_t)IM_ARRAYSIZE(requestSurfaceImageFormat), VK_FORMAT_UNDEFINED, VK_SAMPLE_COUNT_1_BIT);
-            vulkanContext->descriptorPool = RT64::VulkanDescriptorSet::createDescriptorPool(interfaceDevice, typeCounts);
+            vulkanContext->descriptorPool = plume::VulkanDescriptorSet::createDescriptorPool(interfaceDevice, typeCounts, false);
 
             uint32_t queueFamily = ImGui_ImplVulkanH_SelectQueueFamilyIndex(interfaceDevice->physicalDevice);
             IM_ASSERT(queueFamily != (uint32_t)-1);
@@ -286,7 +286,7 @@ static void rt64_init_hook(RT64::RenderInterface* _interface, RT64::RenderDevice
     ImGui::SetCurrentContext(prev_ctx);
 }
 
-static void rt64_draw_hook(RT64::RenderCommandList* command_list, RT64::RenderFramebuffer* swap_chain_framebuffer) {
+static void rt64_draw_hook(plume::RenderCommandList* command_list, plume::RenderFramebuffer* swap_chain_framebuffer) {
     if (!b_is_open) return;
     
     const std::lock_guard<std::mutex> frame_lock(frame_mutex);
@@ -308,7 +308,7 @@ static void rt64_draw_hook(RT64::RenderCommandList* command_list, RT64::RenderFr
                 break;
             }
             case RT64::UserConfiguration::GraphicsAPI::Vulkan: {
-                RT64::VulkanCommandList *interface_command_list = static_cast<RT64::VulkanCommandList *>(command_list);
+                plume::VulkanCommandList *interface_command_list = static_cast<plume::VulkanCommandList *>(command_list);
                 ImGui_ImplVulkan_RenderDrawData(draw_data, interface_command_list->vk);
                 break;
             }
