@@ -44,6 +44,15 @@ extern f32 fexp(f32 x, u32 iterations);
 // when the game restores the camera viewProj matrix
 static Mtx *recomp_lastCamViewMtx;
 static Mtx *recomp_lastCamProjMtx;
+static MtxF *recomp_lastCamViewWorldOffsetMtx;
+static MtxF recomp_viewWorldOffsetResetMtx = {
+    .m = {
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    }
+};
 
 RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
     s32 prevCameraSel;
@@ -104,6 +113,23 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
 
     gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_PROJECTION | G_MTX_LOAD);
     gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_PROJECTION | G_MTX_MUL);
+    
+    // @recomp: Submit the world view offset to RT64 so it can reconcile for frame interpolation
+    if (!gSomeVideoFlag) {
+        SRT recomp_viewWorldOffsetSRT = {
+            .yaw = 0, .pitch = 0, .roll = 0,
+            .flags = 0,
+            .scale = 1.0f,
+            .transl = { .x = gWorldX, .y = 0, .z = gWorldZ }
+        };
+        matrix_from_srt((MtxF*)*rspMtxs, &recomp_viewWorldOffsetSRT);
+        recomp_lastCamViewWorldOffsetMtx = (MtxF*)(*rspMtxs + 0);
+        gEXSetViewMatrixFloat((*gdl)++, (MtxF*)(*rspMtxs)++);
+    } else {
+        // Disable for shadow ortho projection
+        recomp_lastCamViewWorldOffsetMtx = &recomp_viewWorldOffsetResetMtx;
+        gEXSetViewMatrixFloat((*gdl)++, &recomp_viewWorldOffsetResetMtx);
+    }
 
     gCameraSRT.yaw = -0x8000 - camera->yaw;
     gCameraSRT.pitch = -(camera->pitch + camera->dpitch);
@@ -133,6 +159,9 @@ RECOMP_PATCH void func_80004224(Gfx **gdl)
     // See above notes in setup_rsp_camera_matrices
     gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(recomp_lastCamProjMtx), G_MTX_PROJECTION | G_MTX_LOAD);
     gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(recomp_lastCamViewMtx), G_MTX_PROJECTION | G_MTX_MUL);
+
+    // @recomp: Submit the world view offset to RT64 so it can reconcile for frame interpolation
+    gEXSetViewMatrixFloat((*gdl)++, recomp_lastCamViewWorldOffsetMtx);
 }
 
 RECOMP_PATCH void func_80002130(s32 *ulx, s32 *uly, s32 *lrx, s32 *lry)
