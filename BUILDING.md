@@ -23,6 +23,37 @@ For Linux the instructions for Ubuntu are provided, but you can find the equival
 sudo apt-get install cmake ninja-build libsdl2-dev libdbus-1-dev libfreetype-dev lld llvm clang
 ```
 
+### macOS
+Building on macOS requires Homebrew (a package manager for macOS), a special MIPS-capable version of Clang, and Xcode for Metal shader support. Follow these steps:
+
+1. **Install Homebrew** (if not already installed):
+   - Open Terminal and run:
+     ```bash
+     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+     ```
+   - Follow the on-screen instructions to complete the installation.
+
+2. **Install build dependencies via Homebrew**:
+   ```bash
+   brew install cmake ninja sdl2 freetype llvm lld
+   ```
+   - This installs CMake (build system), Ninja (build tool), SDL2 (for graphics/input), Freetype (for fonts), and LLVM tools (including LLD linker).
+
+3. **Download and install MIPS-capable Clang**:
+   - The standard Clang on macOS doesn't support MIPS assembly, which is needed for recompiling N64 patches.
+   - Go to the [n64recomp-clang releases page](https://github.com/LT-Schmiddy/n64recomp-clang/releases).
+   - Download the latest release for your Mac's architecture:
+     - For Apple Silicon (M1/M2/M3 chips): `Darwin-arm64-ClangEssentialsAndN64Recomp-ClangVersion...-MipsOnly.tar.xz`
+     - For Intel Macs: `Darwin-x86_64-ClangEssentialsAndN64Recomp-ClangVersion...-MipsOnly.tar.xz`
+   - Extract the downloaded archive to a location like `~/n64recomp-clang` (or any directory you prefer).
+   - Note the path to the `bin` folder inside the extracted directory (e.g., `~/n64recomp-clang/bin`).
+
+4. **Install Xcode**:
+   - Metal shaders (used for graphics) require Xcode's command-line tools.
+   - Open the Mac App Store and search for "Xcode".
+   - Download and install Xcode (it's a large download, ~10-15 GB).
+   - After installation, open Xcode once to accept the license agreement.
+
 ### Windows
 You will need to install [Visual Studio 2022](https://visualstudio.microsoft.com/downloads/).
 In the setup process you'll need to select the following options and tools for installation:
@@ -87,6 +118,33 @@ Builds will be output to `build`.
 3. In the CMake tab, under Build (and Debug/Launch), set the build target to `DinosaurPlanetRecompiled`.
 4. Using the CMake extension, you now should be able to build the project!
 
+##### macOS
+1. **Install the CMake Tools extension**:
+   - In VS Code, go to the Extensions view (View > Extensions or Cmd+Shift+X).
+   - Search for "CMake Tools" and install the extension by Microsoft (`ms-vscode.cmake-tools`).
+
+2. **Configure VS Code workspace settings**:
+   - Open the Command Palette (Cmd+Shift+P) and select "Preferences: Open Workspace Settings (JSON)".
+   - Add the following settings to the JSON file:
+     ```json
+     {
+       "cmake.generator": "Ninja",
+       "cmake.configureArgs": ["-DPATCHES_C_COMPILER=/path/to/n64recomp-clang/bin/clang", "-DPATCHES_LD=/path/to/n64recomp-clang/bin/ld.lld"]
+     }
+     ```
+     - Replace `/path/to/n64recomp-clang` with the actual path to your extracted MIPS Clang directory (e.g., `~/n64recomp-clang`).
+     - If the CMake extension has already configured the project, delete the `build` folder in your workspace and restart VS Code.
+
+3. **Configure the build**:
+   - In the VS Code status bar at the bottom, click on the CMake kit selector (it might say "Unspecified" or show a compiler).
+   - Select "Clang" as the compiler.
+   - In the CMake panel (View > Command Palette > CMake: Focus on CMake View), under "Configure", ensure it's set up.
+   - Under "Build", set the target to `DinosaurPlanetRecompiled`.
+
+4. **Build the project**:
+   - Click the build button in the CMake panel or use the Command Palette: "CMake: Build".
+   - The build output will appear in the `build` folder.
+
 ##### Windows
 1. Add the following to your **workspace** configuration:
     - `"cmake.generator": "Ninja"`
@@ -120,6 +178,59 @@ If you prefer the command line you can build the project using CMake directly.
 cmake -S . -B build-cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -G Ninja -DCMAKE_BUILD_TYPE=Release # or Debug if you want to debug
 cmake --build build-cmake --target DinosaurPlanetRecompiled -j$(nproc) --config Release # or Debug
 ```
+
+#### macOS
+macOS support is experimental and requires additional setup compared to Linux. Follow these steps carefully:
+
+1. **Open Terminal**:
+   - Press Cmd+Space, type "Terminal", and press Enter to open the Terminal app.
+
+2. **Navigate to the project directory**:
+   ```bash
+   cd /path/to/dino-recomp
+   ```
+   - Replace `/path/to/dino-recomp` with the actual path where you cloned the repository.
+
+3. **Install dependencies**:
+   ```bash
+   brew install cmake ninja sdl2 freetype llvm lld
+   ```
+   - This may take a few minutes. If you encounter errors, ensure Homebrew is installed and up to date.
+
+4. **Download MIPS Clang**:
+   - Open your web browser and go to https://github.com/LT-Schmiddy/n64recomp-clang/releases.
+   - Download the appropriate file for your Mac:
+     - Apple Silicon (M1/M2/M3): `Darwin-arm64-ClangEssentialsAndN64Recomp-ClangVersion...-MipsOnly.tar.xz`
+     - Intel Mac: `Darwin-x86_64-ClangEssentialsAndN64Recomp-ClangVersion...-MipsOnly.tar.xz`
+   - Save the file to your Downloads folder.
+
+5. **Extract MIPS Clang**:
+   ```bash
+   cd ~/Downloads
+   tar -xf Darwin-arm64-ClangEssentialsAndN64Recomp-ClangVersion*.tar.xz  # Adjust filename as needed
+   mv ClangEssentialsAndN64Recomp-ClangVersion* ~/n64recomp-clang  # Rename and move to home directory
+   ```
+   - This creates a folder `~/n64recomp-clang` with the MIPS Clang tools.
+
+6. **Install Xcode**:
+   - Open the App Store app.
+   - Search for "Xcode" and install it (free, but large download).
+   - After installation, open Xcode once to accept the license.
+
+7. **Configure the build**:
+   ```bash
+   cd /path/to/dino-recomp  # Back to project directory
+   cmake -S . -B build-cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DPATCHES_C_COMPILER=~/n64recomp-clang/bin/clang -DPATCHES_LD=~/n64recomp-clang/bin/ld.lld -G Ninja -DCMAKE_BUILD_TYPE=Release
+   ```
+   - If the path to MIPS Clang is different, adjust accordingly.
+
+8. **Build the project**:
+   ```bash
+   cmake --build build-cmake --target DinosaurPlanetRecompiled -j$(sysctl -n hw.ncpu) --config Release
+   ```
+   - This will compile the project. It may take 10-30 minutes depending on your Mac.
+
+Note: If you encounter issues, ensure all paths are correct and that Xcode is fully installed.
 
 #### Windows
 > [!IMPORTANT]  
