@@ -33,7 +33,7 @@ modules:
       - "rm -rf assets/scss"
       - "mkdir -p /app/bin"
       - "cp cmake-build/DinosaurPlanetRecompiled /app/bin/DinosaurPlanetRecompiled"
-      - "cp gamecontrollerdb.txt /app/bin/gamecontrollerdb.txt"
+      - "cp recompcontrollerdb.txt /app/bin/recompcontrollerdb.txt"
       - "cp -R assets /app/bin/assets"
       - "install -Dm644 icons/64.png /app/share/icons/hicolor/64x64/apps/${FLATPAK_ID}.png"
       - "install -Dm644 deploy/io.github.dinosaurplanetrecomp.dino_recomp.metainfo.xml /app/share/metainfo/${FLATPAK_ID}.metainfo.xml"
