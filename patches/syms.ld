@@ -98,3 +98,5 @@ recomputil_u32_value_hashmap_insert = 0x8F0001D4;
 recomputil_u32_value_hashmap_get = 0x8F0001D8;
 recomputil_u32_value_hashmap_erase = 0x8F0001DC;
 recomputil_u32_value_hashmap_size = 0x8F0001E0;
+recomp_powf = 0x8F0001E4;
+osGetTime_recomp = 0x8F0001E8;

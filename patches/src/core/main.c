@@ -1,5 +1,7 @@
 #include "builtin_dbgui.h"
 #include "patches.h"
+#include "patches/builtin_dbgui/graphics_window.h"
+#include "patches/fbfx.h"
 #include "patches/main.h"
 #include "patches/rcp.h"
 #include "dbgui.h"
@@ -41,6 +43,7 @@ extern s8 gPauseState;
 
 extern void func_80013D80();
 extern void func_80014074(void);
+extern void NOTosSetTime(s32 arg0, s32 arg1);
 
 // @recomp: Move graphics buffers into patch memory to save vanilla pool memory
 static Gfx recompMainGfx[2][RECOMP_MAIN_GFX_BUF_SIZE / sizeof(Gfx)]; 
@@ -69,10 +72,7 @@ RECOMP_PATCH void alloc_frame_buffers(void) {
     gMainVtx[1] = recompMainVtx[1];
 }
 
-static void recomp_game_tick_start_hook(void) {
-    recomp_on_game_tick_start();
-    recomp_run_ui_callbacks();
-    recomp_pull_game_options();
+void recomp_dbgui_tick(void) {
     dbgui_ui_frame_begin();
 
     if (dbgui_is_open()) {
@@ -88,6 +88,13 @@ static void recomp_game_tick_start_hook(void) {
     dbgui_ui_frame_end();
 }
 
+static void recomp_game_tick_start_hook(void) {
+    recomp_on_game_tick_start();
+    recomp_run_ui_callbacks();
+    recomp_pull_game_options();
+    recomp_dbgui_tick();
+}
+
 static void recomp_game_tick_hook(void) {
     recomp_on_game_tick();
     builtin_dbgui_game_tick();
@@ -97,6 +104,9 @@ RECOMP_PATCH void game_tick(void) {
     u8 phi_v1;
     u32 updateRate;
     Gfx **gdl;
+
+    // @recomp: Do custom framebuffer FX implementation
+    recomp_fbfx();
 
     osSetTime(0);
     dl_next_debug_info_set();
@@ -149,9 +159,21 @@ RECOMP_PATCH void game_tick(void) {
     gDLL_22_Subtitles->vtbl->func_578(gdl);
     camera_tick();
     func_800129E4();
+    // @recomp: Trigger framebuffer FX from debug UI window. This call must be deferred because
+    //          the debug UI runs before the framebuffer FX handler, which would cause it to be
+    //          processed a frame early (and doesn't work with the recomp patches for it). Calling
+    //          it here makes the debug UI menu behave the same as normal game code using framebuffer FX.
+    if (recomp_fbfxShouldPlay) {
+        recomp_fbfxShouldPlay = FALSE;
+        NOTosSetTime(recomp_fbfxTargetID, recomp_fbfxTargetDuration);
+    }
     // @recomp: Hook game_tick, before we end the frame
     recomp_game_tick_hook();
     diPrintfAll(gdl);
+    // @recomp: Recomp framebuffer FX preparations
+    recomp_fbfx_prepare();
+    // @recomp: Motion blur framebuffer FX
+    recomp_fbfx_motion_blur_tick();
     
     // @recomp: Draw invisible fullscreen rect to avoid RT64 issue where it sometimes thinks
     //          the final framebuffer isn't fullscreen and doesn't apply aspect ratio correction
@@ -165,6 +187,11 @@ RECOMP_PATCH void game_tick(void) {
     u32 viWidth = GET_VIDEO_WIDTH(viSize);
     u32 viHeight = GET_VIDEO_HEIGHT(viSize);
 
+    gDPSetCombineMode((*gdl)++, G_CC_SHADE, G_CC_SHADE); 
+    gDPSetOtherMode((*gdl)++, 
+        G_AD_PATTERN | G_CD_MAGICSQ | G_CK_NONE | G_TC_FILT | G_TF_BILERP | G_TT_NONE | G_TL_TILE | G_TD_CLAMP | 
+            G_TP_PERSP | G_CYC_1CYCLE |  G_PM_NPRIMITIVE, 
+        G_AC_NONE | G_ZS_PIXEL | G_RM_XLU_SURF | G_RM_XLU_SURF2);
     gDPSetScissor((*gdl)++, G_SC_NON_INTERLACE, 0, 0, viWidth, viHeight);
     gDPSetFillColor((*gdl)++, (GPACK_RGBA5551(0, 0, 0, 0) << 16) | GPACK_RGBA5551(0, 0, 0, 0));
     gDPFillRectangle((*gdl)++, 0, 0, viWidth, viHeight);

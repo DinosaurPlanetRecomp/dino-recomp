@@ -27,6 +27,7 @@ DECLARE_FUNC(RecompAspectRatio, recomp_get_aspect_ratio_mode, void);
 DECLARE_FUNC(f32, recomp_get_aspect_ratio, void);
 DECLARE_FUNC(RecompHUDRatio, recomp_get_hud_ratio_mode, void);
 DECLARE_FUNC(int, recomp_get_refresh_rate, void);
+DECLARE_FUNC(f32, recomp_powf, f32, f32);
 DECLARE_FUNC(s32, recomp_get_60fps_enabled, void);
 DECLARE_FUNC(s32, recomp_get_bgm_volume, void);
 DECLARE_FUNC(s32, recomp_get_sfx_volume, void);

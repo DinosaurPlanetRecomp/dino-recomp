@@ -34,6 +34,14 @@ extern u8 gFrameBufIdx;
 
 extern s16 gRenderListLength;
 
+extern s32 D_80092A50;
+extern s32 D_80092A54;
+extern s32 D_800B49E0;
+
+s32 recomp_fbfxShouldPlay = FALSE;
+s32 recomp_fbfxTargetID = 3;
+s32 recomp_fbfxTargetDuration = 15;
+
 static s32 gCurGfx_overflowed = FALSE;
 static s32 gCurMtx_overflowed = FALSE;
 static s32 gCurVtx_overflowed = FALSE;
@@ -64,7 +72,7 @@ void graphics_window_check_buffer_sizes(void) {
     if (gCurPol_overflowed) recomp_eprintf("WARN: gCurPol overflowed!!!\n");
 }
 
-static void general_tab() {
+static void general_tab(void) {
     dbgui_textf("gRenderListLength: %d", renderListLength);
     dbgui_textf("gWorldX: %f", gWorldX);
     dbgui_textf("gWorldZ: %f", gWorldZ);
@@ -75,7 +83,7 @@ static void general_tab() {
     dbgui_textf("gCurPol size: %x/%x\t(%f%%)", polSize, RECOMP_MAIN_POL_BUF_SIZE, (f32)polSize / (f32)RECOMP_MAIN_POL_BUF_SIZE);
 }
 
-static void camera_tab() {
+static void camera_tab(void) {
     dbgui_textf("gFovY: %f", gFovY);
     dbgui_textf("gAspect: %f", gAspect);
     dbgui_textf("gNearPlane: %f", gNearPlane);
@@ -154,7 +162,7 @@ static void camera_tab() {
     }
 }
 
-static void video_tab() {
+static void video_tab(void) {
     u32 res = vi_get_current_size();
     u32 width = GET_VIDEO_WIDTH(res);
     u32 height = GET_VIDEO_HEIGHT(res);
@@ -197,11 +205,48 @@ static void video_tab() {
     }
 }
 
-static void hacks_tab() {
+static void fbfx_tab(void) {
+    static s32 continuous = FALSE;
+    if (dbgui_input_int("FX ID", &recomp_fbfxTargetID)) {
+        if (recomp_fbfxTargetID < 0) recomp_fbfxTargetID = 0;
+        if (recomp_fbfxTargetID > 15) recomp_fbfxTargetID = 15;
+    }
+    if (dbgui_input_int("FX Duration", &recomp_fbfxTargetDuration)) {
+        if (recomp_fbfxTargetDuration < 0) recomp_fbfxTargetDuration = 0;
+    }
+    dbgui_checkbox("Autoplay", &continuous);
+    if (continuous) {
+        recomp_fbfxShouldPlay = TRUE;
+    }
+    if (!continuous) {
+        dbgui_same_line();
+        if (dbgui_button("Play")) {
+            recomp_fbfxShouldPlay = TRUE;
+        }
+    }
+    dbgui_separator();
+    dbgui_textf("Current FX:");
+    dbgui_textf("  ID: %d", D_80092A50);
+    dbgui_textf("  Duration: %d", D_80092A54);
+    dbgui_textf("  Timer: %d", D_800B49E0);
+
+    dbgui_separator();
+
+    static s32 cycles = 0;
+    static s32 microseconds = 0;
+    if (dbgui_input_int("Clock Cycles", &cycles)) {
+        microseconds = (cycles * 64) / 3000; // OS_CYCLES_TO_USEC
+    }
+
+    dbgui_textf("= %d microseconds", microseconds);
+    dbgui_textf("= %f seconds", ((f32)microseconds / 1000000.0f));
+}
+
+static void hacks_tab(void) {
     dbgui_checkbox("30 FPS SnowBike race", &recomp_snowbike30FPS);
 }
 
-static void recomp_tab() {
+static void recomp_tab(void) {
     u32 width, height;
     recomp_get_window_resolution(&width, &height);
 
@@ -256,6 +301,11 @@ void dbgui_graphics_window(s32 *open) {
 
             if (dbgui_begin_tab_item("Video", NULL)) {
                 video_tab();
+                dbgui_end_tab_item();
+            }
+
+            if (dbgui_begin_tab_item("Framebuffer FX", NULL)) {
+                fbfx_tab();
                 dbgui_end_tab_item();
             }
 

@@ -11,3 +11,5 @@
 #define RECOMP_MAIN_MTX_BUF_SIZE ((int)(MAIN_MTX_BUF_SIZE * 2))
 #define RECOMP_MAIN_VTX_BUF_SIZE ((int)(MAIN_VTX_BUF_SIZE * 2))
 #define RECOMP_MAIN_POL_BUF_SIZE ((int)(MAIN_POL_BUF_SIZE * 2))
+
+void recomp_dbgui_tick(void);
