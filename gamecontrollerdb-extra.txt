@@ -1,0 +1,2 @@
+# Extra SDL Game Controller DB for Recomp
+# This list should be appended to the upstream SDL database.

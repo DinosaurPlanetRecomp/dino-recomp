@@ -134,7 +134,7 @@ int main(int argc, char** argv) {
     dino::runtime::reset_audio(48000);
 
     // Source controller mappings file
-    std::string controller_mappings_path = (dino::runtime::get_program_path() / "gamecontrollerdb.txt").string();
+    std::string controller_mappings_path = (dino::runtime::get_program_path() / "recompcontrollerdb.txt").string();
     if (SDL_GameControllerAddMappingsFromFile(controller_mappings_path.c_str()) < 0) {
         fprintf(stderr, "Failed to load controller mappings: %s\n", SDL_GetError());
     }

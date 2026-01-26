@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "plume_render_interface.h"
 #include "rt64_render_hooks.h"
 
 namespace dino::renderer {
@@ -29,13 +30,13 @@ void add_hook(RT64::RenderHookInit *init, RT64::RenderHookDraw *draw, RT64::Rend
     });
 }
 
-static void init_hook(RT64::RenderInterface* _interface, RT64::RenderDevice* device) {
+static void init_hook(plume::RenderInterface* _interface, plume::RenderDevice* device) {
     for (const auto& hook : hooks) {
         hook.init(_interface, device);
     }
 }
 
-static void draw_hook(RT64::RenderCommandList* command_list, RT64::RenderFramebuffer* swap_chain_framebuffer) {
+static void draw_hook(plume::RenderCommandList* command_list, plume::RenderFramebuffer* swap_chain_framebuffer) {
     for (const auto& hook : hooks) {
         hook.draw(command_list, swap_chain_framebuffer);
     }

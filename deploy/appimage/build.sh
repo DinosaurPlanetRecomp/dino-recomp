@@ -13,7 +13,7 @@ cp -R ../../assets/ AppDir/usr/bin/
 rm -rf AppDir/usr/bin/assets/scss/
 
 # gamecontrollerdb
-cp ../../gamecontrollerdb.txt AppDir/usr/bin/
+cp ../../recompcontrollerdb.txt AppDir/usr/bin/
 
 NO_STRIP=true linuxdeploy.AppImage --appdir AppDir \
     --executable ../../build/DinosaurPlanetRecompiled \

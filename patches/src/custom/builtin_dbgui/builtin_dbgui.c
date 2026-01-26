@@ -1,6 +1,6 @@
 #include "dbgui.h"
 #include "builtin_dbgui.h"
-#include "graphics_window.h"
+#include "patches/builtin_dbgui/graphics_window.h"
 
 static s32 dllsOpen = FALSE;
 static s32 audioOpen = FALSE;

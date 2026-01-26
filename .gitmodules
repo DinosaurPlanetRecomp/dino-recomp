@@ -22,3 +22,6 @@
 [submodule "lib/dino-recomp-decomp-bridge"]
 	path = lib/dino-recomp-decomp-bridge
 	url = https://github.com/DinosaurPlanetRecomp/dino-recomp-decomp-bridge.git
+[submodule "lib/SDL_GameControllerDB"]
+	path = lib/SDL_GameControllerDB
+	url = https://github.com/mdqinc/SDL_GameControllerDB.git
