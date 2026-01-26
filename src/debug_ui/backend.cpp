@@ -23,6 +23,10 @@
 #   include "utf8conv/utf8conv.h"
 #endif
 
+#if defined(__APPLE__)
+#   include "imgui/backends/imgui_impl_metal.h"
+#endif
+
 #if defined(_WIN32)
 #include "d3d12/rt64_d3d12.h"
 #endif
@@ -157,6 +161,12 @@ void begin() {
             ImGui_ImplVulkan_NewFrame();
             break;
         }
+        case RT64::UserConfiguration::GraphicsAPI::Metal: {
+#ifdef __APPLE__
+            ImGui_ImplMetal_NewFrame(nullptr);
+#endif
+            break;
+        }
         default:
             assert(false && "Unknown Graphics API.");
             break;
@@ -276,7 +286,12 @@ static void rt64_init_hook(plume::RenderInterface* _interface, plume::RenderDevi
             break;
         }
         case RT64::UserConfiguration::GraphicsAPI::Metal: {
-            // Metal not supported for debug UI
+#ifdef __APPLE__
+            ImGui_ImplMetal_Init(nullptr);
+#else
+            assert(false && "Metal only available on macOS.");
+            return;
+#endif
             break;
         }
         default:
@@ -316,7 +331,9 @@ static void rt64_draw_hook(plume::RenderCommandList* command_list, plume::Render
                 break;
             }
             case RT64::UserConfiguration::GraphicsAPI::Metal: {
-                // Metal not supported for debug UI
+#ifdef __APPLE__
+                ImGui_ImplMetal_RenderDrawData(draw_data, nullptr);
+#endif
                 break;
             }
             default:
@@ -351,7 +368,9 @@ static void rt64_deinit_hook() {
             vulkanContext.reset(nullptr);
             break;
         case RT64::UserConfiguration::GraphicsAPI::Metal: {
-            // Metal not supported for debug UI
+#ifdef __APPLE__
+            ImGui_ImplMetal_Shutdown();
+#endif
             break;
         }
         default:

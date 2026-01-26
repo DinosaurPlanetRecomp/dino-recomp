@@ -27,11 +27,7 @@ sudo apt-get install cmake ninja-build libsdl2-dev libdbus-1-dev libfreetype-dev
 Building on macOS requires Homebrew (a package manager for macOS), a special MIPS-capable version of Clang, and Xcode for Metal shader support. Follow these steps:
 
 1. **Install Homebrew** (if not already installed):
-   - Open Terminal and run:
-     ```bash
-     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-     ```
-   - Follow the on-screen instructions to complete the installation.
+   - Visit [brew.sh](https://brew.sh/) and follow the installation instructions.
 
 2. **Install build dependencies via Homebrew**:
    ```bash

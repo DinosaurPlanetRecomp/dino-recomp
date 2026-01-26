@@ -231,4 +231,83 @@ jobs:
         with:
           name: DinosaurPlanetRecompiled-${{ runner.os }}-x64-PDB
           path: |
-            DinosaurPlanetRecompiled.pdb
+            DinosaurPlanetRecompiled.pdb  # macOS (Universal Binary: Intel + ARM)
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          submodules: recursive
+      - name: Install macOS Dependencies
+        run: |
+          brew install cmake ninja sdl2 freetype llvm lld
+      - name: Checkout baserom
+        uses: actions/checkout@v2
+        with:
+          repository: DinosaurPlanetRecomp/dino-recomp-private
+          token: ${{ secrets.PRIVATE_REPO_PAT }}
+          path: baserom
+      - name: Extract baserom
+        run: |
+          unzip baserom/baserom.patched.z64.zip -d ./
+      - name: Download n64recomp-clang
+        run: |
+          # Determine the correct architecture
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "arm64" ]; then
+            CLANG_FILE="Darwin-arm64-ClangEssentialsAndN64Recomp-ClangVersion19.1.4-MipsOnly.tar.xz"
+          else
+            CLANG_FILE="Darwin-x86_64-ClangEssentialsAndN64Recomp-ClangVersion19.1.4-MipsOnly.tar.xz"
+          fi
+          
+          curl -sSfL "https://github.com/LT-Schmiddy/n64recomp-clang/releases/download/v19.1.4/${CLANG_FILE}" -o n64recomp-clang.tar.xz
+          tar -xf n64recomp-clang.tar.xz
+          mv Darwin-*/bin n64recomp-clang-bin || mv Darwin-* n64recomp-clang-bin
+      - name: Build N64Recomp & RSPRecomp
+        run: |
+          cd lib/N64Recomp
+
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_MAKE_PROGRAM=ninja -G Ninja -S . -B cmake-build
+          cmake --build cmake-build --config Release --target N64RecompCLI -j $(sysctl -n hw.ncpu)
+          cmake --build cmake-build --config Release --target RSPRecomp -j $(sysctl -n hw.ncpu)
+
+          # Copy N64Recomp & RSPRecomp to root directory
+          cp cmake-build/N64Recomp ../..
+          cp cmake-build/RSPRecomp ../..
+      - name: Run N64Recomp & RSPRecomp
+        run: |
+          ./N64Recomp dino.toml
+          ./RSPRecomp aspMain.toml
+      - name: Build DinoRecomp (Universal Binary)
+        run: |
+          # Build for both architectures and create universal binary
+          LLVM_BIN="$(brew --prefix llvm)/bin"
+          
+          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_CXX_COMPILER="${LLVM_BIN}/clang++" \
+            -DCMAKE_C_COMPILER="${LLVM_BIN}/clang" \
+            -DCMAKE_MAKE_PROGRAM=ninja \
+            -DPATCHES_C_COMPILER="${PWD}/n64recomp-clang-bin/clang" \
+            -DPATCHES_LD="${PWD}/n64recomp-clang-bin/ld.lld" \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -G Ninja -S . -B cmake-build
+          
+          cmake --build cmake-build --config RelWithDebInfo --target DinosaurPlanetRecompiled -j $(sysctl -n hw.ncpu)
+      - name: Remove scss directory
+        run: rm -rf assets/scss
+      - name: Prepare Archive
+        run: |
+          cp cmake-build/DinosaurPlanetRecompiled DinosaurPlanetRecompiled
+          tar -czf DinosaurPlanetRecompiled-macOS-universal.tar.gz DinosaurPlanetRecompiled assets/ recompcontrollerdb.txt
+      - name: Archive DinoRecomp (Universal)
+        uses: actions/upload-artifact@v4
+        with:
+          name: DinosaurPlanetRecompiled-macOS-universal
+          path: DinosaurPlanetRecompiled-macOS-universal.tar.gz
+      - name: Archive Debug Information
+        uses: actions/upload-artifact@v4
+        with:
+          name: DinosaurPlanetRecompiled-macOS-universal-Debug
+          path: cmake-build/DinosaurPlanetRecompiled.dSYM
