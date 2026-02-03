@@ -1,4 +1,6 @@
+#include "mtx_tagging.h"
 #include "patches.h"
+#include "rt64_extended_gbi.h"
 
 #include "sys/math.h"
 #include "sys/gfx/gx.h"
@@ -113,7 +115,13 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
 
     gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_PROJECTION | G_MTX_LOAD);
     gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_PROJECTION | G_MTX_MUL);
-    
+
+    // @recomp: Tag camera matrix
+    gEXMatrixGroupSimple((*gdl)++, CAMERA_MTX_ID, G_EX_NOPUSH, G_MTX_PROJECTION,
+        G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, 
+        G_EX_ORDER_LINEAR, G_EX_EDIT_NONE,
+        G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP);
+        
     // @recomp: Submit the world view offset to RT64 so it can reconcile for frame interpolation
     if (!gSomeVideoFlag) {
         SRT recomp_viewWorldOffsetSRT = {
@@ -153,12 +161,80 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
     }
 }
 
+extern MtxF MtxF_800a6a60;
+extern MtxF gAuxMtx2;
+
+RECOMP_PATCH void setup_rsp_matrices_for_object(Gfx **gdl, Mtx **rspMtxs, Object *object)
+{
+    u8 isChild;
+    MtxF mtxf;
+    Object *origObject;
+    f32 oldScale;
+
+    origObject = object;
+
+    if (gRSPMatrices[object->matrixIdx] == NULL)
+    {
+        isChild = FALSE;
+
+        while (object != NULL)
+        {
+            if (object->parent == NULL) {
+                object->srt.transl.x -= gWorldX;
+                object->srt.transl.z -= gWorldZ;
+            }
+
+            oldScale = object->srt.scale;
+            if (!(object->unkB0 & 0x8)) {
+                object->srt.scale = 1.0f;
+            }
+
+            if (!isChild) {
+                matrix_from_srt(&MtxF_800a6a60, &object->srt);
+            } else {
+                matrix_from_srt(&mtxf, &object->srt);
+                matrix_concat_4x3(&MtxF_800a6a60, &mtxf, &MtxF_800a6a60);
+            }
+
+            object->srt.scale = oldScale;
+
+            if (object->parent == NULL) {
+                object->srt.transl.x += gWorldX;
+                object->srt.transl.z += gWorldZ;
+            }
+
+            object = object->parent;
+            isChild = TRUE;
+        }
+
+        matrix_concat(&MtxF_800a6a60, &gViewProjMtx, &gAuxMtx2);
+        matrix_f2l(&gAuxMtx2, *rspMtxs);
+        gRSPMatrices[origObject->matrixIdx] = *rspMtxs;
+        (*rspMtxs)++;
+    }
+
+    gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(gRSPMatrices[origObject->matrixIdx]), G_MTX_PROJECTION | G_MTX_LOAD);
+
+    // @recomp:
+    // TODO: what do we do here? the game is shoving the parent model matrix into the projection slot...
+    gEXMatrixGroupSimple((*gdl)++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_PROJECTION,
+        G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, 
+        G_EX_ORDER_AUTO, G_EX_EDIT_NONE,
+        G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP);
+}
+
 RECOMP_PATCH void func_80004224(Gfx **gdl)
 {
     // @recomp: Submit projection and view separately instead of [gRSPMtxList] to avoid precision issues
     // See above notes in setup_rsp_camera_matrices
     gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(recomp_lastCamProjMtx), G_MTX_PROJECTION | G_MTX_LOAD);
     gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(recomp_lastCamViewMtx), G_MTX_PROJECTION | G_MTX_MUL);
+
+    // @recomp: Tag camera matrix
+    gEXMatrixGroupSimple((*gdl)++, CAMERA_MTX_ID, G_EX_NOPUSH, G_MTX_PROJECTION,
+        G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, 
+        G_EX_ORDER_LINEAR, G_EX_EDIT_NONE,
+        G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP);
 
     // @recomp: Submit the world view offset to RT64 so it can reconcile for frame interpolation
     gEXSetViewMatrixFloat((*gdl)++, recomp_lastCamViewWorldOffsetMtx);
@@ -177,6 +253,7 @@ RECOMP_PATCH void func_80002130(s32 *ulx, s32 *uly, s32 *lrx, s32 *lry)
     *lry = height - SHORT_8008c524;
 }
 
+// TODO: this has a matching decomp now, use it
 RECOMP_PATCH void func_80002490(Gfx **gdl)
 {
     s32 ulx, uly, lrx, lry;
