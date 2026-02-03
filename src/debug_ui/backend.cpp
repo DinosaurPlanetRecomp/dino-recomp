@@ -24,7 +24,7 @@
 #endif
 
 #if defined(_WIN32)
-#include "d3d12/rt64_d3d12.h"
+#include "plume_d3d12.h"
 #endif
 
 #include "renderer/hooks.hpp"
@@ -228,9 +228,9 @@ static void rt64_init_hook(plume::RenderInterface* _interface, plume::RenderDevi
             descriptor_set = interface_device->createDescriptorSet(plume::RenderDescriptorSetDesc(&descriptor_range, 1));
 
             plume::D3D12DescriptorSet *interface_descriptor_set = static_cast<plume::D3D12DescriptorSet *>(descriptor_set.get());
-            const D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = interface_device->viewHeapAllocator->getShaderCPUHandleAt(interface_descriptor_set->viewAllocation.offset);
-            const D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = interface_device->viewHeapAllocator->getShaderGPUHandleAt(interface_descriptor_set->viewAllocation.offset);
-            ImGui_ImplDX12_Init(interface_device->d3d, 2, DXGI_FORMAT::DXGI_FORMAT_B8G8R8A8_UNORM, interface_device->viewHeapAllocator->shaderHeap, cpu_handle, gpu_handle);
+            const D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = interface_device->viewHeapAllocator->getCPUHandleAt(interface_descriptor_set->viewAllocation.offset);
+            const D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = interface_device->viewHeapAllocator->getGPUHandleAt(interface_descriptor_set->viewAllocation.offset);
+            ImGui_ImplDX12_Init(interface_device->d3d, 2, DXGI_FORMAT::DXGI_FORMAT_B8G8R8A8_UNORM, interface_device->viewHeapAllocator->heap, cpu_handle, gpu_handle);
 #else
             assert(false && "Unsupported Graphics API.");
             return;
@@ -299,7 +299,7 @@ static void rt64_draw_hook(plume::RenderCommandList* command_list, plume::Render
         switch (get_graphics_api()) {
             case RT64::UserConfiguration::GraphicsAPI::D3D12: {
 #ifdef _WIN32
-                RT64::D3D12CommandList *interface_command_list = static_cast<RT64::D3D12CommandList *>(command_list);
+                plume::D3D12CommandList *interface_command_list = static_cast<plume::D3D12CommandList *>(command_list);
                 interface_command_list->checkDescriptorHeaps();
                 ImGui_ImplDX12_RenderDrawData(draw_data, interface_command_list->d3d);
 #else
