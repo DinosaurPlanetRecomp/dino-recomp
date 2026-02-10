@@ -4,7 +4,6 @@
 #include "librecomp/game.hpp"
 #include "ultramodern/ultramodern.hpp"
 #include "RmlUi/Core.h"
-#include "nfd.h"
 #include <filesystem>
 
 static std::string version_string;
@@ -15,7 +14,6 @@ bool rom_valid = false;
 extern std::vector<recomp::GameEntry> supported_games;
 
 void select_rom() {
-    nfdnchar_t* native_path = nullptr;
     dino::runtime::open_file_dialog([](bool success, const std::filesystem::path& path) {
         if (success) {
             recomp::RomValidationError rom_error = recomp::select_rom(path, supported_games[0].game_id);

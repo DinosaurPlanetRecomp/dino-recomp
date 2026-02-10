@@ -1,4 +1,5 @@
 #include "support.hpp"
+#include "config/config.hpp"
 #include <SDL.h>
 #include <cstdlib>
 #include "nfd.h"
@@ -6,6 +7,12 @@
 
 namespace dino::runtime {
     // MARK: - Internal Helpers
+    static void show_nfd_error() {
+        const char *msg = NFD_GetError();
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, dino::config::program_name.data(), msg, nullptr);
+        fprintf(stderr, "[ERROR] %s\n", msg);
+    }
+
     void perform_file_dialog_operation(const std::function<void(bool, const std::filesystem::path&)>& callback) {
         nfdnchar_t* native_path = nullptr;
         nfdresult_t result = NFD_OpenDialogN(&native_path, nullptr, 0, nullptr);
@@ -16,6 +23,8 @@ namespace dino::runtime {
         if (success) {
             path = std::filesystem::path{native_path};
             NFD_FreePathN(native_path);
+        } else if (result == NFD_ERROR) {
+            show_nfd_error();
         }
 
         callback(success, path);
@@ -39,6 +48,8 @@ namespace dino::runtime {
                 }
             }
             NFD_PathSet_Free(native_paths);
+        } else if (result == NFD_ERROR) {
+            show_nfd_error();
         }
 
         callback(success, paths);
