@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(DinoRecomp LANGUAGES C CXX)
+project(DinoRecomp LANGUAGES C CXX OBJCXX)
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -165,6 +165,9 @@ set (SOURCES_EXTRA
     ${CMAKE_SOURCE_DIR}/rsp/aspMain.cpp
     ${CMAKE_SOURCE_DIR}/lib/RmlUi/Backends/RmlUi_Platform_SDL.cpp
 )
+if (APPLE)
+    list(APPEND SOURCES_EXTRA ${CMAKE_SOURCE_DIR}/src/runtime/support_apple.mm)
+endif()
 
 target_include_directories(DinosaurPlanetRecompiled PRIVATE
     ${CMAKE_SOURCE_DIR}/src
@@ -297,6 +300,28 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     find_package(Threads REQUIRED)
 
     target_link_libraries(DinosaurPlanetRecompiled PRIVATE "-latomic -static-libstdc++" ${CMAKE_DL_LIBS} Threads::Threads)
+elseif (APPLE)
+    find_package(SDL2 REQUIRED)
+
+    message(STATUS "SDL2_FOUND = ${SDL2_FOUND}")
+    message(STATUS "SDL2_INCLUDE_DIRS = ${SDL2_INCLUDE_DIRS}")
+
+    target_include_directories(DinosaurPlanetRecompiled PRIVATE ${SDL2_INCLUDE_DIRS})
+
+    find_package(Freetype REQUIRED)
+
+    message(STATUS "FREETYPE_FOUND = ${FREETYPE_FOUND}")
+    message(STATUS "FREETYPE_INCLUDE_DIRS = ${FREETYPE_INCLUDE_DIRS}")
+    message(STATUS "FREETYPE_LIBRARIES = ${FREETYPE_LIBRARIES}")
+
+    include_directories(${FREETYPE_LIBRARIES})
+    target_link_libraries(DinosaurPlanetRecompiled PRIVATE ${FREETYPE_LIBRARIES} SDL2::SDL2)
+
+    set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+    set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+    find_package(Threads REQUIRED)
+
+    target_link_libraries(DinosaurPlanetRecompiled PRIVATE ${CMAKE_DL_LIBS} Threads::Threads)
 endif()
 
 target_link_libraries(DinosaurPlanetRecompiled PRIVATE

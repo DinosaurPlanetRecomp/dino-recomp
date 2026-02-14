@@ -20,6 +20,7 @@ namespace dino::runtime {
     std::optional<std::filesystem::path> get_application_support_directory();
     std::filesystem::path get_bundle_resource_directory();
     std::filesystem::path get_bundle_directory();
+    void* get_metal_layer(void* nsWindow);
 #endif
 }
 
