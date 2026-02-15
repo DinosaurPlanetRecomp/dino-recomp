@@ -25,6 +25,9 @@
 #define osGetTime osGetTime_recomp
 #define osViBlack osViBlack_recomp
 #define osViSwapBuffer osViSwapBuffer_recomp
+#define osCreatePiManager osCreatePiManager_recomp
+#define osPiStartDma osPiStartDma_recomp
+#define osVirtualToPhysical osVirtualToPhysical_recomp
 
 #define osContStartReadData osContStartReadData_recomp
 #define osContGetReadData osContGetReadData_recomp

@@ -100,3 +100,7 @@ recomputil_u32_value_hashmap_erase = 0x8F0001DC;
 recomputil_u32_value_hashmap_size = 0x8F0001E0;
 recomp_powf = 0x8F0001E4;
 osGetTime_recomp = 0x8F0001E8;
+osCreateMesgQueue_recomp = 0x8F0001EC;
+osCreatePiManager_recomp = 0x8F0001F0;
+osPiStartDma_recomp = 0x8F0001F4;
+osVirtualToPhysical_recomp = 0x8F0001F8;
