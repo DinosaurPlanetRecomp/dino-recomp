@@ -15,7 +15,7 @@ void recomp_pull_game_options(void) {
     s32 recompMusicVol = (recomp_get_bgm_volume() / 100.0f) * 256;
     if (options->volumeMusic != recompMusicVol || b_firstCall) {
         options->volumeMusic = recompMusicVol;
-        gDLL_5_AMSEQ2->vtbl->func9.withOneArg(recompMusicVol);
+        gDLL_5_AMSEQ2->vtbl->set_volume_option(recompMusicVol);
     }
 
     s32 recompSfxVol = (recomp_get_sfx_volume() / 100.0f) * 127;

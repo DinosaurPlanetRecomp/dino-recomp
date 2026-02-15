@@ -8,7 +8,9 @@
 
 extern OSIoMesg D_800BCC90;
 extern OSDevMgr __osViDevMgr;
+extern s8 D_80093060;
 extern s8 D_80093064;
+extern OSMesgQueue gVideoMesgQueue;
 
 extern void vi_swap_buffers(void);
 extern void vi_set_mode(s32 mode);
@@ -23,7 +25,7 @@ RECOMP_PATCH void vi_init_framebuffers(int someBool, s32 width, s32 height) {
     VideoResolution *resPtr;
     u32 hRes;
     u32 vRes;
-
+    
     // Get resolution by current video mode
     resPtr = &gResolutionArray[gVideoMode & 0x7];
     hRes = resPtr->h;
@@ -40,7 +42,7 @@ RECOMP_PATCH void vi_init_framebuffers(int someBool, s32 width, s32 height) {
         gFramebufferPointers[0] = (u16*)(FRAMEBUFFER_ADDRESS_NO_EXP_PAK);
         gFramebufferPointers[1] = (u16*)(FRAMEBUFFER_ADDRESS_NO_EXP_PAK + ((width * height) * 2));
         
-        gFramebufferStart = (u16*)(FRAMEBUFFER_ADDRESS_NO_EXP_PAK);
+        gDepthBuffer = (u16*)(FRAMEBUFFER_ADDRESS_NO_EXP_PAK);
         return;
     }
     
@@ -49,7 +51,7 @@ RECOMP_PATCH void vi_init_framebuffers(int someBool, s32 width, s32 height) {
         // gFramebufferPointers[0] = (u16*)(FRAMEBUFFER_ADDRESS_EXP_PAK);
         // gFramebufferPointers[1] = (u16*)(FRAMEBUFFER_ADDRESS_EXP_PAK + ((width * height) * 2));
         
-        // gFramebufferStart = (u16*)(FRAMEBUFFER_ADDRESS_EXP_PAK);
+        // gDepthBuffer = (u16*)(FRAMEBUFFER_ADDRESS_EXP_PAK);
         
         // @recomp: Use custom addresses for the 640x480 framebuffers to avoid triggering a bug in RT64.
         // If the 640x480 and 320x260 framebuffers share the same address space, RT64 gets confused and thinks
@@ -59,14 +61,14 @@ RECOMP_PATCH void vi_init_framebuffers(int someBool, s32 width, s32 height) {
         gFramebufferPointers[0] = (u16*)hack_480pFramebuffers[0];
         gFramebufferPointers[1] = (u16*)hack_480pFramebuffers[1];
         
-        gFramebufferStart = gFramebufferPointers[0];
+        gDepthBuffer = gFramebufferPointers[0];
     } else {
         // NTSC/M-PAL framebuffer height
         gFramebufferPointers[0] = (u16*)(FRAMEBUFFER_ADDRESS_EXP_PAK);
         gFramebufferPointers[1] = (u16*)(FRAMEBUFFER_ADDRESS_EXP_PAK + ((width * height) * 2));
         
         gFramebufferEnd = (u16*)(((int) (FRAMEBUFFER_ADDRESS_EXP_PAK + ((width * height) * 2))) + ((width * height) * 2));
-        gFramebufferStart = (u16*)0x80200000;
+        gDepthBuffer = (u16*)0x80200000;
     }
 }
 
@@ -83,8 +85,8 @@ RECOMP_PATCH int vi_contains_point(s32 x, s32 y) {
     // @recomp: Adjust for recomp aspect ratio. The game thinks we're running at 4:3 so we need this
     // to return true for negative x values and x values greater than 320, depending on the recomp screen size.
     // TODO: doesnt seem to work for everything...
-    u32 gameResWidth = gCurrentResolutionH[gFramebufferChoice];
-    u32 gameResHeight = gCurrentResolutionV[gFramebufferChoice];
+    u32 gameResWidth = gCurrentResolutionH[gCurrFramebufferIdx];
+    u32 gameResHeight = gCurrentResolutionV[gCurrFramebufferIdx];
 
     s32 ulx = 0;
     s32 uly = 0;
@@ -138,16 +140,16 @@ RECOMP_PATCH s32 vi_frame_sync(s32 param1) {
 
         if (D_80093060 == 3) {
             vi_set_mode(vidMode);
-            vi_update_fb_size_from_current_mode(gFramebufferChoice);
-            osViSwapBuffer(gFramebufferCurrent);
+            vi_update_fb_size_from_current_mode(gCurrFramebufferIdx);
+            osViSwapBuffer(gFrontFramebuffer);
         } else if (D_80093060 == 2) {
-            vi_update_fb_size_from_current_mode(gFramebufferChoice);
-            osViSwapBuffer(gFramebufferCurrent);
+            vi_update_fb_size_from_current_mode(gCurrFramebufferIdx);
+            osViSwapBuffer(gFrontFramebuffer);
         } else {
             D_800BCC90.hdr.type = 0x11;
             D_800BCC90.hdr.retQueue = (OSMesgQueue*)&gTvViMode;
             osSendMesg(__osViDevMgr.evtQueue, &D_800BCC90, OS_MESG_BLOCK);
-            osViSwapBuffer(gFramebufferCurrent);
+            osViSwapBuffer(gFrontFramebuffer);
             D_80093064 ^= 1;
         }
 
@@ -157,9 +159,9 @@ RECOMP_PATCH s32 vi_frame_sync(s32 param1) {
             // Create pause screen screenshot
             set_pause_state(2);
             // @recomp: Don't copy framebuffer here, we handle this elsewhere in recomp
-            //bcopy(gFramebufferNext, gFramebufferEnd, 0x25800);
+            //bcopy(gBackFramebuffer, gFramebufferEnd, 0x25800);
         } else {
-            osViSwapBuffer(gFramebufferCurrent);
+            osViSwapBuffer(gFrontFramebuffer);
         }
     }
 

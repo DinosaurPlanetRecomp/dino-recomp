@@ -18,9 +18,9 @@ RECOMP_PATCH void func_80037A14(Gfx **gdl, Mtx **mtx, s32 param3) {
     s32 ulx, uly, lrx, lry;
     s32 var1;
 
-    func_80002130(&ulx, &uly, &lrx, &lry);
+    viewport_get_full_rect(&ulx, &uly, &lrx, &lry);
 
-    var1 = func_80004A4C();
+    var1 = camera_get_letterbox();
 
     resolution = vi_get_current_size();
     resWidth = GET_VIDEO_WIDTH(resolution);
@@ -42,7 +42,7 @@ RECOMP_PATCH void func_80037A14(Gfx **gdl, Mtx **mtx, s32 param3) {
         gDPPipeSync((*gdl)++);
     }
 
-    gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, resWidth, 0x02000000);
+    gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, resWidth, SEGMENT_ADDR(SEGMENT_ZBUFFER, 0x0));
 
     if ((param3 & 2) != 0) {
         dl_set_fill_color(gdl, (GPACK_ZDZ(G_MAXFBZ, 0) << 16) | GPACK_ZDZ(G_MAXFBZ, 0));
@@ -57,7 +57,7 @@ RECOMP_PATCH void func_80037A14(Gfx **gdl, Mtx **mtx, s32 param3) {
         gDPPipeSync((*gdl)++);
     }
 
-    gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, resWidth, 0x01000000);
+    gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, resWidth, SEGMENT_ADDR(SEGMENT_FRAMEBUFFER, 0x0));
 
     if ((param3 & 1) != 0 || var1 != 0) {
         dl_set_fill_color(gdl, 
@@ -77,7 +77,7 @@ RECOMP_PATCH void func_80037A14(Gfx **gdl, Mtx **mtx, s32 param3) {
         }
     }
 
-    func_80002490(gdl);
+    camera_apply_scissor(gdl);
 }
 
 void recomp_take_pause_screenshot(Gfx **gdl) {
@@ -87,7 +87,7 @@ void recomp_take_pause_screenshot(Gfx **gdl) {
 
     // Use DP to copy framebuffer so RT64 uses the high res version when we go to draw it later
     gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFramebufferEnd);
-    gDPLoadTextureTile((*gdl)++, gFramebufferCurrent, G_IM_FMT_RGBA, G_IM_SIZ_16b, 
+    gDPLoadTextureTile((*gdl)++, gFrontFramebuffer, G_IM_FMT_RGBA, G_IM_SIZ_16b, 
         viWidth, viHeight, 
         0, 0, viWidth, viHeight, 
         0, 

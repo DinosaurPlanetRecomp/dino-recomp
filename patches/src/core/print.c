@@ -4,6 +4,7 @@
 #include "stdarg.h"
 #include "sys/print.h"
 #include "sys/gfx/texture.h"
+#include "sys/gfx/textable.h"
 
 extern char gDebugPrintBufferStart[0x900];
 extern char *gDebugPrintBufferEnd;
@@ -21,10 +22,10 @@ RECOMP_PATCH void diPrintfInit() {
     u32 fbRes;
 
     fbRes = get_some_resolution_encoded();
-    if (RESOLUTION_WIDTH(fbRes) > 320) {
+    if (GET_VIDEO_WIDTH(fbRes) > 320) {
         D_800931AC = 1;
     }
-    if (RESOLUTION_HEIGHT(fbRes) > 240) {
+    if (GET_VIDEO_HEIGHT(fbRes) > 240) {
         D_800931B0 = 1;
     }
     */
@@ -32,9 +33,9 @@ RECOMP_PATCH void diPrintfInit() {
     D_800931B4 = 0;
     D_800931B8 = 0;
 
-    gDiTextures[0] = queue_load_texture_proxy(0);
-    gDiTextures[1] = queue_load_texture_proxy(1);
-    gDiTextures[2] = queue_load_texture_proxy(2);
+    gDiTextures[0] = tex_load_deferred(TEXTABLE_0_DiFontAtlas1);
+    gDiTextures[1] = tex_load_deferred(TEXTABLE_1_DiFontAtlas2);
+    gDiTextures[2] = tex_load_deferred(TEXTABLE_2_DiFontAtlas3);
 
     gDebugPrintBufferEnd = &gDebugPrintBufferStart[0];
 }

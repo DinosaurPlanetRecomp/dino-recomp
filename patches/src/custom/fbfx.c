@@ -11,9 +11,9 @@
 
 extern Gfx *gCurGfx;
 
-extern s32 D_80092A50;
-extern s32 D_80092A54;
-extern s32 D_800B49E0;
+extern s32 gFbfxEffectID;
+extern s32 gFbfxEffectDuration;
+extern s32 gFbfxTimer;
 
 u16 recomp_fbfxNextFramebufferSnapshot[320 * 260];
 
@@ -56,7 +56,7 @@ static void recomp_fbfx_snapshot_framebuffer(Gfx **gdl, u16 *src, u16 *dst) {
 }
 
 static void recomp_fbfx_3(void) {
-    s32 iterationCount = MIN(D_80092A54, 15);
+    s32 iterationCount = MIN(gFbfxEffectDuration, 15);
     
     // Console timing for this effect: ~0.041769467 seconds per iteration
     const f32 secondsPerIteration = 0.041769467f;
@@ -97,7 +97,7 @@ static void recomp_fbfx_3(void) {
         
         // Redraw current frame as base 
         gDPSetPrimColor((*gdl)++, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF);
-        gDPLoadTextureTile((*gdl)++, gFramebufferNext, G_IM_FMT_RGBA, G_IM_SIZ_16b,
+        gDPLoadTextureTile((*gdl)++, gBackFramebuffer, G_IM_FMT_RGBA, G_IM_SIZ_16b,
             viWidth, viHeight,
             0, 0,
             viWidth - 1, viHeight - 1, 0, 
@@ -128,11 +128,11 @@ static void recomp_fbfx_3(void) {
 }
 
 void recomp_fbfx(void) {
-    if (D_80092A50 == 0) {
+    if (gFbfxEffectID == 0) {
         return;
     }
 
-    switch (D_80092A50) {
+    switch (gFbfxEffectID) {
         case 3:
             recomp_fbfx_3();
             break;
@@ -141,13 +141,13 @@ void recomp_fbfx(void) {
             break;
         default:
             recomp_eprintf("[recomp fbfx] Triggered framebuffer FX is unimplemented! ID: %d Duration: %d\n", 
-                D_80092A50, D_80092A54);
+                gFbfxEffectID, gFbfxEffectDuration);
             break;
     }
 }
 
 void recomp_fbfx_prepare(void) {
-    if (D_80092A50 == 0 || D_80092A50 == 10) {
+    if (gFbfxEffectID == 0 || gFbfxEffectID == 10) {
         return;
     }
 
@@ -160,7 +160,7 @@ void recomp_fbfx_prepare(void) {
     gDPSetScissor((*gdl)++, G_SC_NON_INTERLACE, 0, 0, viWidth, viHeight);
 
     // Copy next frame
-    recomp_fbfx_snapshot_framebuffer(gdl, gFramebufferCurrent, recomp_fbfxNextFramebufferSnapshot);
+    recomp_fbfx_snapshot_framebuffer(gdl, gFrontFramebuffer, recomp_fbfxNextFramebufferSnapshot);
     
     // Keep displaying the previous frame
     gDPSetCombineMode((*gdl)++, G_CC_DECALRGBA, G_CC_DECALRGBA);
@@ -168,7 +168,7 @@ void recomp_fbfx_prepare(void) {
         G_AD_PATTERN | G_CD_DISABLE | G_CK_NONE | G_TC_FILT | G_TF_POINT | G_TT_NONE | 
             G_TL_TILE | G_TD_CLAMP | G_TP_NONE | G_CYC_COPY | G_PM_NPRIMITIVE, 
         G_AC_NONE | G_ZS_PIXEL | G_RM_NOOP | G_RM_NOOP2);
-    gDPLoadTextureTile((*gdl)++, gFramebufferNext, G_IM_FMT_RGBA, G_IM_SIZ_16b, 
+    gDPLoadTextureTile((*gdl)++, gBackFramebuffer, G_IM_FMT_RGBA, G_IM_SIZ_16b, 
             viWidth, viHeight, 
             0, 0, viWidth, viHeight, 
             0, 
@@ -180,7 +180,7 @@ void recomp_fbfx_prepare(void) {
 }
 
 void recomp_fbfx_motion_blur_tick(void) {
-    if (D_80092A50 != 10) {
+    if (gFbfxEffectID != 10) {
         return;
     }
 
@@ -201,7 +201,7 @@ void recomp_fbfx_motion_blur_tick(void) {
         G_TT_NONE | G_TL_TILE | G_TD_CLAMP | G_TP_NONE | G_CYC_1CYCLE | 
         G_PM_NPRIMITIVE, G_AC_NONE | G_ZS_PIXEL | G_RM_XLU_SURF | G_RM_XLU_SURF2);
     gDPSetPrimColor((*gdl)++, 0, 0, 0xFF, 0xFF, 0xFF, alpha);
-    gDPLoadTextureTile((*gdl)++, gFramebufferNext, G_IM_FMT_RGBA, G_IM_SIZ_16b,
+    gDPLoadTextureTile((*gdl)++, gBackFramebuffer, G_IM_FMT_RGBA, G_IM_SIZ_16b,
         viWidth, viHeight,
         0, 0,
         viWidth - 1, viHeight - 1, 0, 

@@ -19,7 +19,7 @@
 #include "sys/memory.h"
 #include "sys/objects.h"
 #include "sys/print.h"
-#include "sys/voxmap.h"
+#include "sys/framebuffer_fx.h"
 #include "types.h"
 #include "functions.h"
 #include "dll.h"
@@ -43,7 +43,6 @@ extern s8 gPauseState;
 
 extern void func_80013D80();
 extern void func_80014074(void);
-extern void NOTosSetTime(s32 arg0, s32 arg1);
 
 // @recomp: Move graphics buffers into patch memory to save vanilla pool memory
 static Gfx recompMainGfx[2][RECOMP_MAIN_GFX_BUF_SIZE / sizeof(Gfx)]; 
@@ -130,18 +129,18 @@ RECOMP_PATCH void game_tick(void) {
 
     dl_add_debug_info(gCurGfx, 0, "main/main.c", 0x28E);
     rsp_segment(&gCurGfx, SEGMENT_MAIN, (void *)K0BASE);
-    rsp_segment(&gCurGfx, SEGMENT_FRAMEBUFFER, gFramebufferCurrent);
-    rsp_segment(&gCurGfx, SEGMENT_ZBUFFER, D_800BCCB4);
-    func_8003E9F0(&gCurGfx, gUpdateRate);
+    rsp_segment(&gCurGfx, SEGMENT_FRAMEBUFFER, gFrontFramebuffer);
+    rsp_segment(&gCurGfx, SEGMENT_ZBUFFER, gFrontDepthBuffer);
+    fbfx_tick(&gCurGfx, gUpdateRate);
     dl_set_all_dirty();
-    func_8003DB5C();
+    tex_render_reset();
 
     if (gDLBuilder->needsPipeSync != 0) {
         gDLBuilder->needsPipeSync = 0;
         gDPPipeSync(gCurGfx++);
     }
 
-    gDPSetDepthImage(gCurGfx++, SEGMENT_ZBUFFER << 24);
+    gDPSetDepthImage(gCurGfx++, SEGMENT_ADDR(SEGMENT_ZBUFFER, 0));
 
     rsp_init(&gCurGfx);
     phi_v1 = 2;
@@ -152,7 +151,7 @@ RECOMP_PATCH void game_tick(void) {
         phi_v1 = 3;
 
     func_80037A14(&gCurGfx, &gCurMtx, phi_v1);
-    func_80007178();
+    voxmap_update_cache_timers();
     func_80013D80();
     audio_func_800121DC();
     gDLL_28_ScreenFade->vtbl->draw(gdl, &gCurMtx, &gCurVtx);
@@ -165,7 +164,7 @@ RECOMP_PATCH void game_tick(void) {
     //          it here makes the debug UI menu behave the same as normal game code using framebuffer FX.
     if (recomp_fbfxShouldPlay) {
         recomp_fbfxShouldPlay = FALSE;
-        NOTosSetTime(recomp_fbfxTargetID, recomp_fbfxTargetDuration);
+        fbfx_play(recomp_fbfxTargetID, recomp_fbfxTargetDuration);
     }
     // @recomp: Hook game_tick, before we end the frame
     recomp_game_tick_hook();
@@ -209,7 +208,7 @@ RECOMP_PATCH void game_tick(void) {
     mmFreeTick();
 
     if (gPauseState == 0) {
-        func_80001A3C();
+        camera_apply_alternate_trigger();
     }
 
     gUpdateRate = vi_frame_sync(0);

@@ -15,6 +15,8 @@
 #include "functions.h"
 #include "types.h"
 
+extern OSMesgQueue gVideoMesgQueue;
+
 extern Gfx *gMainGfx[2];
 extern Gfx *gCurGfx;
 extern Mtx *gMainMtx[2];
@@ -52,7 +54,7 @@ static s32 recomp_fake_frame_vi_sync(void) {
         updateRate++;
     }
 
-    osViSwapBuffer(gFramebufferCurrent);
+    osViSwapBuffer(gFrontFramebuffer);
 
     osRecvMesg(&gVideoMesgQueue, NULL, OS_MESG_BLOCK);
 
@@ -64,7 +66,7 @@ static void recomp_fake_frame_rdp_init(Gfx **gdl) {
     s32 resWidth, resHeight;
     s32 ulx, uly, lrx, lry;
 
-    func_80002130(&ulx, &uly, &lrx, &lry);
+    viewport_get_full_rect(&ulx, &uly, &lrx, &lry);
 
     resolution = vi_get_current_size();
     resWidth = GET_VIDEO_WIDTH(resolution);
@@ -94,7 +96,7 @@ static void recomp_fake_frame_rdp_init(Gfx **gdl) {
 
     gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, resWidth, SEGMENT_ADDR(SEGMENT_FRAMEBUFFER, 0x0));
 
-    func_80002490(gdl);
+    camera_apply_scissor(gdl);
 }
 
 void recomp_do_fake_frame_start(void) {
@@ -123,11 +125,11 @@ void recomp_do_fake_frame_start(void) {
 
     // dl_add_debug_info(gCurGfx, 0, "main/main.c", 0x28E);
     rsp_segment(&gCurGfx, SEGMENT_MAIN, (void *)K0BASE);
-    rsp_segment(&gCurGfx, SEGMENT_FRAMEBUFFER, gFramebufferCurrent);
-    rsp_segment(&gCurGfx, SEGMENT_ZBUFFER, D_800BCCB4);
-    //func_8003E9F0(&gCurGfx, gUpdateRate);
+    rsp_segment(&gCurGfx, SEGMENT_FRAMEBUFFER, gFrontFramebuffer);
+    rsp_segment(&gCurGfx, SEGMENT_ZBUFFER, gFrontDepthBuffer);
+    //fbfx_tick(&gCurGfx, gUpdateRate);
     dl_set_all_dirty();
-    func_8003DB5C();
+    tex_render_reset();
 
     if (gDLBuilder->needsPipeSync != 0) {
         gDLBuilder->needsPipeSync = 0;
@@ -174,7 +176,7 @@ void recomp_do_fake_frame_end(void) {
     // mmFreeTick();
 
     if (gPauseState == 0) {
-        func_80001A3C();
+        camera_apply_alternate_trigger();;
     }
 
     //gUpdateRate = vi_frame_sync(0);

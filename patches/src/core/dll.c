@@ -8,6 +8,12 @@
 #include "sys/fs.h"
 #include "sys/memory.h"
 
+extern DLLState *gLoadedDLLList;
+extern s32 gLoadedDLLCount;
+extern DLLTab *gFile_DLLS_TAB;
+extern s32 gDLLCount;
+extern u32 *gFile_DLLSIMPORTTAB;
+
 extern DLLFile *dll_load_from_tab(u16 tabidx, s32 *sizeOut);
 
 RECOMP_PATCH void init_dll_system() {

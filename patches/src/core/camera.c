@@ -7,11 +7,13 @@
 #include "functions.h"
 #include "variables.h"
 
+extern s32 gIsShadowTexActive;
+
 extern Camera gCameras[CAMERA_COUNT];
 extern s32 gCameraSelector;
 extern SRT gCameraSRT;
 extern s8 gUseAlternateCamera;
-extern u32 UINT_800a6a54;
+extern u32 gCameraYOffsetEnabled;
 extern u16 gPerspNorm;
 extern MtxF gViewProjMtx;
 extern Mtx *gRSPMtxList;
@@ -22,16 +24,16 @@ extern Mtx gRSPViewMtx2;
 extern MtxF gAuxMtx;
 extern Mtx *gRSPMatrices[30];
 
-extern u32 UINT_800a66f8;
-extern s16 SHORT_8008c524;
-extern s16 SHORT_8008c528;
+extern u32 gViewportMode;
+extern s16 gLetterboxSize;
+extern s16 gLetterboxTarget;
 extern s32 gCameraSelector;
 
 extern f32 gFarPlane;
-extern s16 D_8008C518;
-extern s16 D_8008C51C;
-extern f32 D_800A6270;
-extern f32 D_800A6274;
+extern s16 gFarPlaneTimer;
+extern s16 gFarPlaneDuration;
+extern f32 gFarPlaneStart;
+extern f32 gFarPlaneTarget;
 extern Camera gCameras[CAMERA_COUNT];
 extern MatrixSlot gMatrixPool[100];
 extern u32 gMatrixCount;
@@ -81,6 +83,7 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
     z = camera->tz - gWorldZ;
 
     if (x > 32767.0f || -32767.0f > x || z > 32767.0f || -32767.0f > z) {
+        // "Camera out of range: %d, (%.1f,%.1f,%.1f) (%.1f,%.1f)\n"
         return;
     }
     
@@ -89,7 +92,7 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
     gCameraSRT.roll = camera->roll;
     gCameraSRT.transl.x = -x;
     gCameraSRT.transl.y = -y;
-    if (UINT_800a6a54 != 0) {
+    if (gCameraYOffsetEnabled != 0) {
         gCameraSRT.transl.y -= camera->dty;
     }
     gCameraSRT.transl.z = -z;
@@ -115,7 +118,7 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
     gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_PROJECTION | G_MTX_MUL);
     
     // @recomp: Submit the world view offset to RT64 so it can reconcile for frame interpolation
-    if (!gSomeVideoFlag) {
+    if (!gIsShadowTexActive) {
         SRT recomp_viewWorldOffsetSRT = {
             .yaw = 0, .pitch = 0, .roll = 0,
             .flags = 0,
@@ -137,7 +140,7 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
     gCameraSRT.scale = 1.0f;
     gCameraSRT.transl.x = x;
     gCameraSRT.transl.y = y;
-    if (UINT_800a6a54 != 0) {
+    if (gCameraYOffsetEnabled != 0) {
         gCameraSRT.transl.y += camera->dty;
     }
     gCameraSRT.transl.z = z;
@@ -153,7 +156,7 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
     }
 }
 
-RECOMP_PATCH void func_80004224(Gfx **gdl)
+RECOMP_PATCH void camera_load_parent_projection(Gfx **gdl)
 {
     // @recomp: Submit projection and view separately instead of [gRSPMtxList] to avoid precision issues
     // See above notes in setup_rsp_camera_matrices
@@ -164,7 +167,7 @@ RECOMP_PATCH void func_80004224(Gfx **gdl)
     gEXSetViewMatrixFloat((*gdl)++, recomp_lastCamViewWorldOffsetMtx);
 }
 
-RECOMP_PATCH void func_80002130(s32 *ulx, s32 *uly, s32 *lrx, s32 *lry)
+RECOMP_PATCH void viewport_get_full_rect(s32 *ulx, s32 *uly, s32 *lrx, s32 *lry)
 {
     u32 wh = vi_get_current_size();
     u32 width = GET_VIDEO_WIDTH(wh);
@@ -173,37 +176,39 @@ RECOMP_PATCH void func_80002130(s32 *ulx, s32 *uly, s32 *lrx, s32 *lry)
     // @recomp: remove hardcoded -6/+6 y scissor offset
     *ulx = 0;
     *lrx = width;
-    *uly = SHORT_8008c524;
-    *lry = height - SHORT_8008c524;
+    *uly = gLetterboxSize;
+    *lry = height - gLetterboxSize;
 }
 
-RECOMP_PATCH void func_80002490(Gfx **gdl)
+RECOMP_PATCH void camera_apply_scissor(Gfx **gdl)
 {
     s32 ulx, uly, lrx, lry;
-    s32 wh = vi_get_current_size();
-    s32 width = wh & 0xffff;
-    s32 height = wh >> 16;
-
-    if (UINT_800a66f8 != 0)
+    s32 wh;
+    s32 centerX;
+    s32 centerY;
+    s32 width;
+    s32 height;
+    s32 padX;
+    s32 padY;
+    s32 mode;
+    
+    wh = vi_get_current_size();
+    height = GET_VIDEO_HEIGHT(wh) & 0xFFFF;
+    width = GET_VIDEO_WIDTH(wh);
+    
+    mode = gViewportMode;
+    
+    if (mode != 0)
     {
-        // This if block is from non-matching code and I don't trust it.
-        // It shouldn't ever run tho...
-        recomp_eprintf("func_80002490: UINT_800a66f8 = %d", UINT_800a66f8);
-
-        s32 centerX;
-        s32 centerY;
-        s32 padX;
-        s32 padY;
-
-        u32 mode = UINT_800a66f8;
         if (mode == 2) {
             mode = 3;
         }
 
-        ulx = 0;
-        uly = 0;
-        lrx = width;
-        lry = height;
+        lrx = ulx = 0;
+        lry = uly = 0;
+        lrx += width;\
+        lry += height;
+
         centerX = width >> 1;
         centerY = height >> 1;
         padX = width >> 8;
@@ -212,43 +217,44 @@ RECOMP_PATCH void func_80002490(Gfx **gdl)
         switch (mode)
         {
         case 1:
-            lry -= padY;
             if (gCameraSelector == 0) {
                 lry = centerY - padY;
             } else {
+                lry = height - padY;
                 uly = centerY + padY;
             }
             break;
         case 2:
-            lrx -= padX;
             if (gCameraSelector == 0) {
                 lrx = centerX - padX;
+                ulx = 0;
             } else {
-                lrx = centerX + padX;
+                lrx = width - padX;
+                ulx = centerX + padX;
             }
             break;
         case 3:
             switch (gCameraSelector)
             {
             case 0:
+                lrx = centerX - padX;\
                 lry = centerY - padY;
-                lrx = centerX - padX;
                 break;
             case 1:
                 ulx = centerX + padX;
-                lrx -= padX;
+                lrx = width - padX;
                 lry = centerY - padY;
                 break;
             case 2:
                 uly = centerY + padY;
                 lrx = centerX - padX;
-                lry -= padY;
+                lry = height - padY;
                 break;
             case 3:
+                ulx = centerX + padX;\
                 uly = centerY + padY;
-                ulx = centerX + padX;
-                lry -= padY;
-                lrx -= padX;
+                lry = height - padY;
+                lrx = width - padX;
                 break;
             }
             break;
@@ -256,37 +262,43 @@ RECOMP_PATCH void func_80002490(Gfx **gdl)
     }
     else
     {
-        // @recomp: remove hardcoded -6/+6 y scissor offset
         ulx = 0;
-        lrx = width;
-        lry = height - SHORT_8008c524;
-        uly = SHORT_8008c524;
+        uly = 0;
+        lrx = width;\
+        lry = height;
+
+        // @recomp: remove hardcoded -6/+6 y scissor offset
+        uly += gLetterboxSize;
+        lry -= gLetterboxSize;
     }
 
     gDPSetScissor((*gdl)++, 0, ulx, uly, lrx, lry);
 }
 
-RECOMP_PATCH void camera_tick() {
-    Camera *camera;
-    f32 var4;
-    f32 var5;
 
-    SHORT_8008c524 = SHORT_8008c528;
+RECOMP_PATCH void camera_tick() {
+    s32 pad;
+    f32 lerpFactor;
+    Camera *camera;
+    f32 dampFactor;
+
+    gLetterboxSize = gLetterboxTarget;
     // @recomp: Add back +6 offset removed from other scissor patches
     // This is necessary for the cinematic top/bottom black bars during cutscnes to be the correct size
     // TODO: theres probably a better place for this fix
-    if (SHORT_8008c528 != 0) {
-        SHORT_8008c524 += (s32)(((f32)SHORT_8008c528 / 30.0f) * 6);
+    if (gLetterboxTarget != 0) {
+        gLetterboxSize += (s32)(((f32)gLetterboxTarget / 30.0f) * 6);
     }
 
-    if (D_8008C518 != 0) {
-        D_8008C518 -= gUpdateRate;
+    if (gFarPlaneTimer != 0) {
+        gFarPlaneTimer -= gUpdateRate;
 
-        if (D_8008C518 < 0) {
-            D_8008C518 = 0;
+        if (gFarPlaneTimer < 0) {
+            gFarPlaneTimer = 0;
         }
 
-        gFarPlane = (D_800A6270 - D_800A6274) * ((f32)D_8008C518 / (f32)D_8008C51C) + D_800A6274;
+        lerpFactor = ((f32)gFarPlaneTimer / (f32)gFarPlaneDuration);
+        gFarPlane = (gFarPlaneStart - gFarPlaneTarget) * lerpFactor + gFarPlaneTarget;
     }
 
     gMatrixPool[gMatrixCount].count = -1;
@@ -302,26 +314,26 @@ RECOMP_PATCH void camera_tick() {
     
     camera = &gCameras[gCameraSelector];
 
-    if (camera->unk5D == 0) {
-        camera->unk5C--;
+    if (camera->shakeMode == 0) {
+        camera->shakeCooldown--;
 
-        while (camera->unk5C < 0) {
+        while (camera->shakeCooldown < 0) {
             camera->dty = -camera->dty * 0.89999998f;
 
-            camera->unk5C++;
+            camera->shakeCooldown++;
         }
-    } else if (camera->unk5D == 1) {
-        var4 = fexp(-camera->unk3C * camera->unk38, 20);
-        var5 = fcos16_precise(camera->unk34 * 65535.0f * camera->unk38);
-        var5 *= camera->unk30 * var4;
+    } else if (camera->shakeMode == 1) {
+        dampFactor = fexp(-camera->shakeDamping * camera->shakeTime, 20);
+        lerpFactor = fcos16_precise(camera->shakeFrequency * 65535.0f * camera->shakeTime);
+        lerpFactor *= camera->shakeAmplitude * dampFactor;
 
-        camera->dty = var5;
+        camera->dty = lerpFactor;
 
         if (camera->dty < 0.1f && -0.1f < camera->dty) {
-            camera->unk5D = -1;
+            camera->shakeMode = -1;
             camera->dty = 0.0f;
         }
 
-        camera->unk38 += gUpdateRateF / 60.0f;
+        camera->shakeTime += gUpdateRateF / 60.0f;
     }
 }

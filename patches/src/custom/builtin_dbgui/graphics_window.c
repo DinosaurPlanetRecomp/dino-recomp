@@ -34,9 +34,9 @@ extern u8 gFrameBufIdx;
 
 extern s16 gRenderListLength;
 
-extern s32 D_80092A50;
-extern s32 D_80092A54;
-extern s32 D_800B49E0;
+extern s32 gFbfxEffectID;
+extern s32 gFbfxEffectDuration;
+extern s32 gFbfxTimer;
 
 s32 recomp_fbfxShouldPlay = FALSE;
 s32 recomp_fbfxTargetID = 3;
@@ -226,9 +226,9 @@ static void fbfx_tab(void) {
     }
     dbgui_separator();
     dbgui_textf("Current FX:");
-    dbgui_textf("  ID: %d", D_80092A50);
-    dbgui_textf("  Duration: %d", D_80092A54);
-    dbgui_textf("  Timer: %d", D_800B49E0);
+    dbgui_textf("  ID: %d", gFbfxEffectID);
+    dbgui_textf("  Duration: %d", gFbfxEffectDuration);
+    dbgui_textf("  Timer: %d", gFbfxTimer);
 
     dbgui_separator();
 

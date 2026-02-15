@@ -5,6 +5,9 @@
 
 #include "sys/dll.h"
 
+extern DLLState *gLoadedDLLList;
+extern s32 gLoadedDLLCount;
+
 void dbgui_dlls_window(s32 *open) {
     if (dbgui_begin("DLLs", open)) {
         s32 vanillaLoadedCount = 0;
