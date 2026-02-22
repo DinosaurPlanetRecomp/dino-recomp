@@ -75,7 +75,7 @@ RECOMP_EXPORT ReAssetID reasset_id(ReAssetNamespace namespace, s32 identifier) {
     if (!recomputil_u32_value_hashmap_get(idMap, identifier, &id)) {
         // Not in map, create
         id = id_new(&data);
-        data->namespace = 0;
+        data->namespace = namespace;
         data->identifier = identifier;
         recomputil_u32_value_hashmap_insert(idMap, identifier, id);
     }

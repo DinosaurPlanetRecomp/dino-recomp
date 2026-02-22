@@ -16,9 +16,15 @@
 typedef struct {
     ReAssetID id;
     ReAssetIDData *idData;
-    s32 resolved;
+    ReAssetNamespace owner;
     MusicAction *action;
 } MusicActionPatch;
+
+typedef struct {
+    ReAssetID id;
+    ReAssetNamespace owner;
+    MusicAction *action;
+} MusicActionEntry;
 
 static s32 mActionOriginalCount;
 static List mActionPatches; // list[MusicActionPatch]
@@ -43,22 +49,42 @@ void reasset_music_actions_init(void) {
 }
 
 void reasset_music_actions_repack(void) {
-    s32 numPatches = list_get_length(&mActionPatches);
+    // Build new actions list
+    static List actionsTab;
+    list_init(&actionsTab, sizeof(MusicActionEntry), mActionOriginalCount);
 
-    // Calculate number of new actions and assign IDs for custom assets
-    s32 newCount = mActionOriginalCount;
+    // Preserve original order
+    for (s32 i = 0; i < mActionOriginalCount; i++) {
+        ReAssetID id = reasset_base_id(i);
+        MusicActionEntry entry = { .id = id, .owner = REASSET_BASE_NAMESPACE, .action = NULL };
+        list_add(&actionsTab, &entry);
+    }
+
+    // Add patches
+    s32 numPatches = list_get_length(&mActionPatches);
     for (s32 i = 0; i < numPatches; i++) {
         MusicActionPatch *patch = list_get(&mActionPatches, i);
-        if (patch->action != NULL && patch->idData->namespace != REASSET_BASE_NAMESPACE) {
-            patch->resolved = newCount;
-            newCount++;
+        if (patch->action == NULL) {
+            continue;
+        }
+
+        if (patch->idData->namespace != REASSET_BASE_NAMESPACE) {
+            MusicActionEntry entry = { .id = patch->id, .owner = patch->owner, .action = patch->action };
+            list_add(&actionsTab, &entry);
+        } else {
+            // Base entries can't be removed, so the base identifier is also a valid list index
+            MusicActionEntry *entry = list_get(&actionsTab, patch->idData->identifier);
+            entry->owner = patch->owner;
+            entry->action = patch->action;
         }
     }
 
     // Alloc new MUSICACTIONS.bin
+    s32 newCount = list_get_length(&actionsTab);
     void *newActions = recomp_alloc(newCount * sizeof(MusicAction));
 
     // Load original actions
+    // We can cheat and load all of them at once since base actions cannot be removed.
     u32 originalBinSize = mActionOriginalCount * sizeof(MusicAction);
     reasset_fst_read_from_file(MUSICACTIONS_BIN, newActions, 0, originalBinSize);
     // Zero out memory for new actions
@@ -67,30 +93,16 @@ void reasset_music_actions_repack(void) {
         bzero((u8*)newActions + originalBinSize, addedSize);
     }
 
-    // Resolve base
-    for (s32 i = 0; i < mActionOriginalCount; i++) {
-        ReAssetID id = reasset_base_id(i);
+    // Resolve and patch
+    for (s32 i = 0; i < newCount; i++) {
+        MusicActionEntry *entry = list_get(&actionsTab, i);
+
         void *maction = (u8*)newActions + (i * sizeof(MusicAction));
-        reasset_resolve_map_resolve_id(mActionResolveMap, id, i, maction);
-    }
-
-    // Update with patches and resolve custom
-    for (s32 i = 0; i < numPatches; i++) {
-        MusicActionPatch *patch = list_get(&mActionPatches, i);
-        if (patch->action == NULL) {
-            continue;
+        if (entry->action != NULL) {
+            bcopy(entry->action, maction, sizeof(MusicAction));
         }
 
-        s32 idx = patch->idData->namespace == REASSET_BASE_NAMESPACE
-            ? patch->idData->identifier 
-            : patch->resolved;
-        
-        void *maction = (u8*)newActions + (idx * sizeof(MusicAction));
-        bcopy(patch->action, maction, sizeof(MusicAction));
-
-        if (patch->idData->namespace != REASSET_BASE_NAMESPACE) {
-            reasset_resolve_map_resolve_id(mActionResolveMap, patch->id, idx, maction);
-        }
+        reasset_resolve_map_resolve_id(mActionResolveMap, entry->id, entry->owner, i, maction);
     }
 
     // Finalize resolve map
@@ -98,10 +110,10 @@ void reasset_music_actions_repack(void) {
 
     // Set new file
     reasset_fst_set_internal(MUSICACTIONS_BIN, newActions, newCount * sizeof(MusicAction), /*ownedByReAsset=*/TRUE);
-
-    reasset_log("[reasset] Rebuilt MUSICACTIONS.bin.\n");
+    reasset_log("[reasset] Rebuilt MUSICACTIONS.bin (length: %d).\n", newCount);
 
     // Clean up
+    list_free(&actionsTab);
     list_free(&mActionPatches);
     recomputil_destroy_u32_value_hashmap(mActionPatchMap);
 }
@@ -128,6 +140,9 @@ static void load_maction(ReAssetIDData *idData, MusicActionPatch *patch) {
         patch->action = maction;
 
         if (idData->namespace == REASSET_BASE_NAMESPACE) {
+            reasset_assert(idData->identifier < mActionOriginalCount, 
+                "[reasset] Attempted to patch out-of-bounds base music action: %d", idData->identifier);
+
             reasset_fst_read_from_file(MUSICACTIONS_BIN, maction, 
                 idData->identifier * sizeof(MusicAction), sizeof(MusicAction));
         } else {
@@ -136,7 +151,7 @@ static void load_maction(ReAssetIDData *idData, MusicActionPatch *patch) {
     }
 }
 
-RECOMP_EXPORT void reasset_music_actions_set(ReAssetID id, const void *data) {
+RECOMP_EXPORT void reasset_music_actions_set(ReAssetID id, ReAssetNamespace owner, const void *data) {
     reasset_assert_stage_set_call("reasset_music_actions_set");
 
     ReAssetIDData *idData = reasset_id_lookup(id);
@@ -147,6 +162,7 @@ RECOMP_EXPORT void reasset_music_actions_set(ReAssetID id, const void *data) {
     }
 
     bcopy(data, patch->action, sizeof(MusicAction));
+    patch->owner = owner;
 }
 
 RECOMP_EXPORT void* reasset_music_actions_get(ReAssetID id) {

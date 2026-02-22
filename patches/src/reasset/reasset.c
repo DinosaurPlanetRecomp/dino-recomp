@@ -126,10 +126,9 @@ void reasset_run(void) {
     reassetStage = REASSET_STAGE_MODIFY;
     reasset_on_modify();
 
+    reasset_log("[reasset] == Resolve ==\n");
     reasset_types_repack();
     reasset_fst_rebuild();
-
-    reasset_log("[reasset] == Resolve ==\n");
     reassetStage = REASSET_STAGE_RESOLVE;
     reasset_on_resolve();
 
