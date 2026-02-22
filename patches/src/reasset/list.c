@@ -1,5 +1,7 @@
-#include "patches.h"
 #include "list.h"
+
+#include "patches.h"
+
 #include "reasset.h"
 
 #include "PR/ultratypes.h"

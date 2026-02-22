@@ -1,4 +1,7 @@
+#include "reasset_fst.h"
+
 #include "patches.h"
+
 #include "reasset.h"
 
 #include "PR/ultratypes.h"

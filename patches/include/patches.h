@@ -40,6 +40,7 @@
 #define bcopy bcopy_recomp
 #define sprintf sprintf_recomp
 #define vsprintf vsprintf_recomp
+#define strlen strlen_recomp
 #define gRandFloat sRandFloat
 #include "rt64_extended_gbi.h"
 

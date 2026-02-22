@@ -24,7 +24,7 @@ typedef enum {
     REASSET_STAGE_FST_SET,
     REASSET_STAGE_SET,
     REASSET_STAGE_MODIFY,
-    REASSET_STAGE_POST,
+    REASSET_STAGE_RESOLVE,
     REASSET_STAGE_COMMITTED
 } ReAssetStage;
 
@@ -33,8 +33,15 @@ extern const char *DINO_FS_FILENAMES[NUM_FILES];
 
 void reasset_run(void);
 
+void reasset_assert_stage_set_call(const char *functionName);
+void reasset_assert_stage_get_call(const char *functionName);
+void reasset_assert_stage_link_call(const char *functionName);
+void reasset_assert_stage_get_resolve_map_call(const char *functionName);
+
 void reasset_assert(_Bool condition, const char *fmt, ...);
 void reasset_assert_no_exit(_Bool condition, const char *fmt, ...);
 void reasset_log(const char *fmt, ...);
+void reasset_log_warning(const char *fmt, ...);
 void reasset_log_error(const char *fmt, ...);
+void reasset_error(const char *fmt, ...);
 void reasset_error_box(const char *fmt, ...);

@@ -20,6 +20,7 @@ C_SRCS += $(wildcard src/custom/*.c)
 C_SRCS += $(wildcard src/custom/builtin_dbgui/*.c)
 C_SRCS += $(wildcard src/dlls/*.c)
 C_SRCS += $(wildcard src/reasset/*.c)
+C_SRCS += $(wildcard src/reasset/types/*.c)
 C_OBJS := $(C_SRCS:%.c=$(BUILD_DIR)/%.o)
 C_DEPS := $(C_SRCS:%.c=$(BUILD_DIR)/%.d)
 
@@ -27,7 +28,7 @@ BUILD_DIRS := $(BUILD_DIR) $(BUILD_DIR)/src \
 	$(BUILD_DIR)/src/core $(BUILD_DIR)/src/core/libnaudio $(BUILD_DIR)/src/core/libultra $(BUILD_DIR)/src/core/mp3 \
 	$(BUILD_DIR)/src/custom $(BUILD_DIR)/src/custom/builtin_dbgui \
 	$(BUILD_DIR)/src/dlls \
-	$(BUILD_DIR)/src/reasset
+	$(BUILD_DIR)/src/reasset $(BUILD_DIR)/src/reasset/types
 
 $(BUILD_DIR)/$(TARGET): $(C_OBJS) patches.ld syms.ld
 	$(LD) $(C_OBJS) $(LDFLAGS) -o $@
