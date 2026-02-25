@@ -676,7 +676,7 @@ extern "C" void recomputil_memory_slotmap_erase(uint8_t* rdram, recomp_context* 
     PTR(void)* addr;
     bool has_value = map->first.get(key, &addr);
     if (has_value) {
-        void* mem = TO_PTR(void, addr);
+        void* mem = TO_PTR(void, *addr);
         recomp::free(rdram, mem);
     }
 
