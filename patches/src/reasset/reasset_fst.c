@@ -117,6 +117,19 @@ void reasset_fst_read_from_file(s32 fileID, void *dst, u32 offset, u32 size) {
     }
 }
 
+void* reasset_fst_alloc_load_file(s32 fileID, u32 *outSize) {
+    u32 size = reasset_fst_get_file_size(fileID);
+    void *ptr = recomp_alloc(size);
+
+    reasset_fst_read_from_file(fileID, ptr, 0, size);
+
+    if (outSize != NULL) {
+        *outSize = size;
+    }
+
+    return ptr;
+}
+
 s32 reasset_fst_audio_dma(void *dst, u32 romAddr, u32 size) {
     romAddr -= (u32)&__file1Address;
     

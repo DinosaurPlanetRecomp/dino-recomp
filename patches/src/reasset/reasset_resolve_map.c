@@ -213,8 +213,10 @@ void reasset_resolve_map_link(ReAssetResolveMap map, ReAssetID id, ReAssetID ext
 
     u32 index;
     if (!recomputil_u32_value_hashmap_get(data->linkMap, id, &index)) {
-        ReAssetIDLink link = { .id = id, .externID = externID };
-        index = list_add(&data->linkList, &link);
+        index = list_get_length(&data->linkList);
+        ReAssetIDLink *link = list_add(&data->linkList);
+        link->id = id;
+        link->externID = externID;
         recomputil_u32_value_hashmap_insert(data->linkMap, id, index);
     } else {
         ReAssetIDLink *link = list_get(&data->linkList, index);
