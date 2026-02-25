@@ -27,9 +27,11 @@ typedef struct {
     Buffer blocks;
     Buffer gridA1;
     Buffer gridA2;
-    List objectList;
-    U32ValueHashmapHandle objectMap; // ReAssetID -> object list index
-    s32 maxObjUID;
+    struct {
+        List list;
+        U32ValueHashmapHandle map; // ReAssetID -> object list index
+        s32 maxUID;
+    } objects;
     Buffer gridB1;
     Buffer gridB2;
 } MapEntry;
@@ -55,22 +57,43 @@ static void map_object_list_element_free(void *element) {
 
 static MapObjectEntry* get_map_object(MapEntry *map, ReAssetID id) {
     u32 listIdx;
-    if (!recomputil_u32_value_hashmap_get(map->objectMap, id, &listIdx)) {
+    if (!recomputil_u32_value_hashmap_get(map->objects.map, id, &listIdx)) {
         ReAssetIDData *idData = reasset_id_lookup(id);
 
         // TODO: verify if base patch is in bounds (i.e. valid uid)
 
-        listIdx = list_get_length(&map->objectList);
+        listIdx = list_get_length(&map->objects.list);
         
-        MapObjectEntry *entry = list_add(&map->objectList);
+        MapObjectEntry *entry = list_add(&map->objects.list);
         entry->id = id;
         entry->owner = idData->namespace;
         buffer_init(&entry->object, 0);
 
-        recomputil_u32_value_hashmap_insert(map->objectMap, id, listIdx);
+        recomputil_u32_value_hashmap_insert(map->objects.map, id, listIdx);
     }
 
-    return list_get(&map->objectList, listIdx);
+    return list_get(&map->objects.list, listIdx);
+}
+
+static void create_map_object_resolve_map(ReAssetID id) {
+    if (recomputil_u32_value_hashmap_contains(mapObjectResolveMapMap, id)) {
+        // Already exists
+        return;
+    }
+
+    ReAssetIDData *idData = reasset_id_lookup(id);
+
+    // Make name
+    const char *namespaceName;
+    reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+    const char *resolveMapNameTemp = recomp_sprintf_helper("MapObject (%s:%d)", namespaceName, idData->identifier);
+    u32 resolveMapNameLen = strlen(resolveMapNameTemp);
+    char *resolveMapName = recomp_alloc(resolveMapNameLen + 1);
+    bcopy(resolveMapNameTemp, resolveMapName, resolveMapNameLen);
+    resolveMapName[resolveMapNameLen] = '\0';
+    
+    // Add
+    recomputil_u32_value_hashmap_insert(mapObjectResolveMapMap, id, reasset_resolve_map_create(resolveMapName));
 }
 
 static MapEntry* get_map(ReAssetID id) {
@@ -93,24 +116,16 @@ static MapEntry* get_map(ReAssetID id) {
         buffer_init(&entry->blocks, 0);
         buffer_init(&entry->gridA1, 0);
         buffer_init(&entry->gridA2, 0);
-        list_init(&entry->objectList, sizeof(MapObjectEntry), 0);
-        list_set_element_free_callback(&entry->objectList, map_object_list_element_free);
-        entry->objectMap = recomputil_create_u32_value_hashmap();
+        list_init(&entry->objects.list, sizeof(MapObjectEntry), 0);
+        list_set_element_free_callback(&entry->objects.list, map_object_list_element_free);
+        entry->objects.map = recomputil_create_u32_value_hashmap();
         buffer_init(&entry->gridB1, 0);
         buffer_init(&entry->gridB2, 0);
 
         recomputil_u32_value_hashmap_insert(mapMap, id, listIdx);
 
         // Create resolve map for object setup list
-        const char *namespaceName;
-        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-        const char *resolveMapNameTemp = recomp_sprintf_helper("MapObject (%s:%d)", namespaceName, idData->identifier);
-        u32 resolveMapNameLen = strlen(resolveMapNameTemp);
-        char *resolveMapName = recomp_alloc(resolveMapNameLen + 1);
-        bcopy(resolveMapNameTemp, resolveMapName, resolveMapNameLen);
-        resolveMapName[resolveMapNameLen] = '\0';
-        
-        recomputil_u32_value_hashmap_insert(mapObjectResolveMapMap, id, reasset_resolve_map_create(resolveMapName));
+        create_map_object_resolve_map(id);
     }
 
     return list_get(&mapList, listIdx);
@@ -122,8 +137,8 @@ static void map_list_element_free(void *element) {
     buffer_free(&patch->blocks);
     buffer_free(&patch->gridA1);
     buffer_free(&patch->gridA2);
-    list_free(&patch->objectList);
-    recomputil_destroy_u32_value_hashmap(patch->objectMap);
+    list_free(&patch->objects.list);
+    recomputil_destroy_u32_value_hashmap(patch->objects.map);
     buffer_free(&patch->gridB1);
     buffer_free(&patch->gridB2);
 }
@@ -165,7 +180,7 @@ void reasset_maps_init(void) {
         idx = tabIndex + 4;
         buffer_load_from_file(&objectSubfileTempBuffer, MAPS_BIN, mapOriginalTab[idx], mapOriginalTab[idx + 1] - mapOriginalTab[idx]);
 
-        entry->maxObjUID = 0;
+        entry->objects.maxUID = 0;
 
         u32 objSubfileSize;
         void *objSubfile = buffer_get(&objectSubfileTempBuffer, &objSubfileSize);
@@ -184,8 +199,8 @@ void reasset_maps_init(void) {
 
             buffer_set_base(&objectEntry->object, MAPS_BIN, mapOriginalTab[idx] + objoffset, setupSize);
 
-            if (setup->uID > entry->maxObjUID) {
-                entry->maxObjUID = setup->uID;
+            if (setup->uID > entry->objects.maxUID) {
+                entry->objects.maxUID = setup->uID;
             }
 
             objoffset += setupSize;
@@ -213,9 +228,9 @@ void reasset_maps_repack(void) {
         newBinSize += buffer_get_size(&entry->blocks);
         newBinSize += buffer_get_size(&entry->gridA1);
         newBinSize += buffer_get_size(&entry->gridA2);
-        s32 numObjects = list_get_length(&entry->objectList);
+        s32 numObjects = list_get_length(&entry->objects.list);
         for (s32 k = 0; k < numObjects; k++) {
-            MapObjectEntry *objEntry = list_get(&entry->objectList, k);
+            MapObjectEntry *objEntry = list_get(&entry->objects.list, k);
             newBinSize += buffer_get_size(&objEntry->object);
         }
         newBinSize += buffer_get_size(&entry->gridB1);
@@ -258,14 +273,22 @@ void reasset_maps_repack(void) {
             if (buffer_is_set(&entry->gridA2)) {
                 reasset_log("[reasset] Map grid A2 patch: %s:%d\n", namespaceName, idData->identifier);
             }
-            s32 numObjects = list_get_length(&entry->objectList);
+            s32 numObjects = list_get_length(&entry->objects.list);
             for (s32 k = 0; k < numObjects; k++) {
-                MapObjectEntry *objEntry = list_get(&entry->objectList, k);
+                MapObjectEntry *objEntry = list_get(&entry->objects.list, k);
                 if (buffer_is_set(&objEntry->object)) {
                     ReAssetIDData *objIDData = reasset_id_lookup(objEntry->id);
-                    const char *namespaceName;
-                    reasset_namespace_lookup_name(objIDData->namespace, &namespaceName);
-                    reasset_log("[reasset] Map object patch: %s:%d\n", namespaceName, objIDData->identifier);
+                    const char *objNamespaceName;
+                    reasset_namespace_lookup_name(objIDData->namespace, &objNamespaceName);
+                    if (objIDData->namespace != REASSET_BASE_NAMESPACE) {
+                        reasset_log("[reasset] New map object: %s:%d[%s:%d]\n", 
+                            namespaceName, idData->identifier,
+                            objNamespaceName, objIDData->identifier);
+                    } else {
+                        reasset_log("[reasset] Map object patch: %s:%d[%s:%d]\n", 
+                            namespaceName, idData->identifier,
+                            objNamespaceName, objIDData->identifier);
+                    }
                 }
             }
             if (buffer_is_set(&entry->gridB1)) {
@@ -277,9 +300,9 @@ void reasset_maps_repack(void) {
         }
 
         // Sort object setups
-        s32 numObjects = list_get_length(&entry->objectList);
+        s32 numObjects = list_get_length(&entry->objects.list);
         for (s32 k = 0; k < numObjects; k++) {
-            MapObjectEntry *objEntry = list_get(&entry->objectList, k);
+            MapObjectEntry *objEntry = list_get(&entry->objects.list, k);
 
             u32 setupSize;
             ObjSetup *setup = buffer_get(&objEntry->object, &setupSize);
@@ -321,6 +344,10 @@ void reasset_maps_repack(void) {
         // Header
         newTab[tabIndex + 0] = offset;
         buffer_copy_to(&entry->header, newBin, offset);
+
+        MapHeader *header = (MapHeader*)((u8*)newBin + offset);
+        header->objectInstanceCount = numObjects;
+
         offset += sizeof(MapHeader);
 
         // Blocks
@@ -340,7 +367,7 @@ void reasset_maps_repack(void) {
 
         // Objects
         newTab[tabIndex + 4] = offset;
-        s32 nextUID = entry->maxObjUID + 1;
+        s32 nextUID = entry->objects.maxUID + 1;
         ReAssetResolveMap objResolveMap;
         reasset_assert(recomputil_u32_value_hashmap_get(mapObjectResolveMapMap, entry->id, &objResolveMap),
             "[reasset] bug! Map %d object resolve map hashmap get failed.", i);
@@ -348,7 +375,7 @@ void reasset_maps_repack(void) {
             U32List *objList = &objSetupLists[k]; 
             s32 numGroupObjects = u32list_get_length(objList);
             for (s32 j = 0; j < numGroupObjects; j++) {
-                MapObjectEntry *objEntry = list_get(&entry->objectList, u32list_get(objList, j));
+                MapObjectEntry *objEntry = list_get(&entry->objects.list, u32list_get(objList, j));
 
                 u32 setupSize = mmAlign4(buffer_get_size(&objEntry->object));
                 buffer_copy_to(&objEntry->object, newBin, offset);
@@ -409,6 +436,8 @@ void reasset_maps_repack(void) {
     recomp_free(mapOriginalTab);
     mapOriginalTab = NULL;
 }
+
+// MARK: Maps
 
 RECOMP_EXPORT void reasset_maps_set_header(ReAssetID id, ReAssetNamespace owner, const void *data) {
     reasset_assert_stage_set_call("reasset_maps_set_header");
@@ -514,4 +543,55 @@ RECOMP_EXPORT ReAssetResolveMap reasset_maps_get_resolve_map(void) {
     reasset_assert_stage_get_resolve_map_call("reasset_maps_get_resolve_map");
 
     return mapResolveMap;
+}
+
+// MARK: Map Objects
+
+RECOMP_EXPORT void reasset_map_objects_set(ReAssetID mapID, ReAssetID id, const void *data, u32 sizeBytes) {
+    reasset_assert_stage_set_call("reasset_map_objects_set");
+
+    MapEntry *entry = get_map(mapID);
+    MapObjectEntry *objEntry = get_map_object(entry, id);
+    
+    buffer_set(&objEntry->object, data, sizeBytes);
+}
+
+RECOMP_EXPORT void* reasset_map_objects_get(ReAssetID mapID, ReAssetID id, u32 *outSizeBytes) {
+    reasset_assert_stage_get_call("reasset_map_objects_get");
+
+    MapEntry *entry = get_map(mapID);
+    MapObjectEntry *objEntry = get_map_object(entry, id);
+    if (buffer_get_size(&objEntry->object) == 0) {
+        buffer_zero(&objEntry->object, sizeof(ObjSetup));
+
+        // Default blank setups to DummyObject to be safe
+        ObjSetup *setup = buffer_get(&objEntry->object, NULL);
+        setup->objId = OBJ_DummyObject;
+    }
+
+    return buffer_get(&objEntry->object, outSizeBytes);
+}
+
+RECOMP_EXPORT void reasset_map_objects_link(ReAssetID mapID, ReAssetID id, ReAssetID externID) {
+    reasset_assert_stage_link_call("reasset_map_objects_link");
+
+    create_map_object_resolve_map(mapID);
+
+    ReAssetResolveMap objResolveMap;
+    reasset_assert(recomputil_u32_value_hashmap_get(mapObjectResolveMapMap, mapID, &objResolveMap),
+        "[reasset] bug! Map object resolve map hashmap get failed in link call.");
+
+    reasset_resolve_map_link(objResolveMap, id, externID);
+}
+
+RECOMP_EXPORT ReAssetResolveMap reasset_map_objects_get_resolve_map(ReAssetID mapID) {
+    reasset_assert_stage_get_resolve_map_call("reasset_maps_get_resolve_map");
+
+    create_map_object_resolve_map(mapID);
+
+    ReAssetResolveMap objResolveMap;
+    reasset_assert(recomputil_u32_value_hashmap_get(mapObjectResolveMapMap, mapID, &objResolveMap),
+        "[reasset] bug! Map object resolve map hashmap get failed in get resolve map call.");
+
+    return objResolveMap;
 }
