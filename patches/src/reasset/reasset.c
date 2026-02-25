@@ -9,6 +9,7 @@
 #include "reasset/reasset_namespace.h"
 
 #include "reasset/types/reasset_music_actions.h"
+#include "reasset/types/reasset_maps.h"
 
 #include "sys/fs.h"
 
@@ -98,10 +99,12 @@ const char *DINO_FS_FILENAMES[NUM_FILES] = {
 };
 
 static void reasset_types_init(void) {
+    reasset_maps_init();
     reasset_music_actions_init();
 }
 
 static void reasset_types_repack(void) {
+    reasset_maps_repack();
     reasset_music_actions_repack();
 }
 

@@ -100,7 +100,7 @@ void reasset_fst_read_from_file(s32 fileID, void *dst, u32 offset, u32 size) {
     }
     if (!(*((s32*)&offset) >= 0 && offset < fileSize && (*((s32*)&offset) + size) >= 0 && (offset + size) <= fileSize)) {
         reasset_log_error(
-            "[reasset] fst_ext_read_from_file(%s, %p, 0x%X, 0x%X) out of bounds read! file size: 0x%X", 
+            "[reasset] fst_ext_read_from_file(%s, %p, 0x%X, 0x%X) out of bounds read! file size: 0x%X\n", 
             DINO_FS_FILENAMES[fileID], dst, offset, size, fileSize);
     }
 

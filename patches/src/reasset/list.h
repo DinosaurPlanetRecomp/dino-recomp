@@ -21,6 +21,12 @@ typedef struct {
     PtrListElementFreeCallback elementFreeCallback;
 } PtrList;
 
+typedef struct {
+    u32 *data;
+    s32 length;
+    s32 capacity;
+} U32List;
+
 void list_init(List *list, s32 elementSize, s32 initialCapacity);
 void list_set_element_free_callback(List *list, ListElementFreeCallback callback);
 void list_free(List *list);
@@ -43,3 +49,12 @@ void ptrlist_set_length(PtrList *list, s32 length);
 s32 ptrlist_get_length(PtrList *list);
 s32 ptrlist_add(PtrList *list, void *element);
 void* ptrlist_get(PtrList *list, s32 idx);
+
+void u32list_init(U32List *list, s32 initialCapacity);
+void u32list_free(U32List *list);
+void u32list_clear(U32List *list);
+void u32list_set_capacity(U32List *list, s32 capacity);
+void u32list_set_length(U32List *list, s32 length);
+s32 u32list_get_length(U32List *list);
+s32 u32list_add(U32List *list, u32 element);
+u32 u32list_get(U32List *list, s32 idx);

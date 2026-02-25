@@ -1,0 +1,517 @@
+#include "reasset_maps.h"
+
+#include "patches.h"
+#include "recompdata.h"
+#include "reasset.h"
+#include "reasset/reasset_id.h"
+#include "reasset/reasset_resolve_map.h"
+#include "reasset/reasset_namespace.h"
+#include "reasset/reasset_fst.h"
+#include "reasset/list.h"
+#include "reasset/buffer.h"
+
+#include "PR/ultratypes.h"
+#include "libc/string.h"
+#include "game/objects/object_id.h"
+#include "sys/fs.h"
+#include "sys/map.h"
+#include "sys/memory.h"
+#include "macros.h"
+
+#define MAX_OBJ_GROUPS 32
+
+typedef struct {
+    ReAssetID id;
+    ReAssetNamespace owner;
+    Buffer header;
+    Buffer blocks;
+    Buffer gridA1;
+    Buffer gridA2;
+    List objectList;
+    U32ValueHashmapHandle objectMap; // ReAssetID -> object list index
+    s32 maxObjUID;
+    Buffer gridB1;
+    Buffer gridB2;
+} MapEntry;
+
+typedef struct {
+    ReAssetID id;
+    ReAssetNamespace owner;
+    Buffer object;
+    // TODO: support deletions
+} MapObjectEntry;
+
+static s32 mapOriginalCount;
+static s32 *mapOriginalTab;
+static List mapList; // list[MapEntry]
+static U32ValueHashmapHandle mapMap; // ReAssetID -> map list index
+static ReAssetResolveMap mapResolveMap;
+static U32ValueHashmapHandle mapObjectResolveMapMap; // ReAssetID -> ReAssetResolveMap
+
+static void map_object_list_element_free(void *element) {
+    MapObjectEntry *patch = element;
+    buffer_free(&patch->object);
+}
+
+static MapObjectEntry* get_map_object(MapEntry *map, ReAssetID id) {
+    u32 listIdx;
+    if (!recomputil_u32_value_hashmap_get(map->objectMap, id, &listIdx)) {
+        ReAssetIDData *idData = reasset_id_lookup(id);
+
+        // TODO: verify if base patch is in bounds (i.e. valid uid)
+
+        listIdx = list_get_length(&map->objectList);
+        
+        MapObjectEntry *entry = list_add(&map->objectList);
+        entry->id = id;
+        entry->owner = idData->namespace;
+        buffer_init(&entry->object, 0);
+
+        recomputil_u32_value_hashmap_insert(map->objectMap, id, listIdx);
+    }
+
+    return list_get(&map->objectList, listIdx);
+}
+
+static MapEntry* get_map(ReAssetID id) {
+    u32 listIdx;
+    if (!recomputil_u32_value_hashmap_get(mapMap, id, &listIdx)) {
+        ReAssetIDData *idData = reasset_id_lookup(id);
+
+        if (idData->namespace == REASSET_BASE_NAMESPACE) {
+            reasset_assert(idData->identifier < mapOriginalCount, 
+                "[reasset] Attempted to patch out-of-bounds base map: %d", idData->identifier);
+        }
+
+        // Create map entry
+        listIdx = list_get_length(&mapList);
+        
+        MapEntry *entry = list_add(&mapList);
+        entry->id = id;
+        entry->owner = idData->namespace;
+        buffer_init(&entry->header, 0);
+        buffer_init(&entry->blocks, 0);
+        buffer_init(&entry->gridA1, 0);
+        buffer_init(&entry->gridA2, 0);
+        list_init(&entry->objectList, sizeof(MapObjectEntry), 0);
+        list_set_element_free_callback(&entry->objectList, map_object_list_element_free);
+        entry->objectMap = recomputil_create_u32_value_hashmap();
+        buffer_init(&entry->gridB1, 0);
+        buffer_init(&entry->gridB2, 0);
+
+        recomputil_u32_value_hashmap_insert(mapMap, id, listIdx);
+
+        // Create resolve map for object setup list
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        const char *resolveMapNameTemp = recomp_sprintf_helper("MapObject (%s:%d)", namespaceName, idData->identifier);
+        u32 resolveMapNameLen = strlen(resolveMapNameTemp);
+        char *resolveMapName = recomp_alloc(resolveMapNameLen + 1);
+        bcopy(resolveMapNameTemp, resolveMapName, resolveMapNameLen);
+        resolveMapName[resolveMapNameLen] = '\0';
+        
+        recomputil_u32_value_hashmap_insert(mapObjectResolveMapMap, id, reasset_resolve_map_create(resolveMapName));
+    }
+
+    return list_get(&mapList, listIdx);
+}
+
+static void map_list_element_free(void *element) {
+    MapEntry *patch = element;
+    buffer_free(&patch->header);
+    buffer_free(&patch->blocks);
+    buffer_free(&patch->gridA1);
+    buffer_free(&patch->gridA2);
+    list_free(&patch->objectList);
+    recomputil_destroy_u32_value_hashmap(patch->objectMap);
+    buffer_free(&patch->gridB1);
+    buffer_free(&patch->gridB2);
+}
+
+void reasset_maps_init(void) {
+    mapOriginalCount = reasset_fst_get_file_size(MAPS_TAB) / (sizeof(u32) * 7);
+    mapOriginalTab = reasset_fst_alloc_load_file(MAPS_TAB, NULL);
+
+    list_init(&mapList, sizeof(MapEntry), mapOriginalCount);
+    list_set_element_free_callback(&mapList, map_list_element_free);
+    mapMap = recomputil_create_u32_value_hashmap();
+    mapResolveMap = reasset_resolve_map_create("Map");
+    mapObjectResolveMapMap = recomputil_create_u32_value_hashmap();
+
+    // Add base maps (preserving order)
+    Buffer objectSubfileTempBuffer = {0};
+    buffer_init(&objectSubfileTempBuffer, 0);
+
+    for (s32 i = 0; i < mapOriginalCount; i++) {
+        s32 tabIndex = i * 7;
+
+        ReAssetID id = reasset_base_id(i);
+        MapEntry *entry = get_map(id);
+
+        u32 idx;
+
+        idx = tabIndex + 0;
+        buffer_set_base(&entry->header, MAPS_BIN, mapOriginalTab[idx], mapOriginalTab[idx + 1] - mapOriginalTab[idx]);
+
+        idx = tabIndex + 1;
+        buffer_set_base(&entry->blocks, MAPS_BIN, mapOriginalTab[idx], mapOriginalTab[idx + 1] - mapOriginalTab[idx]);
+
+        idx = tabIndex + 2;
+        buffer_set_base(&entry->gridA1, MAPS_BIN, mapOriginalTab[idx], mapOriginalTab[idx + 1] - mapOriginalTab[idx]);
+
+        idx = tabIndex + 3;
+        buffer_set_base(&entry->gridA2, MAPS_BIN, mapOriginalTab[idx], mapOriginalTab[idx + 1] - mapOriginalTab[idx]);
+
+        idx = tabIndex + 4;
+        buffer_load_from_file(&objectSubfileTempBuffer, MAPS_BIN, mapOriginalTab[idx], mapOriginalTab[idx + 1] - mapOriginalTab[idx]);
+
+        entry->maxObjUID = 0;
+
+        u32 objSubfileSize;
+        void *objSubfile = buffer_get(&objectSubfileTempBuffer, &objSubfileSize);
+        u32 objoffset = 0;
+        while (objoffset < objSubfileSize) {
+            ObjSetup *setup = (ObjSetup*)((u8*)objSubfile + objoffset);
+            u32 setupSize = setup->quarterSize * 4;
+
+            if (setupSize == 0) {
+                reasset_log_error("[reasset] Map %d contains a zero size object setup (offset 0x%X)!\n", i, objoffset);
+                break;
+            }
+
+            ReAssetID setupID = reasset_base_id(setup->uID);
+            MapObjectEntry *objectEntry = get_map_object(entry, setupID);
+
+            buffer_set_base(&objectEntry->object, MAPS_BIN, mapOriginalTab[idx] + objoffset, setupSize);
+
+            if (setup->uID > entry->maxObjUID) {
+                entry->maxObjUID = setup->uID;
+            }
+
+            objoffset += setupSize;
+        }
+
+        idx = tabIndex + 5;
+        buffer_set_base(&entry->gridB1, MAPS_BIN, mapOriginalTab[idx], mapOriginalTab[idx + 1] - mapOriginalTab[idx]);
+
+        idx = tabIndex + 6;
+        buffer_set_base(&entry->gridB2, MAPS_BIN, mapOriginalTab[idx], mapOriginalTab[idx + 1] - mapOriginalTab[idx]);
+    }
+
+    buffer_free(&objectSubfileTempBuffer);
+}
+
+void reasset_maps_repack(void) {
+    s32 newCount = list_get_length(&mapList);
+
+    // Calculate new bin size
+    u32 newBinSize = 0;
+    for (s32 i = 0; i < newCount; i++) {
+        MapEntry *entry = list_get(&mapList, i);
+        
+        newBinSize += sizeof(MapHeader);
+        newBinSize += buffer_get_size(&entry->blocks);
+        newBinSize += buffer_get_size(&entry->gridA1);
+        newBinSize += buffer_get_size(&entry->gridA2);
+        s32 numObjects = list_get_length(&entry->objectList);
+        for (s32 k = 0; k < numObjects; k++) {
+            MapObjectEntry *objEntry = list_get(&entry->objectList, k);
+            newBinSize += buffer_get_size(&objEntry->object);
+        }
+        newBinSize += buffer_get_size(&entry->gridB1);
+        newBinSize += buffer_get_size(&entry->gridB2);
+        newBinSize = mmAlign16(newBinSize);
+    }
+
+    // Alloc new MAPS.tab/bin
+    u32 newTabSize = ((newCount * 7) + 2) * sizeof(s32);
+    s32 *newTab = recomp_alloc(newTabSize);
+    void *newBin = recomp_alloc(newBinSize);
+    bzero(newBin, newBinSize);
+
+    // Rebuild
+    U32List objSetupLists[1 + MAX_OBJ_GROUPS + 1] = {0};
+    for (u32 i = 0; i < ARRAYCOUNT(objSetupLists); i++) {
+        u32list_init(&objSetupLists[i], 0);
+    }
+    s32 offset = 0;
+    for (s32 i = 0; i < newCount; i++) {
+        MapEntry *entry = list_get(&mapList, i);
+        ReAssetIDData *idData = reasset_id_lookup(entry->id);
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        s32 tabIndex = i * 7;
+
+        // Patch logging
+        if (idData->namespace != REASSET_BASE_NAMESPACE) {
+            reasset_log("[reasset] New map: %s:%d\n", namespaceName, idData->identifier);
+        } else {
+            if (buffer_is_set(&entry->header)) {
+                reasset_log("[reasset] Map header patch: %s:%d\n", namespaceName, idData->identifier);
+            }
+            if (buffer_is_set(&entry->blocks)) {
+                reasset_log("[reasset] Map blocks patch: %s:%d\n", namespaceName, idData->identifier);
+            }
+            if (buffer_is_set(&entry->gridA1)) {
+                reasset_log("[reasset] Map grid A1 patch: %s:%d\n", namespaceName, idData->identifier);
+            }
+            if (buffer_is_set(&entry->gridA2)) {
+                reasset_log("[reasset] Map grid A2 patch: %s:%d\n", namespaceName, idData->identifier);
+            }
+            s32 numObjects = list_get_length(&entry->objectList);
+            for (s32 k = 0; k < numObjects; k++) {
+                MapObjectEntry *objEntry = list_get(&entry->objectList, k);
+                if (buffer_is_set(&objEntry->object)) {
+                    ReAssetIDData *objIDData = reasset_id_lookup(objEntry->id);
+                    const char *namespaceName;
+                    reasset_namespace_lookup_name(objIDData->namespace, &namespaceName);
+                    reasset_log("[reasset] Map object patch: %s:%d\n", namespaceName, objIDData->identifier);
+                }
+            }
+            if (buffer_is_set(&entry->gridB1)) {
+                reasset_log("[reasset] Map grid B1 patch: %s:%d\n", namespaceName, idData->identifier);
+            }
+            if (buffer_is_set(&entry->gridB2)) {
+                reasset_log("[reasset] Map grid B2 patch: %s:%d\n", namespaceName, idData->identifier);
+            }
+        }
+
+        // Sort object setups
+        s32 numObjects = list_get_length(&entry->objectList);
+        for (s32 k = 0; k < numObjects; k++) {
+            MapObjectEntry *objEntry = list_get(&entry->objectList, k);
+
+            u32 setupSize;
+            ObjSetup *setup = buffer_get(&objEntry->object, &setupSize);
+            if (setupSize < sizeof(ObjSetup)) {
+                ReAssetIDData *objIDData = reasset_id_lookup(objEntry->id);
+                const char *namespaceName;
+                reasset_namespace_lookup_name(objIDData->namespace, &namespaceName);
+                reasset_log_error("[reasset] Map object %s:%d setup data is too small! Expected >= %d, got %d. Object will be skipped!\n", 
+                    namespaceName, objIDData->identifier,
+                    sizeof(ObjSetup), setupSize);
+                continue;
+            }
+
+            if (setup->objId == OBJ_curve || setup->objId == OBJ_checkpoint4) {
+                // Curve/checkpoint
+                u32list_add(&objSetupLists[1 + MAX_OBJ_GROUPS], k);
+            } else if (setup->loadFlags & OBJSETUP_LOAD_IN_MAP_OBJGROUP) {
+                // Grouped object
+                if (setup->mapObjGroup >= MAX_OBJ_GROUPS) {
+                    ReAssetIDData *objIDData = reasset_id_lookup(objEntry->id);
+                    const char *namespaceName;
+                    reasset_namespace_lookup_name(objIDData->namespace, &namespaceName);
+                    reasset_log_error("[reasset] Map object %s:%d setup has an out of bounds group number: %d. Object will be left ungrouped!\n", 
+                        namespaceName, objIDData->identifier,
+                        setup->mapObjGroup);
+                    u32list_add(&objSetupLists[0], k);
+                } else {
+                    u32list_add(&objSetupLists[1 + setup->mapObjGroup], k);
+                }
+            } else {
+                // Ungrouped object
+                u32list_add(&objSetupLists[0], k);
+            }
+        }
+
+        // Resolve map itself
+        reasset_resolve_map_resolve_id(mapResolveMap, entry->id, entry->owner, i, (u8*)newBin + offset);
+
+        // Header
+        newTab[tabIndex + 0] = offset;
+        buffer_copy_to(&entry->header, newBin, offset);
+        offset += sizeof(MapHeader);
+
+        // Blocks
+        newTab[tabIndex + 1] = offset;
+        buffer_copy_to(&entry->blocks, newBin, offset);
+        offset += buffer_get_size(&entry->blocks);
+
+        // Grid A1
+        newTab[tabIndex + 2] = offset;
+        buffer_copy_to(&entry->gridA1, newBin, offset);
+        offset += buffer_get_size(&entry->gridA1);
+
+        // Grid A2
+        newTab[tabIndex + 3] = offset;
+        buffer_copy_to(&entry->gridA2, newBin, offset);
+        offset += buffer_get_size(&entry->gridA2);
+
+        // Objects
+        newTab[tabIndex + 4] = offset;
+        s32 nextUID = entry->maxObjUID + 1;
+        ReAssetResolveMap objResolveMap;
+        reasset_assert(recomputil_u32_value_hashmap_get(mapObjectResolveMapMap, entry->id, &objResolveMap),
+            "[reasset] bug! Map %d object resolve map hashmap get failed.", i);
+        for (u32 k = 0; k < ARRAYCOUNT(objSetupLists); k++) {
+            U32List *objList = &objSetupLists[k]; 
+            s32 numGroupObjects = u32list_get_length(objList);
+            for (s32 j = 0; j < numGroupObjects; j++) {
+                MapObjectEntry *objEntry = list_get(&entry->objectList, u32list_get(objList, j));
+
+                u32 setupSize = mmAlign4(buffer_get_size(&objEntry->object));
+                buffer_copy_to(&objEntry->object, newBin, offset);
+
+                ObjSetup *setup = (ObjSetup*)((u8*)newBin + offset);
+                // Always recalculate size
+                setup->quarterSize = setupSize / 4;
+
+                // Assign UID for custom assets
+                ReAssetIDData *objIDData = reasset_id_lookup(objEntry->id);
+                if (objIDData->namespace != REASSET_BASE_NAMESPACE) {
+                    setup->uID = nextUID;
+                    nextUID += 1;
+                }
+
+                // Resolve object setup
+                reasset_resolve_map_resolve_id(objResolveMap, objEntry->id, objEntry->owner, setup->uID, (u8*)newBin + offset);
+
+                offset += setupSize;
+            }
+        }
+
+        // Grid B1
+        newTab[tabIndex + 5] = offset;
+        buffer_copy_to(&entry->gridB1, newBin, offset);
+        offset += buffer_get_size(&entry->gridB1);
+
+        // Grid B2
+        newTab[tabIndex + 6] = offset;
+        buffer_copy_to(&entry->gridB2, newBin, offset);
+        offset += buffer_get_size(&entry->gridB2);
+
+        offset = mmAlign16(offset);
+
+        for (u32 i = 0; i < ARRAYCOUNT(objSetupLists); i++) {
+            u32list_clear(&objSetupLists[i]);
+        }
+    }
+
+    s32 endIndex = newCount * 7;
+    newTab[endIndex] = offset;
+    newTab[endIndex + 1] = -1;
+
+    // Finalize resolve map
+    reasset_resolve_map_finalize(mapResolveMap);
+
+    // Set new files
+    reasset_fst_set_internal(MAPS_TAB, newTab, newTabSize, /*ownedByReAsset=*/TRUE);
+    reasset_fst_set_internal(MAPS_BIN, newBin, newBinSize, /*ownedByReAsset=*/TRUE);
+    reasset_log("[reasset] Rebuilt MAPS.tab & MAPS.bin (length: %d, bin size: 0x%X).\n", newCount, newBinSize);
+
+    // Clean up
+    for (u32 i = 0; i < ARRAYCOUNT(objSetupLists); i++) {
+        u32list_free(&objSetupLists[i]);
+    }
+    list_free(&mapList);
+    recomputil_destroy_u32_value_hashmap(mapMap);
+    recomp_free(mapOriginalTab);
+    mapOriginalTab = NULL;
+}
+
+RECOMP_EXPORT void reasset_maps_set_header(ReAssetID id, ReAssetNamespace owner, const void *data) {
+    reasset_assert_stage_set_call("reasset_maps_set_header");
+
+    MapEntry *entry = get_map(id);
+    buffer_set(&entry->header, data, sizeof(MapHeader));
+    entry->owner = owner;
+}
+
+RECOMP_EXPORT void* reasset_maps_get_header(ReAssetID id) {
+    reasset_assert_stage_get_call("reasset_maps_get_header");
+
+    MapEntry *entry = get_map(id);
+    if (buffer_get_size(&entry->header) == 0) {
+        buffer_zero(&entry->header, sizeof(MapHeader));
+    }
+
+    return buffer_get(&entry->header, NULL);
+}
+
+RECOMP_EXPORT void reasset_maps_set_blocks(ReAssetID id, const void *data, u32 sizeBytes) {
+    reasset_assert_stage_set_call("reasset_maps_set_blocks");
+
+    MapEntry *entry = get_map(id);
+    buffer_set(&entry->blocks, data, sizeBytes);
+}
+
+RECOMP_EXPORT void* reasset_maps_get_blocks(ReAssetID id, u32 *outSizeBytes) {
+    reasset_assert_stage_get_call("reasset_maps_get_blocks");
+
+    MapEntry *entry = get_map(id);
+
+    return buffer_get(&entry->blocks, outSizeBytes);
+}
+
+RECOMP_EXPORT void reasset_maps_set_grid_a1(ReAssetID id, const void *data, u32 sizeBytes) {
+    reasset_assert_stage_set_call("reasset_maps_set_grid_a1");
+
+    MapEntry *entry = get_map(id);
+    buffer_set(&entry->gridA1, data, sizeBytes);
+}
+
+RECOMP_EXPORT void* reasset_maps_get_grid_a1(ReAssetID id, u32 *outSizeBytes) {
+    reasset_assert_stage_get_call("reasset_maps_get_grid_a1");
+
+    MapEntry *entry = get_map(id);
+
+    return buffer_get(&entry->gridA1, outSizeBytes);
+}
+
+RECOMP_EXPORT void reasset_maps_set_grid_a2(ReAssetID id, const void *data, u32 sizeBytes) {
+    reasset_assert_stage_set_call("reasset_maps_set_grid_a2");
+
+    MapEntry *entry = get_map(id);
+    buffer_set(&entry->gridA2, data, sizeBytes);
+}
+
+RECOMP_EXPORT void* reasset_maps_get_grid_a2(ReAssetID id, u32 *outSizeBytes) {
+    reasset_assert_stage_get_call("reasset_maps_get_grid_a2");
+
+    MapEntry *entry = get_map(id);
+
+    return buffer_get(&entry->gridA2, outSizeBytes);
+}
+
+RECOMP_EXPORT void reasset_maps_set_grid_b1(ReAssetID id, const void *data, u32 sizeBytes) {
+    reasset_assert_stage_set_call("reasset_maps_set_grid_b1");
+
+    MapEntry *entry = get_map(id);
+    buffer_set(&entry->gridB1, data, sizeBytes);
+}
+
+RECOMP_EXPORT void* reasset_maps_get_grid_b1(ReAssetID id, u32 *outSizeBytes) {
+    reasset_assert_stage_get_call("reasset_maps_get_grid_b1");
+
+    MapEntry *entry = get_map(id);
+
+    return buffer_get(&entry->gridB1, outSizeBytes);
+}
+
+RECOMP_EXPORT void reasset_maps_set_grid_b2(ReAssetID id, const void *data, u32 sizeBytes) {
+    reasset_assert_stage_set_call("reasset_maps_set_grid_b2");
+
+    MapEntry *entry = get_map(id);
+    buffer_set(&entry->gridB2, data, sizeBytes);
+}
+
+RECOMP_EXPORT void* reasset_maps_get_grid_b2(ReAssetID id, u32 *outSizeBytes) {
+    reasset_assert_stage_get_call("reasset_maps_get_grid_b2");
+
+    MapEntry *entry = get_map(id);
+
+    return buffer_get(&entry->gridB2, outSizeBytes);
+}
+
+RECOMP_EXPORT void reasset_maps_link(ReAssetID id, ReAssetID externID) {
+    reasset_assert_stage_link_call("reasset_maps_link");
+
+    reasset_resolve_map_link(mapResolveMap, id, externID);
+}
+
+RECOMP_EXPORT ReAssetResolveMap reasset_maps_get_resolve_map(void) {
+    reasset_assert_stage_get_resolve_map_call("reasset_maps_get_resolve_map");
+
+    return mapResolveMap;
+}

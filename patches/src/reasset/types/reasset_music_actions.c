@@ -26,10 +26,15 @@ static U32ValueHashmapHandle mActionMap; // ReAssetID -> action list index
 static ReAssetResolveMap mActionResolveMap;
 
 static MusicActionEntry* get_maction(ReAssetID id) {
-    ReAssetIDData *idData = reasset_id_lookup(id);
-
     u32 listIdx;
     if (!recomputil_u32_value_hashmap_get(mActionMap, id, &listIdx)) {
+        ReAssetIDData *idData = reasset_id_lookup(id);
+
+        if (idData->namespace == REASSET_BASE_NAMESPACE) {
+            reasset_assert(idData->identifier < mActionOriginalCount, 
+                "[reasset] Attempted to patch out-of-bounds base music action: %d", idData->identifier);
+        }
+
         listIdx = list_get_length(&mActionList);
         
         MusicActionEntry *entry = list_add(&mActionList);
@@ -77,7 +82,11 @@ void reasset_music_actions_repack(void) {
             ReAssetIDData *idData = reasset_id_lookup(entry->id);
             const char *namespaceName;
             reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-            reasset_log("[reasset] Music action patch: %s:%d\n", namespaceName, idData->identifier);
+            if (idData->namespace != REASSET_BASE_NAMESPACE) {
+                reasset_log("[reasset] New music action: %s:%d\n", namespaceName, idData->identifier);
+            } else {
+                reasset_log("[reasset] Music action patch: %s:%d\n", namespaceName, idData->identifier);
+            }
         }
 
         void *dst = (u8*)newActions + (i * sizeof(MusicAction));
