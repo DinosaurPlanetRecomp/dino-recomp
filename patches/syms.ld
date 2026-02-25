@@ -112,3 +112,5 @@ recomputil_memory_slotmap_create = 0x8F00020C;
 recomputil_memory_slotmap_get = 0x8F000210;
 recomputil_memory_slotmap_erase = 0x8F000214;
 recomputil_memory_slotmap_size = 0x8F000218;
+memset_recomp = 0x8F00021C;
+memcpy_recomp = 0x8F000220;
