@@ -153,6 +153,11 @@ void reasset_assert_stage_get_call(const char *functionName) {
         "[reasset] %s can only be called during the modify stage.", functionName);
 }
 
+void reasset_assert_stage_delete_call(const char *functionName) {
+    reasset_assert(reassetStage == REASSET_STAGE_MODIFY, 
+        "[reasset] %s can only be called during the modify stage.", functionName);
+}
+
 void reasset_assert_stage_iterator_call(const char *functionName) {
     reasset_assert(reassetStage == REASSET_STAGE_MODIFY, 
         "[reasset] %s can only be called during the modify stage.", functionName);

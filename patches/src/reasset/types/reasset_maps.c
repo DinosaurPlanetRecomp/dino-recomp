@@ -42,7 +42,7 @@ typedef struct {
     ReAssetID id;
     ReAssetNamespace owner;
     Buffer object;
-    // TODO: support deletions
+    _Bool delete;
 } MapObjectEntry;
 
 static s32 mapOriginalCount;
@@ -72,7 +72,11 @@ static MapObjectEntry* get_or_create_map_object(MapEntry *map, ReAssetID id) {
     if (!recomputil_u32_value_hashmap_get(map->objects.map, id, &listIdx)) {
         ReAssetIDData *idData = reasset_id_lookup_data(id);
 
-        // TODO: verify if base patch is in bounds (i.e. valid uid)
+        if (reassetStage >= REASSET_STAGE_SET && idData->namespace == REASSET_BASE_NAMESPACE) {
+            ReAssetIDData *mapIDData = reasset_id_lookup_data(map->id);
+            reasset_error("[reasset] Attempted to patch out-of-bounds base map object. Map: %d, Obj UID: 0x%X", 
+                mapIDData->identifier, idData->identifier);
+        }
 
         u32list_add(&map->objects.idList, id);
 
@@ -259,7 +263,9 @@ void reasset_maps_repack(void) {
         s32 numObjects = list_get_length(&entry->objects.list);
         for (s32 k = 0; k < numObjects; k++) {
             MapObjectEntry *objEntry = list_get(&entry->objects.list, k);
-            newBinSize += buffer_get_size(&objEntry->object);
+            if (!objEntry->delete) {
+                newBinSize += buffer_get_size(&objEntry->object);
+            }
         }
         newBinSize += buffer_get_size(&entry->gridB1);
         newBinSize += buffer_get_size(&entry->gridB2);
@@ -291,8 +297,18 @@ void reasset_maps_repack(void) {
 
         // Sort object setups
         s32 numObjects = list_get_length(&entry->objects.list);
+        s32 newNumObjects = 0;
         for (s32 k = 0; k < numObjects; k++) {
             MapObjectEntry *objEntry = list_get(&entry->objects.list, k);
+
+            if (objEntry->delete) {
+                ReAssetIDData *objIDData = reasset_id_lookup_data(objEntry->id);
+                const char *namespaceName;
+                reasset_namespace_lookup_name(objIDData->namespace, &namespaceName);
+                reasset_log("[reasset] Deleted map object %s:%d\n", 
+                    namespaceName, objIDData->identifier);
+                continue;
+            }
 
             u32 setupSize;
             ObjSetup *setup = buffer_get(&objEntry->object, &setupSize);
@@ -326,6 +342,8 @@ void reasset_maps_repack(void) {
                 // Ungrouped object
                 u32list_add(&objSetupLists[0], k);
             }
+
+            newNumObjects += 1;
         }
 
         // Resolve map itself
@@ -336,7 +354,7 @@ void reasset_maps_repack(void) {
         buffer_copy_to(&entry->header, newBin, offset);
 
         MapHeader *header = (MapHeader*)((u8*)newBin + offset);
-        header->objectInstanceCount = numObjects;
+        header->objectInstanceCount = newNumObjects;
 
         offset += sizeof(MapHeader);
 
@@ -645,6 +663,22 @@ RECOMP_EXPORT void* reasset_map_objects_get(ReAssetID mapID, ReAssetID id, u32 *
     }
 
     return buffer_get(&objEntry->object, outSizeBytes);
+}
+
+RECOMP_EXPORT void reasset_map_objects_delete(ReAssetID mapID, ReAssetID id) {
+    reasset_assert_stage_delete_call("reasset_map_objects_delete");
+
+    MapEntry *entry = get_map(mapID);
+    if (entry == NULL) {
+        return;
+    }
+
+    MapObjectEntry *objEntry = get_map_object(entry, id);
+    if (objEntry == NULL) {
+        return;
+    }
+
+    objEntry->delete = TRUE;
 }
 
 RECOMP_EXPORT ReAssetIterator reasset_map_objects_create_iterator(ReAssetID mapID) {
