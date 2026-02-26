@@ -7,6 +7,7 @@
 #include "reasset/reasset_id.h"
 #include "reasset/reasset_resolve_map.h"
 #include "reasset/reasset_namespace.h"
+#include "reasset/reasset_iterator.h"
 
 #include "reasset/types/reasset_music_actions.h"
 #include "reasset/types/reasset_maps.h"
@@ -111,6 +112,7 @@ static void reasset_types_repack(void) {
 void reasset_run(void) {
     reasset_namespace_init();
     reasset_id_init();
+    reasset_iterator_init();
     reasset_resolve_map_init();
 
     reasset_fst_init();
@@ -130,6 +132,7 @@ void reasset_run(void) {
     reasset_on_modify();
 
     reasset_log("[reasset] == Resolve ==\n");
+    reasset_iterator_clear_all(); // Previous iterators are no longer valid
     reasset_types_repack();
     reasset_fst_rebuild();
     reassetStage = REASSET_STAGE_RESOLVE;
@@ -141,11 +144,16 @@ void reasset_run(void) {
 }
 
 void reasset_assert_stage_set_call(const char *functionName) {
-    reasset_assert(reassetStage == REASSET_STAGE_SET, 
-        "[reasset] %s can only be called during the set stage.", functionName);
+    reasset_assert(reassetStage == REASSET_STAGE_SET || reassetStage == REASSET_STAGE_MODIFY, 
+        "[reasset] %s can only be called during the set and modify stages.", functionName);
 }
 
 void reasset_assert_stage_get_call(const char *functionName) {
+    reasset_assert(reassetStage == REASSET_STAGE_MODIFY, 
+        "[reasset] %s can only be called during the modify stage.", functionName);
+}
+
+void reasset_assert_stage_iterator_call(const char *functionName) {
     reasset_assert(reassetStage == REASSET_STAGE_MODIFY, 
         "[reasset] %s can only be called during the modify stage.", functionName);
 }

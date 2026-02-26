@@ -7,6 +7,7 @@
 #include "reasset/reasset_resolve_map.h"
 #include "reasset/reasset_namespace.h"
 #include "reasset/reasset_fst.h"
+#include "reasset/reasset_iterator.h"
 #include "reasset/buffer.h"
 #include "reasset/list.h"
 
@@ -22,18 +23,30 @@ typedef struct {
 
 static s32 mActionOriginalCount;
 static List mActionList; // list[MusicActionEntry]
+static U32List mActionIDList; // list[ReAssetID]
 static U32ValueHashmapHandle mActionMap; // ReAssetID -> action list index
 static ReAssetResolveMap mActionResolveMap;
 
 static MusicActionEntry* get_maction(ReAssetID id) {
     u32 listIdx;
+    if (recomputil_u32_value_hashmap_get(mActionMap, id, &listIdx)) {
+        return list_get(&mActionList, listIdx);
+    }
+
+    return NULL;
+}
+
+static MusicActionEntry* get_or_create_maction(ReAssetID id) {
+    u32 listIdx;
     if (!recomputil_u32_value_hashmap_get(mActionMap, id, &listIdx)) {
-        ReAssetIDData *idData = reasset_id_lookup(id);
+        ReAssetIDData *idData = reasset_id_lookup_data(id);
 
         if (idData->namespace == REASSET_BASE_NAMESPACE) {
             reasset_assert(idData->identifier < mActionOriginalCount, 
                 "[reasset] Attempted to patch out-of-bounds base music action: %d", idData->identifier);
         }
+
+        u32list_add(&mActionIDList, id);
 
         listIdx = list_get_length(&mActionList);
         
@@ -57,6 +70,7 @@ void reasset_music_actions_init(void) {
     mActionOriginalCount = reasset_fst_get_file_size(MUSICACTIONS_BIN) / sizeof(MusicAction);
 
     list_init(&mActionList, sizeof(MusicActionEntry), mActionOriginalCount);
+    u32list_init(&mActionIDList, mActionOriginalCount);
     list_set_element_free_callback(&mActionList, maction_list_element_free);
     mActionMap = recomputil_create_u32_value_hashmap();
     mActionResolveMap = reasset_resolve_map_create("MusicAction");
@@ -64,7 +78,7 @@ void reasset_music_actions_init(void) {
     // Add base actions (preserving order)
     for (s32 i = 0; i < mActionOriginalCount; i++) {
         ReAssetID id = reasset_base_id(i);
-        MusicActionEntry *entry = get_maction(id);
+        MusicActionEntry *entry = get_or_create_maction(id);
         buffer_set_base(&entry->action, MUSICACTIONS_BIN, i * sizeof(MusicAction), sizeof(MusicAction));
     }
 }
@@ -79,7 +93,7 @@ void reasset_music_actions_repack(void) {
         MusicActionEntry *entry = list_get(&mActionList, i);
 
         if (buffer_is_set(&entry->action)) {
-            ReAssetIDData *idData = reasset_id_lookup(entry->id);
+            ReAssetIDData *idData = reasset_id_lookup_data(entry->id);
             const char *namespaceName;
             reasset_namespace_lookup_name(idData->namespace, &namespaceName);
             if (idData->namespace != REASSET_BASE_NAMESPACE) {
@@ -103,6 +117,7 @@ void reasset_music_actions_repack(void) {
     reasset_log("[reasset] Rebuilt MUSICACTIONS.bin (length: %d).\n", newCount);
 
     // Clean up
+    u32list_free(&mActionIDList);
     list_free(&mActionList);
     recomputil_destroy_u32_value_hashmap(mActionMap);
 }
@@ -110,7 +125,7 @@ void reasset_music_actions_repack(void) {
 RECOMP_EXPORT void reasset_music_actions_set(ReAssetID id, ReAssetNamespace owner, const void *data) {
     reasset_assert_stage_set_call("reasset_music_actions_set");
 
-    MusicActionEntry *entry = get_maction(id);
+    MusicActionEntry *entry = get_or_create_maction(id);
     buffer_set(&entry->action, data, sizeof(MusicAction));
     entry->owner = owner;
 }
@@ -119,11 +134,17 @@ RECOMP_EXPORT void* reasset_music_actions_get(ReAssetID id) {
     reasset_assert_stage_get_call("reasset_music_actions_get");
 
     MusicActionEntry *entry = get_maction(id);
-    if (buffer_get_size(&entry->action) == 0) {
-        buffer_zero(&entry->action, sizeof(MusicAction));
+    if (entry == NULL) {
+        return NULL;
     }
 
     return buffer_get(&entry->action, NULL);
+}
+
+RECOMP_EXPORT ReAssetIterator reasset_music_actions_create_iterator(void) {
+    reasset_assert_stage_iterator_call("reasset_music_actions_create_iterator");
+
+    return reasset_iterator_create(&mActionIDList);
 }
 
 RECOMP_EXPORT void reasset_music_actions_link(ReAssetID id, ReAssetID externID) {

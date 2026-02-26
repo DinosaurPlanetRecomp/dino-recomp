@@ -35,6 +35,7 @@ void reasset_run(void);
 
 void reasset_assert_stage_set_call(const char *functionName);
 void reasset_assert_stage_get_call(const char *functionName);
+void reasset_assert_stage_iterator_call(const char *functionName);
 void reasset_assert_stage_link_call(const char *functionName);
 void reasset_assert_stage_get_resolve_map_call(const char *functionName);
 

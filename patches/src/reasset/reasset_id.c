@@ -26,16 +26,16 @@ static ReAssetID id_new(ReAssetIDData **outData) {
     return id;
 }
 
-ReAssetIDData *reasset_id_lookup(ReAssetID id) {
+ReAssetIDData *reasset_id_lookup_data(ReAssetID id) {
     // TODO: better error message? this can happen if mods provide an ID not provided by the api
     ReAssetIDData *data;
     reasset_assert(recomputil_memory_slotmap_get(sIDSlotmap, id, (void**)&data), 
-        "[reasset] bug! reasset_id_lookup id lookup failed.");
+        "[reasset] bug! reasset_id_lookup_data id lookup failed.");
 
     return data;
 }
 
-ReAssetIDData *reasset_id_lookup_or_null(ReAssetID id) {
+ReAssetIDData *reasset_id_lookup_data_or_null(ReAssetID id) {
     ReAssetIDData *data;
     if (recomputil_memory_slotmap_get(sIDSlotmap, id, (void**)&data)) {
         return data;
@@ -44,17 +44,39 @@ ReAssetIDData *reasset_id_lookup_or_null(ReAssetID id) {
     }
 }
 
-_Bool reasset_id_lookup_name(ReAssetID id, const char **outNamespaceName, s32 *identifier) {
+RECOMP_EXPORT _Bool reasset_id_lookup(ReAssetID id, ReAssetNamespace *outNamespace, s32 *outIdentifier) {
     ReAssetIDData *data;
     if (recomputil_memory_slotmap_get(sIDSlotmap, id, (void**)&data)) {
-        if (identifier != NULL) {
-            *identifier = data->identifier;
+        if (outNamespace != NULL) {
+            *outNamespace = data->namespace;
+        }
+        if (outIdentifier != NULL) {
+            *outIdentifier = data->identifier;
+        }
+
+        return TRUE;
+    } else {
+        if (outIdentifier != NULL) {
+            *outIdentifier = -1;
+        }
+        if (outNamespace != NULL) {
+            *outNamespace = -1;
+        }
+        return FALSE;
+    }
+}
+
+RECOMP_EXPORT _Bool reasset_id_lookup_name(ReAssetID id, const char **outNamespaceName, s32 *outIdentifier) {
+    ReAssetIDData *data;
+    if (recomputil_memory_slotmap_get(sIDSlotmap, id, (void**)&data)) {
+        if (outIdentifier != NULL) {
+            *outIdentifier = data->identifier;
         }
 
         return reasset_namespace_lookup_name(data->namespace, outNamespaceName);
     } else {
-        if (identifier != NULL) {
-            *identifier = -1;
+        if (outIdentifier != NULL) {
+            *outIdentifier = -1;
         }
         if (outNamespaceName != NULL) {
             *outNamespaceName = "<NULL>";

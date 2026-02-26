@@ -6,6 +6,7 @@
 #include "reasset.h"
 #include "reasset_id.h"
 #include "reasset_namespace.h"
+#include "reasset_iterator.h"
 #include "list.h"
 
 #include "PR/ultratypes.h"
@@ -23,6 +24,7 @@ typedef struct {
 
 typedef struct {
     U32MemoryHashmapHandle idMap; // ReAssetID -> ReAssetResolvedID
+    U32List idList; // list[ReAssetID]
     U32ValueHashmapHandle ownershipMap; // resolved identifier -> namespace
     List linkList; // list[ReAssetIDLink]
     U32ValueHashmapHandle linkMap; // ReAssetID -> link list index
@@ -32,7 +34,7 @@ typedef struct {
 
 static MemorySlotmapHandle sResolveMapSlotmap;
 
-static void resolve_id_internal(ReAssetResolveMapData *data, ReAssetID id, ReAssetNamespace owner, s32 resolvedIdentifier, void *resolvedPtr);
+static _Bool resolve_id_internal(ReAssetResolveMapData *data, ReAssetID id, ReAssetNamespace owner, s32 resolvedIdentifier, void *resolvedPtr);
 
 void reasset_resolve_map_init(void) {
     sResolveMapSlotmap = recomputil_create_memory_slotmap(sizeof(ReAssetResolveMapData));
@@ -48,6 +50,7 @@ ReAssetResolveMap reasset_resolve_map_create(const char *assetTypeName) {
     data->assetTypeName = assetTypeName;
     
     data->idMap = recomputil_create_u32_memory_hashmap(sizeof(ReAssetResolvedID));
+    u32list_init(&data->idList, 0);
     data->ownershipMap = recomputil_create_u32_value_hashmap();
     list_init(&data->linkList, sizeof(ReAssetIDLink), 0);
     data->linkMap = recomputil_create_u32_value_hashmap();
@@ -117,8 +120,8 @@ void reasset_resolve_map_finalize(ReAssetResolveMap map) {
     data->finalized = TRUE;
 }
 
-static void resolve_id_internal(ReAssetResolveMapData *data, ReAssetID id, ReAssetNamespace owner, s32 resolvedIdentifier, void *resolvedPtr) {
-    recomputil_u32_memory_hashmap_create(data->idMap, id);
+static _Bool resolve_id_internal(ReAssetResolveMapData *data, ReAssetID id, ReAssetNamespace owner, s32 resolvedIdentifier, void *resolvedPtr) {
+    _Bool created = recomputil_u32_memory_hashmap_create(data->idMap, id);
     
     ReAssetResolvedID *resolved = recomputil_u32_memory_hashmap_get(data->idMap, id);
     reasset_assert(resolved != NULL, "[reasset] bug! resolve_id_internal memory hashmap get failed.");
@@ -130,7 +133,7 @@ static void resolve_id_internal(ReAssetResolveMapData *data, ReAssetID id, ReAss
     recomputil_u32_value_hashmap_insert(data->ownershipMap, resolvedIdentifier, owner);
 
     // TODO: skip if logging is disabled
-    ReAssetIDData *idData = reasset_id_lookup_or_null(id);
+    ReAssetIDData *idData = reasset_id_lookup_data_or_null(id);
     if (idData != NULL && idData->namespace != REASSET_BASE_NAMESPACE) {
         s32 identifier;
         const char *namespaceName;
@@ -143,6 +146,8 @@ static void resolve_id_internal(ReAssetResolveMapData *data, ReAssetID id, ReAss
             resolvedIdentifier,
             ownerName);
     }
+
+    return created;
 }
 
 void reasset_resolve_map_resolve_id(ReAssetResolveMap map, ReAssetID id, ReAssetNamespace owner, s32 resolvedIdentifier, void *resolvedPtr) {
@@ -150,7 +155,10 @@ void reasset_resolve_map_resolve_id(ReAssetResolveMap map, ReAssetID id, ReAsset
     reasset_assert(recomputil_memory_slotmap_get(sResolveMapSlotmap, map, (void**)&data), 
         "[reasset] Invalid resolve map %d given during resolve_id.", map);
 
-    resolve_id_internal(data, id, owner, resolvedIdentifier, resolvedPtr);
+    _Bool created = resolve_id_internal(data, id, owner, resolvedIdentifier, resolvedPtr);
+    if (created) {
+        u32list_add(&data->idList, id);
+    }
 }
 
 RECOMP_EXPORT s32 reasset_resolve_map_lookup(ReAssetResolveMap map, ReAssetID id) {
@@ -195,12 +203,21 @@ RECOMP_EXPORT ReAssetNamespace reasset_resolve_map_owner_of(ReAssetResolveMap ma
     return REASSET_INVALID_NAMESPACE;
 }
 
+RECOMP_EXPORT ReAssetIterator reasset_resolve_map_create_iterator(ReAssetResolveMap map) {
+    ReAssetResolveMapData *data;
+    if (recomputil_memory_slotmap_get(sResolveMapSlotmap, map, (void**)&data)) {
+        return reasset_iterator_create(&data->idList);
+    }
+
+    return reasset_iterator_create(NULL);
+}
+
 void reasset_resolve_map_link(ReAssetResolveMap map, ReAssetID id, ReAssetID externID) {
     ReAssetResolveMapData *data;
     reasset_assert(recomputil_memory_slotmap_get(sResolveMapSlotmap, map, (void**)&data), 
         "[reasset] Invalid resolve map %d given during link.", map);
 
-    ReAssetIDData *idData = reasset_id_lookup(id);
+    ReAssetIDData *idData = reasset_id_lookup_data(id);
     if (idData->namespace == REASSET_BASE_NAMESPACE) {
         s32 identifier;
         const char *namespaceName;

@@ -16,8 +16,8 @@ typedef struct {
 } ReAssetIDData;
 
 void reasset_id_init(void);
-ReAssetIDData *reasset_id_lookup(ReAssetID id);
-ReAssetIDData *reasset_id_lookup_or_null(ReAssetID id);
-_Bool reasset_id_lookup_name(ReAssetID id, const char **outNamespaceName, s32 *identifier);
+ReAssetIDData *reasset_id_lookup_data(ReAssetID id);
+ReAssetIDData *reasset_id_lookup_data_or_null(ReAssetID id);
+_Bool reasset_id_lookup_name(ReAssetID id, const char **outNamespaceName, s32 *outIdentifier);
 ReAssetID reasset_id(ReAssetNamespace namespace, s32 identifier);
 ReAssetID reasset_base_id(s32 identifier);
