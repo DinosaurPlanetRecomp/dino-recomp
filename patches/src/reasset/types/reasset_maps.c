@@ -285,46 +285,8 @@ void reasset_maps_repack(void) {
         reasset_namespace_lookup_name(idData->namespace, &namespaceName);
         s32 tabIndex = i * 7;
 
-        // Patch logging
         if (idData->namespace != REASSET_BASE_NAMESPACE) {
             reasset_log("[reasset] New map: %s:%d\n", namespaceName, idData->identifier);
-        } else {
-            if (buffer_is_set(&entry->header)) {
-                reasset_log("[reasset] Map header patch: %s:%d\n", namespaceName, idData->identifier);
-            }
-            if (buffer_is_set(&entry->blocks)) {
-                reasset_log("[reasset] Map blocks patch: %s:%d\n", namespaceName, idData->identifier);
-            }
-            if (buffer_is_set(&entry->gridA1)) {
-                reasset_log("[reasset] Map grid A1 patch: %s:%d\n", namespaceName, idData->identifier);
-            }
-            if (buffer_is_set(&entry->gridA2)) {
-                reasset_log("[reasset] Map grid A2 patch: %s:%d\n", namespaceName, idData->identifier);
-            }
-            s32 numObjects = list_get_length(&entry->objects.list);
-            for (s32 k = 0; k < numObjects; k++) {
-                MapObjectEntry *objEntry = list_get(&entry->objects.list, k);
-                if (buffer_is_set(&objEntry->object)) {
-                    ReAssetIDData *objIDData = reasset_id_lookup_data(objEntry->id);
-                    const char *objNamespaceName;
-                    reasset_namespace_lookup_name(objIDData->namespace, &objNamespaceName);
-                    if (objIDData->namespace != REASSET_BASE_NAMESPACE) {
-                        reasset_log("[reasset] New map object: %s:%d[%s:%d]\n", 
-                            namespaceName, idData->identifier,
-                            objNamespaceName, objIDData->identifier);
-                    } else {
-                        reasset_log("[reasset] Map object patch: %s:%d[%s:%d]\n", 
-                            namespaceName, idData->identifier,
-                            objNamespaceName, objIDData->identifier);
-                    }
-                }
-            }
-            if (buffer_is_set(&entry->gridB1)) {
-                reasset_log("[reasset] Map grid B1 patch: %s:%d\n", namespaceName, idData->identifier);
-            }
-            if (buffer_is_set(&entry->gridB2)) {
-                reasset_log("[reasset] Map grid B2 patch: %s:%d\n", namespaceName, idData->identifier);
-            }
         }
 
         // Sort object setups
@@ -453,7 +415,7 @@ void reasset_maps_repack(void) {
     // Set new files
     reasset_fst_set_internal(MAPS_TAB, newTab, newTabSize, /*ownedByReAsset=*/TRUE);
     reasset_fst_set_internal(MAPS_BIN, newBin, newBinSize, /*ownedByReAsset=*/TRUE);
-    reasset_log("[reasset] Rebuilt MAPS.tab & MAPS.bin (length: %d, bin size: 0x%X).\n", newCount, newBinSize);
+    reasset_log("[reasset] Rebuilt MAPS.tab & MAPS.bin (count: %d, bin size: 0x%X).\n", newCount, newBinSize);
 
     // Clean up
     for (u32 i = 0; i < ARRAYCOUNT(objSetupLists); i++) {
@@ -468,12 +430,21 @@ void reasset_maps_repack(void) {
 
 // MARK: Maps
 
+static void log_map_set(ReAssetID id, const char *msg) {
+    ReAssetIDData *idData = reasset_id_lookup_data(id);
+    const char *namespaceName;
+    reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+    reasset_log("[reasset] %s: %s:%d\n", msg, namespaceName, idData->identifier);
+}
+
 RECOMP_EXPORT void reasset_maps_set_header(ReAssetID id, ReAssetNamespace owner, const void *data) {
     reasset_assert_stage_set_call("reasset_maps_set_header");
 
     MapEntry *entry = get_or_create_map(id);
     buffer_set(&entry->header, data, sizeof(MapHeader));
     entry->owner = owner;
+
+    log_map_set(id, "Map header set");
 }
 
 RECOMP_EXPORT void* reasset_maps_get_header(ReAssetID id) {
@@ -496,6 +467,8 @@ RECOMP_EXPORT void reasset_maps_set_blocks(ReAssetID id, const void *data, u32 s
 
     MapEntry *entry = get_or_create_map(id);
     buffer_set(&entry->blocks, data, sizeBytes);
+
+    log_map_set(id, "Map blocks set");
 }
 
 RECOMP_EXPORT void* reasset_maps_get_blocks(ReAssetID id, u32 *outSizeBytes) {
@@ -517,6 +490,8 @@ RECOMP_EXPORT void reasset_maps_set_grid_a1(ReAssetID id, const void *data, u32 
 
     MapEntry *entry = get_or_create_map(id);
     buffer_set(&entry->gridA1, data, sizeBytes);
+
+    log_map_set(id, "Map grid A1 set");
 }
 
 RECOMP_EXPORT void* reasset_maps_get_grid_a1(ReAssetID id, u32 *outSizeBytes) {
@@ -538,6 +513,8 @@ RECOMP_EXPORT void reasset_maps_set_grid_a2(ReAssetID id, const void *data, u32 
 
     MapEntry *entry = get_or_create_map(id);
     buffer_set(&entry->gridA2, data, sizeBytes);
+
+    log_map_set(id, "Map grid A2 set");
 }
 
 RECOMP_EXPORT void* reasset_maps_get_grid_a2(ReAssetID id, u32 *outSizeBytes) {
@@ -559,6 +536,8 @@ RECOMP_EXPORT void reasset_maps_set_grid_b1(ReAssetID id, const void *data, u32 
 
     MapEntry *entry = get_or_create_map(id);
     buffer_set(&entry->gridB1, data, sizeBytes);
+
+    log_map_set(id, "Map grid B1 set");
 }
 
 RECOMP_EXPORT void* reasset_maps_get_grid_b1(ReAssetID id, u32 *outSizeBytes) {
@@ -580,6 +559,8 @@ RECOMP_EXPORT void reasset_maps_set_grid_b2(ReAssetID id, const void *data, u32 
 
     MapEntry *entry = get_or_create_map(id);
     buffer_set(&entry->gridB2, data, sizeBytes);
+
+    log_map_set(id, "Map grid B2 set");
 }
 
 RECOMP_EXPORT void* reasset_maps_get_grid_b2(ReAssetID id, u32 *outSizeBytes) {
@@ -623,6 +604,17 @@ RECOMP_EXPORT void reasset_map_objects_set(ReAssetID mapID, ReAssetID id, const 
     MapObjectEntry *objEntry = get_or_create_map_object(entry, id);
     
     buffer_set(&objEntry->object, data, sizeBytes);
+
+    // Logging
+    ReAssetIDData *mapIDData = reasset_id_lookup_data(mapID);
+    ReAssetIDData *objIDData = reasset_id_lookup_data(id);
+    const char *mapNamespaceName;
+    reasset_namespace_lookup_name(mapIDData->namespace, &mapNamespaceName);
+    const char *objNamespaceName;
+    reasset_namespace_lookup_name(objIDData->namespace, &objNamespaceName);
+    reasset_log("[reasset] Map object set: %s:%d[%s:%d]\n", 
+        mapNamespaceName, mapIDData->identifier,
+        objNamespaceName, objIDData->identifier);
 }
 
 RECOMP_EXPORT void* reasset_map_objects_get(ReAssetID mapID, ReAssetID id, u32 *outSizeBytes) {

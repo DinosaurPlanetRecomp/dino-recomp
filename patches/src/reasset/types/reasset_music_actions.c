@@ -92,17 +92,6 @@ void reasset_music_actions_repack(void) {
     for (s32 i = 0; i < newCount; i++) {
         MusicActionEntry *entry = list_get(&mActionList, i);
 
-        if (buffer_is_set(&entry->action)) {
-            ReAssetIDData *idData = reasset_id_lookup_data(entry->id);
-            const char *namespaceName;
-            reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-            if (idData->namespace != REASSET_BASE_NAMESPACE) {
-                reasset_log("[reasset] New music action: %s:%d\n", namespaceName, idData->identifier);
-            } else {
-                reasset_log("[reasset] Music action patch: %s:%d\n", namespaceName, idData->identifier);
-            }
-        }
-
         void *dst = (u8*)newActions + (i * sizeof(MusicAction));
         buffer_copy_to(&entry->action, dst, 0);
 
@@ -114,7 +103,7 @@ void reasset_music_actions_repack(void) {
 
     // Set new file
     reasset_fst_set_internal(MUSICACTIONS_BIN, newActions, newCount * sizeof(MusicAction), /*ownedByReAsset=*/TRUE);
-    reasset_log("[reasset] Rebuilt MUSICACTIONS.bin (length: %d).\n", newCount);
+    reasset_log("[reasset] Rebuilt MUSICACTIONS.bin (count: %d).\n", newCount);
 
     // Clean up
     u32list_free(&mActionIDList);
@@ -128,6 +117,11 @@ RECOMP_EXPORT void reasset_music_actions_set(ReAssetID id, ReAssetNamespace owne
     MusicActionEntry *entry = get_or_create_maction(id);
     buffer_set(&entry->action, data, sizeof(MusicAction));
     entry->owner = owner;
+
+    ReAssetIDData *idData = reasset_id_lookup_data(id);
+    const char *namespaceName;
+    reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+    reasset_log("[reasset] Music action set: %s:%d\n", namespaceName, idData->identifier);
 }
 
 RECOMP_EXPORT void* reasset_music_actions_get(ReAssetID id) {
