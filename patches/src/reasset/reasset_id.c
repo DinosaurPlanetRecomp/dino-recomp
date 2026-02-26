@@ -86,6 +86,10 @@ RECOMP_EXPORT _Bool reasset_id_lookup_name(ReAssetID id, const char **outNamespa
 }
 
 RECOMP_EXPORT ReAssetID reasset_id(ReAssetNamespace namespace, s32 identifier) {
+    reasset_assert(namespace != REASSET_BASE_NAMESPACE, 
+        "[reasset:reasset_id] Cannot create a custom ID in the base namespace. Use reasset_base_id instead.");
+    reasset_assert(identifier != -1, "[reasset:reasset_id] Identifier cannot be -1 (reserved for auto IDs).");
+
     U32ValueHashmapHandle idMap;
     if (!recomputil_u32_value_hashmap_get(sNamespacedIDHashmap, namespace, &idMap)) {
         idMap = recomputil_create_u32_value_hashmap();
@@ -115,6 +119,19 @@ RECOMP_EXPORT ReAssetID reasset_base_id(s32 identifier) {
         data->identifier = identifier;
         recomputil_u32_value_hashmap_insert(sBaseIDHashmap, identifier, id);
     }
+
+    return id;
+}
+
+RECOMP_EXPORT ReAssetID reasset_auto_id(ReAssetNamespace namespace) {
+    reasset_assert(namespace != REASSET_BASE_NAMESPACE, 
+        "[reasset:reasset_auto_id] Cannot create an auto ID in the base namespace. Use reasset_base_id instead.");
+    
+    // Auto ID, always create a new one
+    ReAssetIDData *data;
+    ReAssetID id = id_new(&data);
+    data->namespace = namespace;
+    data->identifier = -1;
 
     return id;
 }

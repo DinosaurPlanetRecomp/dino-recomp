@@ -134,7 +134,7 @@ static _Bool resolve_id_internal(ReAssetResolveMapData *data, ReAssetID id, ReAs
 
     // TODO: skip if logging is disabled
     ReAssetIDData *idData = reasset_id_lookup_data_or_null(id);
-    if (idData != NULL && idData->namespace != REASSET_BASE_NAMESPACE) {
+    if (idData != NULL && idData->namespace != REASSET_BASE_NAMESPACE && idData->identifier != -1) {
         s32 identifier;
         const char *namespaceName;
         reasset_id_lookup_name(id, &namespaceName, &identifier);
@@ -218,6 +218,20 @@ void reasset_resolve_map_link(ReAssetResolveMap map, ReAssetID id, ReAssetID ext
         "[reasset] Invalid resolve map %d given during link.", map);
 
     ReAssetIDData *idData = reasset_id_lookup_data(id);
+    ReAssetIDData *externIDData = reasset_id_lookup_data(externID);
+
+    if (idData->identifier == -1 || externIDData->identifier == -1) {
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        const char *externNamespaceName;
+        reasset_namespace_lookup_name(externIDData->namespace, &externNamespaceName);
+
+        reasset_error("[reasset] Creating links to/from auto IDs is not allowed! Attempted link: %s %s:%d -> %s:%d\n",
+            data->assetTypeName,
+            namespaceName, idData->identifier,
+            externNamespaceName, externIDData->identifier);
+    }
+
     if (idData->namespace == REASSET_BASE_NAMESPACE) {
         s32 identifier;
         const char *namespaceName;
