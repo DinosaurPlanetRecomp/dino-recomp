@@ -9,8 +9,9 @@
 #include "reasset/reasset_namespace.h"
 #include "reasset/reasset_iterator.h"
 
-#include "reasset/types/reasset_music_actions.h"
-#include "reasset/types/reasset_maps.h"
+#include "reasset/files/reasset_music_actions.h"
+#include "reasset/files/reasset_maps.h"
+#include "reasset/special/reasset_dlls.h"
 
 #include "sys/fs.h"
 
@@ -99,14 +100,18 @@ const char *DINO_FS_FILENAMES[NUM_FILES] = {
 /*49*/ "ENVFXACT.bin"
 };
 
-static void reasset_types_init(void) {
+static void reasset_run_init(void) {
     reasset_maps_init();
     reasset_music_actions_init();
+
+    reasset_dlls_init();
 }
 
-static void reasset_types_repack(void) {
+static void reasset_run_repack(void) {
     reasset_maps_repack();
     reasset_music_actions_repack();
+
+    reasset_dlls_repack();
 }
 
 void reasset_run(void) {
@@ -121,7 +126,7 @@ void reasset_run(void) {
     reassetStage = REASSET_STAGE_FST_SET;
     reasset_on_fst_set();
 
-    reasset_types_init();
+    reasset_run_init();
 
     reasset_log("[reasset] == Set ==\n");
     reassetStage = REASSET_STAGE_SET;
@@ -133,7 +138,7 @@ void reasset_run(void) {
 
     reasset_log("[reasset] == Resolve ==\n");
     reasset_iterator_clear_all(); // Previous iterators are no longer valid
-    reasset_types_repack();
+    reasset_run_repack();
     reasset_fst_rebuild();
     reassetStage = REASSET_STAGE_RESOLVE;
     reasset_on_resolve();

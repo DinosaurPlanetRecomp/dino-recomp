@@ -12,17 +12,6 @@
 //       DLL IDs. This hopefully doesn't happen in practice but we disallow custom engine DLLs
 //       anyway just to avoid the issue entirely. The new 'recomp' bank should be used instead.
 
-struct RecompCustomDLL;
-
-typedef void (*RecompDLLFunc)(struct RecompCustomDLL *self);
-
-typedef struct RecompCustomDLL {
-    RecompDLLFunc ctor;
-    RecompDLLFunc dtor;
-    u16 exportCount;
-    void *vtblPtr;
-} RecompCustomDLL;
-
 static struct {
     u16 bank1;
     u16 bank2;
@@ -47,7 +36,7 @@ static struct {
 static RecompCustomDLLState recompCustomDLLList[RECOMP_MAX_LOADED_CUSTOM_DLLS];
 static s32 recompLoadedCustomDLLCount = 0;
 
-RECOMP_EXPORT u16 recomp_register_dll(RecompDLLBank bank, u16 exportCount, RecompDLLFunc ctor, RecompDLLFunc dtor, void *vtblPtr) {
+u16 recomp_register_dll(RecompDLLBank bank, u16 exportCount, RecompDLLFunc ctor, RecompDLLFunc dtor, void *vtblPtr) {
     if (bank == DLL_BANK_ENGINE) {
         recomp_exit_with_error("[recomp_register_dll] Custom engine DLLs are not supported. Consider using the recomp bank instead.");
         return 0;
