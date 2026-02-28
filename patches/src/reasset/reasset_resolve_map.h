@@ -1,6 +1,7 @@
 #pragma once
 
 #include "reasset_id.h"
+#include "reasset_iterator.h"
 
 typedef u32 ReAssetResolveMap;
 
@@ -9,4 +10,7 @@ ReAssetResolveMap reasset_resolve_map_create(const char *assetTypeName);
 void reasset_resolve_map_finalize(ReAssetResolveMap map);
 void reasset_resolve_map_resolve_id(ReAssetResolveMap map, ReAssetID id, ReAssetNamespace owner, s32 resolvedIdentifier, void *resolvedPtr);
 s32 reasset_resolve_map_lookup(ReAssetResolveMap map, ReAssetID id);
+s32 reasset_resolve_map_lookup_ptr(ReAssetResolveMap map, ReAssetID id, void **outResolvedPtr);
+ReAssetNamespace reasset_resolve_map_owner_of(ReAssetResolveMap map, s32 resolvedIdentifier);
+ReAssetIterator reasset_resolve_map_create_iterator(ReAssetResolveMap map);
 void reasset_resolve_map_link(ReAssetResolveMap map, ReAssetID id, ReAssetID externID);

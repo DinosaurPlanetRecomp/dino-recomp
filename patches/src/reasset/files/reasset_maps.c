@@ -287,11 +287,11 @@ void reasset_maps_repack(void) {
     for (s32 i = 0; i < newCount; i++) {
         MapEntry *entry = list_get(&mapList, i);
         ReAssetIDData *idData = reasset_id_lookup_data(entry->id);
-        const char *namespaceName;
-        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
         s32 tabIndex = i * 7;
 
         if (idData->namespace != REASSET_BASE_NAMESPACE) {
+            const char *namespaceName;
+            reasset_namespace_lookup_name(idData->namespace, &namespaceName);
             reasset_log("[reasset] New map: %s:%d\n", namespaceName, idData->identifier);
         }
 
