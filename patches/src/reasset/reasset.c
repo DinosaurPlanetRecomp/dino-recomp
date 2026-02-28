@@ -12,6 +12,7 @@
 #include "reasset/files/reasset_music_actions.h"
 #include "reasset/files/reasset_maps.h"
 #include "reasset/special/reasset_dlls.h"
+#include "reasset/special/reasset_menus.h"
 
 #include "sys/fs.h"
 
@@ -105,6 +106,7 @@ static void reasset_run_init(void) {
     reasset_music_actions_init();
 
     reasset_dlls_init();
+    reasset_menus_init();
 }
 
 static void reasset_run_repack(void) {
@@ -112,6 +114,15 @@ static void reasset_run_repack(void) {
     reasset_music_actions_repack();
 
     reasset_dlls_repack();
+    reasset_menus_repack();
+}
+
+static void reasset_run_patch(void) {
+    reasset_menus_patch();
+}
+
+static void reasset_run_cleanup(void) {
+    reasset_menus_cleanup();
 }
 
 void reasset_run(void) {
@@ -137,10 +148,12 @@ void reasset_run(void) {
     reasset_on_modify();
 
     reasset_log("[reasset] == Resolve ==\n");
+    reassetStage = REASSET_STAGE_RESOLVE;
     reasset_iterator_clear_all(); // Previous iterators are no longer valid
     reasset_run_repack();
+    reasset_run_patch();
+    reasset_run_cleanup();
     reasset_fst_rebuild();
-    reassetStage = REASSET_STAGE_RESOLVE;
     reasset_on_resolve();
 
     reasset_log("[reasset] == Committed ==\n");

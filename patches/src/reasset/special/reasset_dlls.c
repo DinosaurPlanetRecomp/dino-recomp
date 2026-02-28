@@ -13,7 +13,6 @@
 
 typedef struct {
     ReAssetID id;
-    ReAssetNamespace owner;
     RecompDLLBank bank;
     u16 exportCount;
     RecompDLLFunc ctor;
@@ -34,7 +33,6 @@ static DLLEntry* get_or_create_dll(ReAssetID id) {
         
         DLLEntry *entry = list_add(&dllList);
         entry->id = id;
-        entry->owner = idData->namespace;
 
         recomputil_u32_value_hashmap_insert(dllMap, id, listIdx);
     }
@@ -56,7 +54,7 @@ void reasset_dlls_repack(void) {
 
         u16 id = recomp_register_dll(entry->bank, entry->exportCount, entry->ctor, entry->dtor, entry->vtblPtr);
 
-        reasset_resolve_map_resolve_id(dllResolveMap, entry->id, entry->owner, id, NULL);
+        reasset_resolve_map_resolve_id(dllResolveMap, entry->id, -1, id, NULL);
     }
 
     // Finalize resolve map
