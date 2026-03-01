@@ -58,3 +58,4 @@ void u32list_set_length(U32List *list, s32 length);
 s32 u32list_get_length(U32List *list);
 s32 u32list_add(U32List *list, u32 element);
 u32 u32list_get(U32List *list, s32 idx);
+void u32list_set(U32List *list, s32 idx, u32 value);

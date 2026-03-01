@@ -23,12 +23,55 @@ typedef struct {
     Buffer object;
 } ObjectEntry;
 
+typedef struct {
+    ReAssetID id;
+    ReAssetID objID;
+} ObjectIndexEntry;
+
 static s32 objectOriginalCount;
 static s32 *objectOriginalTab;
 static List objectList; // list[ObjectEntry]
 static U32List objectIDList; // list[ReAssetID]
 static U32ValueHashmapHandle objectMap; // ReAssetID -> object list index
 static ReAssetResolveMap objectResolveMap;
+
+static s32 objectIndexOriginalCount;
+static List objectIndexList; // list[ObjectIndexEntry]
+static U32List objectIndexIDList; // list[ReAssetID]
+static U32ValueHashmapHandle objectIndexMap; // ReAssetID -> object index list index
+static ReAssetResolveMap objectIndexResolveMap;
+
+static ObjectIndexEntry* get_object_index(ReAssetID id) {
+    u32 listIdx;
+    if (recomputil_u32_value_hashmap_get(objectIndexMap, id, &listIdx)) {
+        return list_get(&objectIndexList, listIdx);
+    }
+
+    return NULL;
+}
+
+static ObjectIndexEntry* get_or_create_object_index(ReAssetID id) {
+    u32 listIdx;
+    if (!recomputil_u32_value_hashmap_get(objectIndexMap, id, &listIdx)) {
+        ReAssetIDData *idData = reasset_id_lookup_data(id);
+
+        if (idData->namespace == REASSET_BASE_NAMESPACE) {
+            reasset_assert(idData->identifier < objectIndexOriginalCount, 
+                "[reasset] Attempted to patch out-of-bounds base object index: %d", idData->identifier);
+        }
+
+        u32list_add(&objectIndexIDList, id);
+
+        listIdx = list_get_length(&objectIndexList);
+        
+        ObjectIndexEntry *entry = list_add(&objectIndexList);
+        entry->id = id;
+
+        recomputil_u32_value_hashmap_insert(objectIndexMap, id, listIdx);
+    }
+
+    return list_get(&objectIndexList, listIdx);
+}
 
 static ObjectEntry* get_object(ReAssetID id) {
     u32 listIdx;
@@ -70,6 +113,7 @@ static void object_list_element_free(void *element) {
 }
 
 void reasset_objects_init(void) {
+    // Objects
     objectOriginalCount = (reasset_fst_get_file_size(OBJECTS_TAB) / sizeof(s32)) - 2;
     objectOriginalTab = reasset_fst_alloc_load_file(OBJECTS_TAB, NULL);
 
@@ -89,12 +133,31 @@ void reasset_objects_init(void) {
 
         buffer_set_base(&entry->object, OBJECTS_BIN, offset, size);
     }
+
+    // Object Indices
+    objectIndexOriginalCount = reasset_fst_get_file_size(OBJINDEX_BIN) / sizeof(s16);
+    s16 *originalIndexTab = reasset_fst_alloc_load_file(OBJINDEX_BIN, NULL);
+
+    list_init(&objectIndexList, sizeof(ObjectIndexEntry), objectIndexOriginalCount);
+    u32list_init(&objectIndexIDList, objectIndexOriginalCount);
+    objectIndexMap = recomputil_create_u32_value_hashmap();
+    objectIndexResolveMap = reasset_resolve_map_create("ObjectIndex");
+
+    // Add base object indices (preserving order)
+    for (s32 i = 0; i < objectIndexOriginalCount; i++) {
+        ReAssetID id = reasset_base_id(i);
+        ObjectIndexEntry *entry = get_or_create_object_index(id);
+
+        entry->objID = reasset_base_id(originalIndexTab[i]);
+    }
+
+    recomp_free(originalIndexTab);
 }
 
-void reasset_objects_repack(void) {
+static void reasset_objects_repack_internal(void) {
     s32 newCount = list_get_length(&objectList);
 
-    // Calculate new bin size
+    // Calculate new OBJECTS.bin size
     u32 newBinSize = 0;
     for (s32 i = 0; i < newCount; i++) {
         ObjectEntry *entry = list_get(&objectList, i);
@@ -149,8 +212,48 @@ void reasset_objects_repack(void) {
     reasset_log("[reasset] Rebuilt OBJECTS.tab & OBJECTS.bin (count: %d, bin size: 0x%X).\n", newCount, newBinSize);
 }
 
+static void reasset_objects_indices_repack_internal(void) {
+    s32 newCount = list_get_length(&objectIndexList);
+
+    // Calculate new OBJINDEX.bin size
+    u32 newIndexBinSize = list_get_length(&objectIndexList) * sizeof(s16);
+
+    // Alloc new OBJINDEX.bin
+    s16 *newBin = recomp_alloc(newIndexBinSize);
+    bzero(newBin, newIndexBinSize);
+
+    // Rebuild
+    for (s32 i = 0; i < newCount; i++) {
+        ObjectIndexEntry *entry = list_get(&objectIndexList, i);
+        ReAssetIDData *idData = reasset_id_lookup_data(entry->id);
+
+        if (idData->namespace != REASSET_BASE_NAMESPACE) {
+            const char *namespaceName;
+            reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+            reasset_log("[reasset] New object index: %s:%d\n", 
+                namespaceName, idData->identifier);
+        }
+
+        reasset_resolve_map_resolve_id(objectIndexResolveMap, entry->id, -1, i, (u8*)newBin + (i * sizeof(s16)));
+
+        // Note: Nothing to write to bin here. Values will be filled in during the patch stage
+    }
+
+    // Finalize resolve map
+    reasset_resolve_map_finalize(objectIndexResolveMap);
+
+    // Set new files
+    reasset_fst_set_internal(OBJINDEX_BIN, newBin, newIndexBinSize, /*ownedByReAsset=*/TRUE);
+    reasset_log("[reasset] Rebuilt OBJINDEX.bin (count: %d, bin size: 0x%X).\n", newCount, newIndexBinSize);
+}
+
+void reasset_objects_repack(void) {
+    reasset_objects_repack_internal();
+    reasset_objects_indices_repack_internal();
+}
+
 void reasset_objects_patch(void) {
-    // Patch in resolved IDs
+    // Patch in resolved object IDs
     s32 numObjects = list_get_length(&objectList);
     for (s32 i = 0; i < numObjects; i++) {
         ObjectEntry *entry = list_get(&objectList, i);
@@ -181,6 +284,39 @@ void reasset_objects_patch(void) {
 
         // TODO: many other things to patch...
     }
+
+    // Patch in resolved object indices
+    s32 numIndices = list_get_length(&objectIndexList);
+    for (s32 i = 0; i < numIndices; i++) {
+        ObjectIndexEntry *entry = list_get(&objectIndexList, i);
+
+        s16 *indexPtr;
+        if (reasset_resolve_map_lookup_ptr(objectIndexResolveMap, entry->id, (void**)&indexPtr) == -1) {
+            continue;
+        }
+
+        ReAssetIDData *objIDData = reasset_id_lookup_data(entry->objID);
+        if (objIDData->namespace == REASSET_BASE_NAMESPACE && objIDData->identifier == -1) {
+            *indexPtr = -1;
+        } else {
+            s32 tabIdx = reasset_resolve_map_lookup(objectResolveMap, entry->objID);
+            if (tabIdx != -1) {
+                *indexPtr = (s16)tabIdx;
+            } else {
+                *indexPtr = 0; // DummyObject
+
+                const char *namespaceName;
+                s32 identifier;
+                reasset_id_lookup_name(entry->id, &namespaceName, &identifier);
+                const char *objNamespaceName;
+                s32 objIdentifier;
+                reasset_id_lookup_name(entry->id, &objNamespaceName, &objIdentifier);
+                reasset_log_warning("[reasset] WARN: Failed to patch object index (%s:%d) object ID %s:%d. Object was not defined!\n",
+                    namespaceName, identifier, 
+                    objNamespaceName, objIdentifier);
+            }
+        }
+    }
 }
 
 void reasset_objects_cleanup(void) {
@@ -190,6 +326,8 @@ void reasset_objects_cleanup(void) {
     recomp_free(objectOriginalTab);
     objectOriginalTab = NULL;
 }
+
+// MARK: Objects
 
 static void assert_custom_object_id(const char *funcName, ReAssetID id) {
     ReAssetIDData *idData = reasset_id_lookup_data(id);
@@ -251,4 +389,68 @@ RECOMP_EXPORT ReAssetResolveMap reasset_objects_get_resolve_map(void) {
     reasset_assert_stage_get_resolve_map_call("reasset_objects_get_resolve_map");
 
     return objectResolveMap;
+}
+
+// MARK: Object Indices
+
+static void assert_custom_object_index_id(const char *funcName, ReAssetID id) {
+    ReAssetIDData *idData = reasset_id_lookup_data(id);
+    if (idData->namespace == REASSET_BASE_NAMESPACE) {
+        return;
+    }
+
+    if (idData->identifier >= 0 && idData->identifier <= objectIndexOriginalCount) {
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        reasset_error("[reasset:%s] Custom object index identifier %s:%d cannot overlap base object index IDs. Reserved IDs: 0-%d.",
+            funcName,
+            namespaceName, idData->identifier, objectIndexOriginalCount);
+    }
+}
+
+RECOMP_EXPORT void reasset_object_indices_set(ReAssetID id, ReAssetID objID) {
+    reasset_assert_stage_set_call("reasset_object_indices_set");
+    assert_custom_object_index_id("reasset_object_indices_set", id);
+
+    ObjectIndexEntry *entry = get_or_create_object_index(id);
+    entry->objID = objID;
+
+    ReAssetIDData *idData = reasset_id_lookup_data(id);
+    const char *namespaceName;
+    reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+    reasset_log("[reasset] Object index set: %s:%d\n", namespaceName, idData->identifier);
+}
+
+RECOMP_EXPORT _Bool reasset_object_indices_get(ReAssetID id, ReAssetID *outObjID) {
+    reasset_assert_stage_get_call("reasset_object_indices_get");
+
+    ObjectIndexEntry *entry = get_object_index(id);
+    if (entry == NULL) {
+        return FALSE;
+    }
+
+    if (outObjID != NULL) {
+        *outObjID = entry->objID;
+    }
+
+    return TRUE;
+}
+
+RECOMP_EXPORT ReAssetIterator reasset_object_indices_create_iterator(void) {
+    reasset_assert_stage_iterator_call("reasset_object_indices_create_iterator");
+
+    return reasset_iterator_create(&objectIndexIDList);
+}
+
+RECOMP_EXPORT void reasset_object_indices_link(ReAssetID id, ReAssetID externID) {
+    reasset_assert_stage_link_call("reasset_object_indices_link");
+    assert_custom_object_index_id("reasset_object_indices_link", id);
+
+    reasset_resolve_map_link(objectIndexResolveMap, id, externID);
+}
+
+RECOMP_EXPORT ReAssetResolveMap reasset_object_indices_get_resolve_map(void) {
+    reasset_assert_stage_get_resolve_map_call("reasset_object_indices_get_resolve_map");
+
+    return objectIndexResolveMap;
 }

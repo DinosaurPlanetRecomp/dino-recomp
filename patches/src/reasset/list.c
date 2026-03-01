@@ -424,3 +424,10 @@ u32 u32list_get(U32List *list, s32 idx) {
     return list->data[idx];
 }
 
+void u32list_set(U32List *list, s32 idx, u32 value) {
+    reasset_assert(list != NULL, "[reasset:u32list_set] List cannot be null!");
+    reasset_assert(idx >= 0, "[reasset:u32list_set] Index cannot be negative!");
+    reasset_assert(idx < list->length, "[reasset:u32list_set] Index out of bounds! idx %d >= length %d", idx, list->length);
+
+    list->data[idx] = value;
+}
