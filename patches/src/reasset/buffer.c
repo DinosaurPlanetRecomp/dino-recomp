@@ -7,6 +7,11 @@
 #include "PR/ultratypes.h"
 #include "PR/os.h"
 
+static struct {
+    void *data;
+    u32 capacity;
+} sTempBuffer = {0};
+
 void buffer_init(Buffer *buffer, u32 initialCapacity) {
     reasset_assert(buffer != NULL, "[reasset:buffer_init] Buffer cannot be null!");
     reasset_assert(buffer->ptr == NULL, "[reasset:buffer_init] Buffer is already initialized!");
@@ -128,7 +133,22 @@ void buffer_copy_to(const Buffer *buffer, void *dst, u32 offset) {
     if (buffer->ptr == NULL || buffer->size == 0) {
         // Copy from base if set
         if (buffer->base.isSet) {
-            reasset_fst_read_from_file(buffer->base.fileID, _dst, buffer->base.offset, buffer->base.size);
+            if ((u32)_dst & 0x7) {
+                // Unaligned dest, load into temp buffer first
+                if (sTempBuffer.data == NULL || buffer->base.size > sTempBuffer.capacity) {
+                    // Temp buffer too small
+                    if (sTempBuffer.data == NULL) {
+                        recomp_free(sTempBuffer.data);
+                    }
+                    sTempBuffer.data = recomp_alloc(buffer->base.size);
+                    sTempBuffer.capacity = buffer->base.size;
+                }
+
+                reasset_fst_read_from_file(buffer->base.fileID, sTempBuffer.data, buffer->base.offset, buffer->base.size);
+                bcopy(sTempBuffer.data, _dst, buffer->base.size);
+            } else {
+                reasset_fst_read_from_file(buffer->base.fileID, _dst, buffer->base.offset, buffer->base.size);
+            }
         }
     } else {
         bcopy(buffer->ptr, _dst, buffer->size);
