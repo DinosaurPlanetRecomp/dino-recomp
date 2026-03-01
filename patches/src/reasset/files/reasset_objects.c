@@ -1,7 +1,6 @@
 #include "reasset_objects.h"
 
 #include "patches.h"
-#include "reasset/special/reasset_dlls.h"
 #include "recompdata.h"
 #include "reasset.h"
 #include "reasset/reasset_id.h"
@@ -9,6 +8,7 @@
 #include "reasset/reasset_namespace.h"
 #include "reasset/reasset_fst.h"
 #include "reasset/reasset_iterator.h"
+#include "reasset/special/reasset_dlls.h"
 #include "reasset/buffer.h"
 #include "reasset/list.h"
 
