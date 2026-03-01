@@ -67,9 +67,33 @@ void reasset_dlls_repack(void) {
     recomputil_destroy_u32_value_hashmap(dllMap);
 }
 
+_Bool reasset_dlls_is_base_id(s32 identifier) {
+    return (identifier >= 0 && identifier <= DLLBANK0_LAST_VANILLA_ID) 
+        || (identifier >= 0x1000 && identifier <= DLLBANK1_LAST_VANILLA_ID) 
+        || (identifier >= 0x2000 && identifier <= DLLBANK2_LAST_VANILLA_ID) 
+        || (identifier >= 0x8000 && identifier <= DLLBANK4_LAST_VANILLA_ID);
+}
+
+static void assert_custom_dll_id(const char *funcName, ReAssetID id) {
+    ReAssetIDData *idData = reasset_id_lookup_data(id);
+    if (idData->namespace == REASSET_BASE_NAMESPACE) {
+        return;
+    }
+
+    if (reasset_dlls_is_base_id(idData->identifier)) {
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        reasset_error("[reasset:%s] Custom DLL identifier 0x%X (%s:%d) cannot overlap with base DLL IDs. Reserved IDs: 0x0-0x%X, 0x1000-0x%X, 0x2000-0x%X, 0x8000-0x%X",
+            funcName,
+            idData->identifier, namespaceName, idData->identifier,
+            DLLBANK0_LAST_VANILLA_ID, DLLBANK1_LAST_VANILLA_ID, DLLBANK2_LAST_VANILLA_ID, DLLBANK4_LAST_VANILLA_ID);
+    }
+}
+
 RECOMP_EXPORT void reasset_dlls_set(ReAssetID id, RecompDLLBank bank, u16 exportCount, 
         RecompDLLFunc ctor, RecompDLLFunc dtor, void *vtblPtr) {
     reasset_assert_stage_set_call("reasset_dlls_set");
+    assert_custom_dll_id("reasset_dlls_set", id);
 
     reasset_assert(id != DLL_BANK_ENGINE, 
         "[reasset:reasset_dlls_set] Custom engine DLLs are not supported. Consider using the recomp bank instead.");
@@ -95,6 +119,7 @@ RECOMP_EXPORT void reasset_dlls_set(ReAssetID id, RecompDLLBank bank, u16 export
 
 RECOMP_EXPORT void reasset_dlls_link(ReAssetID id, ReAssetID externID) {
     reasset_assert_stage_link_call("reasset_dlls_link");
+    assert_custom_dll_id("reasset_dlls_link", id);
 
     reasset_resolve_map_link(dllResolveMap, id, externID);
 }

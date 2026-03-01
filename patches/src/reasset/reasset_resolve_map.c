@@ -25,7 +25,8 @@ typedef struct {
 typedef struct {
     U32MemoryHashmapHandle idMap; // ReAssetID -> ReAssetResolvedID
     U32List idList; // list[ReAssetID]
-    U32ValueHashmapHandle ownershipMap; // resolved identifier -> namespace
+    U32ValueHashmapHandle ownershipMap; // resolved identifier -> ReAssetNamespace
+    U32ValueHashmapHandle reverseIDMap; // resolved identifier -> ReAssetID
     List linkList; // list[ReAssetIDLink]
     U32ValueHashmapHandle linkMap; // ReAssetID -> link list index
     _Bool finalized;
@@ -52,6 +53,7 @@ ReAssetResolveMap reasset_resolve_map_create(const char *assetTypeName) {
     data->idMap = recomputil_create_u32_memory_hashmap(sizeof(ReAssetResolvedID));
     u32list_init(&data->idList, 0);
     data->ownershipMap = recomputil_create_u32_value_hashmap();
+    data->reverseIDMap = recomputil_create_u32_value_hashmap();
     list_init(&data->linkList, sizeof(ReAssetIDLink), 0);
     data->linkMap = recomputil_create_u32_value_hashmap();
 
@@ -131,6 +133,7 @@ static _Bool resolve_id_internal(ReAssetResolveMapData *data, ReAssetID id, ReAs
     resolved->owner = owner;
 
     recomputil_u32_value_hashmap_insert(data->ownershipMap, resolvedIdentifier, owner);
+    recomputil_u32_value_hashmap_insert(data->reverseIDMap, resolvedIdentifier, id);
 
     // TODO: skip if logging is disabled
     ReAssetIDData *idData = reasset_id_lookup_data_or_null(id);
@@ -201,6 +204,21 @@ RECOMP_EXPORT ReAssetNamespace reasset_resolve_map_owner_of(ReAssetResolveMap ma
     }
 
     return REASSET_INVALID_NAMESPACE;
+}
+
+RECOMP_EXPORT _Bool reasset_resolve_map_id_of(ReAssetResolveMap map, s32 resolvedIdentifier, ReAssetID *outID) {
+    ReAssetResolveMapData *data;
+    if (recomputil_memory_slotmap_get(sResolveMapSlotmap, map, (void**)&data)) {
+        ReAssetID id;
+        if (recomputil_u32_value_hashmap_get(data->reverseIDMap, resolvedIdentifier, &id)) {
+            if (outID != NULL) {
+                *outID = id;
+            }
+            return TRUE;
+        }
+    }
+
+    return FALSE;
 }
 
 RECOMP_EXPORT ReAssetIterator reasset_resolve_map_create_iterator(ReAssetResolveMap map) {
