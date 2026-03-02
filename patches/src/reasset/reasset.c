@@ -128,12 +128,14 @@ static void reasset_run_repack(void) {
 
 static void reasset_run_patch(void) {
     reasset_objects_patch();
+reasset_textures_patch();
 
     reasset_menus_patch();
 }
 
 static void reasset_run_cleanup(void) {
     reasset_objects_cleanup();
+reasset_textures_cleanup();
 
     reasset_menus_cleanup();
 }

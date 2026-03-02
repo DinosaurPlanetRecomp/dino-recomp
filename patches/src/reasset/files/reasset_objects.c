@@ -217,7 +217,7 @@ static void reasset_objects_indices_repack_internal(void) {
     s32 newCount = list_get_length(&objectIndexList);
 
     // Calculate new OBJINDEX.bin size
-    u32 newIndexBinSize = list_get_length(&objectIndexList) * sizeof(s16);
+    u32 newIndexBinSize = newCount * sizeof(s16);
 
     // Alloc new OBJINDEX.bin
     s16 *newBin = recomp_alloc(newIndexBinSize);
@@ -324,6 +324,10 @@ void reasset_objects_cleanup(void) {
     list_free(&objectList);
     u32list_free(&objectIDList);
     recomputil_destroy_u32_value_hashmap(objectMap);
+
+    list_free(&objectIndexList);
+    u32list_free(&objectIndexIDList);
+    recomputil_destroy_u32_value_hashmap(objectIndexMap);
 }
 
 // MARK: Objects

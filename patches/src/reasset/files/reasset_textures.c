@@ -30,11 +30,55 @@ typedef struct {
     Buffer texture;
 } TextureEntry;
 
+typedef struct {
+    ReAssetID id;
+    TextureBank bank;
+    ReAssetID texID;
+} TexTableEntry;
+
 static s32 texOriginalCount[NUM_TEXTURE_BANKS];
 static List texList[NUM_TEXTURE_BANKS];
 static U32List texIDList[NUM_TEXTURE_BANKS];
 static U32ValueHashmapHandle texMap[NUM_TEXTURE_BANKS];
 static ReAssetResolveMap texResolveMap[NUM_TEXTURE_BANKS];
+
+static s32 texTableOriginalCount;
+static List texTableList; // list[TexTableEntry]
+static U32List texTableIDList; // list[ReAssetID]
+static U32ValueHashmapHandle texTableMap; // ReAssetID -> tex table list index
+static ReAssetResolveMap texTableResolveMap;
+
+static TexTableEntry* get_tex_table_entry(ReAssetID id) {
+    u32 listIdx;
+    if (recomputil_u32_value_hashmap_get(texTableMap, id, &listIdx)) {
+        return list_get(&texTableList, listIdx);
+    }
+
+    return NULL;
+}
+
+static TexTableEntry* get_or_create_tex_table_entry(ReAssetID id) {
+    u32 listIdx;
+    if (!recomputil_u32_value_hashmap_get(texTableMap, id, &listIdx)) {
+        ReAssetIDData *idData = reasset_id_lookup_data(id);
+
+        if (idData->namespace == REASSET_BASE_NAMESPACE) {
+            reasset_assert(idData->identifier < texTableOriginalCount, 
+                "[reasset] Attempted to patch out-of-bounds base texture table index: %d", idData->identifier);
+        }
+
+        u32list_add(&texTableIDList, id);
+
+        listIdx = list_get_length(&texTableList);
+        
+        TexTableEntry *entry = list_add(&texTableList);
+        entry->id = id;
+
+        recomputil_u32_value_hashmap_insert(texTableMap, id, listIdx);
+    }
+
+    return list_get(&texTableList, listIdx);
+}
 
 static TextureEntry* get_tex(TextureBank bank, ReAssetID id) {
     u32 listIdx;
@@ -75,6 +119,7 @@ static void tex_list_element_free(void *element) {
 }
 
 void reasset_textures_init(void) {
+    // Textures
     s32 tabIDs[NUM_TEXTURE_BANKS] = {TEX0_TAB, TEX1_TAB};
     s32 binIDs[NUM_TEXTURE_BANKS] = {TEX0_BIN, TEX1_BIN};
     const char *resolveMapNames[NUM_TEXTURE_BANKS] = {"Texture0", "Texture1"};
@@ -104,9 +149,32 @@ void reasset_textures_init(void) {
 
         recomp_free(originalTab);
     }
+
+    // Texture Table
+    texTableOriginalCount = (reasset_fst_get_file_size(TEXTABLE_BIN) / sizeof(u16)) - 1;
+    s16 *originalTexTab = reasset_fst_alloc_load_file(TEXTABLE_BIN, NULL);
+
+    list_init(&texTableList, sizeof(TexTableEntry), texTableOriginalCount);
+    u32list_init(&texTableIDList, texTableOriginalCount);
+    texTableMap = recomputil_create_u32_value_hashmap();
+    texTableResolveMap = reasset_resolve_map_create("TexTableEntry");
+
+    // Add base texture table entries (preserving order)
+    for (s32 i = 0; i < texTableOriginalCount; i++) {
+        ReAssetID id = reasset_base_id(i);
+        TexTableEntry *entry = get_or_create_tex_table_entry(id);
+
+        s32 bank = (originalTexTab[i] & 0x8000) ? TEX1 : TEX0;
+        s32 texIndex = originalTexTab[i] & 0x7FFF;
+
+        entry->bank = bank;
+        entry->texID = reasset_base_id(texIndex);
+    }
+
+    recomp_free(originalTexTab);
 }
 
-void reasset_textures_repack(void) {
+static void repack_textures_internal(void) {
     s32 tabIDs[NUM_TEXTURE_BANKS] = {TEX0_TAB, TEX1_TAB};
     s32 binIDs[NUM_TEXTURE_BANKS] = {TEX0_BIN, TEX1_BIN};
     const char *bankNames[NUM_TEXTURE_BANKS] = {"TEX0", "TEX1"};
@@ -163,13 +231,94 @@ void reasset_textures_repack(void) {
         reasset_fst_set_internal(binIDs[bank], newBin, newBinSize, /*ownedByReAsset=*/TRUE);
         reasset_log("[reasset] Rebuilt %s.tab & %s.bin (count: %d, bin size: 0x%X).\n", 
             bankNames[bank], bankNames[bank], newCount, newBinSize);
+    }
+}
 
-        // Clean up
+static void repack_texture_table_internal(void) {
+    s32 newCount = list_get_length(&texTableList);
+
+    // Calculate new TEXTABLE.bin size
+    u32 newBinSize = (newCount + 1) * sizeof(u16);
+
+    // Alloc new TEXTABLE.bin
+    s16 *newBin = recomp_alloc(newBinSize);
+    bzero(newBin, newBinSize);
+
+    // Rebuild
+    for (s32 i = 0; i < newCount; i++) {
+        TexTableEntry *entry = list_get(&texTableList, i);
+        ReAssetIDData *idData = reasset_id_lookup_data(entry->id);
+
+        if (idData->namespace != REASSET_BASE_NAMESPACE) {
+            const char *namespaceName;
+            reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+            reasset_log("[reasset] New texture table entry: %s:%d\n", 
+                namespaceName, idData->identifier);
+        }
+
+        reasset_resolve_map_resolve_id(texTableResolveMap, entry->id, -1, i, (u8*)newBin + (i * sizeof(u16)));
+
+        // Note: Nothing to write to bin here. Values will be filled in during the patch stage
+    }
+
+    newBin[newCount] = 1;
+
+    // Finalize resolve map
+    reasset_resolve_map_finalize(texTableResolveMap);
+
+    // Set new files
+    reasset_fst_set_internal(TEXTABLE_BIN, newBin, newBinSize, /*ownedByReAsset=*/TRUE);
+    reasset_log("[reasset] Rebuilt TEXTABLE.bin (count: %d, bin size: 0x%X).\n", newCount, newBinSize);
+}
+
+void reasset_textures_repack(void) {
+    repack_textures_internal();
+    repack_texture_table_internal();
+}
+
+void reasset_textures_patch(void) {
+    // Patch in resolved texture table entries
+    s32 numTexTableEntries = list_get_length(&texTableList);
+    for (s32 i = 0; i < numTexTableEntries; i++) {
+        TexTableEntry *entry = list_get(&texTableList, i);
+
+        u16 *entryPtr;
+        if (reasset_resolve_map_lookup_ptr(texTableResolveMap, entry->id, (void**)&entryPtr) == -1) {
+            continue;
+        }
+
+        s32 tabIdx = reasset_resolve_map_lookup(texResolveMap[entry->bank], entry->texID);
+        if (tabIdx != -1) {
+            *entryPtr = (u16)(((entry->bank & 0x1) << 15) | (tabIdx & 0x7FFF));
+        } else {
+            *entryPtr = 0;
+
+            const char *namespaceName;
+            s32 identifier;
+            reasset_id_lookup_name(entry->id, &namespaceName, &identifier);
+            const char *objNamespaceName;
+            s32 objIdentifier;
+            reasset_id_lookup_name(entry->id, &objNamespaceName, &objIdentifier);
+            reasset_log_warning("[reasset] WARN: Failed to patch texture table entry (%s:%d) texture ID %s:%d. Texture was not defined!\n",
+                namespaceName, identifier, 
+                objNamespaceName, objIdentifier);
+        }
+    }
+}
+
+void reasset_textures_cleanup(void) {
+    for (s32 bank = 0; bank < NUM_TEXTURE_BANKS; bank++) {
         list_free(&texList[bank]);
         u32list_free(&texIDList[bank]);
         recomputil_destroy_u32_value_hashmap(texMap[bank]);
     }
+
+    list_free(&texTableList);
+    u32list_free(&texTableIDList);
+    recomputil_destroy_u32_value_hashmap(texTableMap);
 }
+
+// MARK: Textures
 
 static void assert_custom_tex_id(const char *funcName, TextureBank bank, ReAssetID id) {
     ReAssetIDData *idData = reasset_id_lookup_data(id);
@@ -248,4 +397,73 @@ RECOMP_EXPORT ReAssetResolveMap reasset_textures_get_resolve_map(TextureBank ban
     assert_tex_bank("reasset_textures_get_resolve_map", bank);
 
     return texResolveMap[bank];
+}
+
+// MARK: Texture Table
+
+static void assert_custom_tex_table_entry(const char *funcName, ReAssetID id) {
+    ReAssetIDData *idData = reasset_id_lookup_data(id);
+    if (idData->namespace == REASSET_BASE_NAMESPACE) {
+        return;
+    }
+
+    if (idData->identifier >= 0 && idData->identifier <= texTableOriginalCount) {
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        reasset_error("[reasset:%s] Custom texture table identifier %s:%d cannot overlap base texture table IDs. Reserved IDs: 0-%d.",
+            funcName,
+            namespaceName, idData->identifier, texTableOriginalCount);
+    }
+}
+
+RECOMP_EXPORT void reasset_texture_table_set(ReAssetID id, TextureBank bank, ReAssetID texID) {
+    reasset_assert_stage_set_call("reasset_texture_table_set");
+    assert_tex_bank("reasset_texture_table_set", bank);
+    assert_custom_tex_table_entry("reasset_texture_table_set", id);
+
+    TexTableEntry *entry = get_or_create_tex_table_entry(id);
+    entry->bank = bank;
+    entry->texID = texID;
+
+    ReAssetIDData *idData = reasset_id_lookup_data(id);
+    const char *namespaceName;
+    reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+    reasset_log("[reasset] Texture table entry set: %s:%d\n", namespaceName, idData->identifier);
+}
+
+RECOMP_EXPORT _Bool reasset_texture_table_get(ReAssetID id, TextureBank *outBank, ReAssetID *outTexID) {
+    reasset_assert_stage_get_call("reasset_texture_table_get");
+
+    TexTableEntry *entry = get_tex_table_entry(id);
+    if (entry == NULL) {
+        return FALSE;
+    }
+
+    if (outBank != NULL) {
+        *outBank = entry->bank;
+    }
+    if (outTexID != NULL) {
+        *outTexID = entry->texID;
+    }
+
+    return TRUE;
+}
+
+RECOMP_EXPORT ReAssetIterator reasset_texture_table_create_iterator(void) {
+    reasset_assert_stage_iterator_call("reasset_texture_table_create_iterator");
+
+    return reasset_iterator_create(&texTableIDList);
+}
+
+RECOMP_EXPORT void reasset_texture_table_link(ReAssetID id, ReAssetID externID) {
+    reasset_assert_stage_link_call("reasset_texture_table_link");
+    assert_custom_tex_table_entry("reasset_texture_table_link", id);
+
+    reasset_resolve_map_link(texTableResolveMap, id, externID);
+}
+
+RECOMP_EXPORT ReAssetResolveMap reasset_texture_table_get_resolve_map(void) {
+    reasset_assert_stage_get_resolve_map_call("reasset_texture_table_get_resolve_map");
+
+    return texTableResolveMap;
 }
