@@ -13,6 +13,7 @@
 #include "reasset/files/reasset_maps.h"
 #include "reasset/files/reasset_mpeg.h"
 #include "reasset/files/reasset_objects.h"
+#include "reasset/files/reasset_textures.h"
 #include "reasset/special/reasset_dlls.h"
 #include "reasset/special/reasset_menus.h"
 
@@ -108,6 +109,7 @@ static void reasset_run_init(void) {
     reasset_mpeg_init();
     reasset_music_actions_init();
     reasset_objects_init();
+    reasset_textures_init();
 
     reasset_dlls_init();
     reasset_menus_init();
@@ -118,6 +120,7 @@ static void reasset_run_repack(void) {
     reasset_mpeg_repack();
     reasset_music_actions_repack();
     reasset_objects_repack();
+    reasset_textures_repack();
 
     reasset_dlls_repack();
     reasset_menus_repack();

@@ -29,7 +29,6 @@ typedef struct {
 } ObjectIndexEntry;
 
 static s32 objectOriginalCount;
-static s32 *objectOriginalTab;
 static List objectList; // list[ObjectEntry]
 static U32List objectIDList; // list[ReAssetID]
 static U32ValueHashmapHandle objectMap; // ReAssetID -> object list index
@@ -115,11 +114,11 @@ static void object_list_element_free(void *element) {
 void reasset_objects_init(void) {
     // Objects
     objectOriginalCount = (reasset_fst_get_file_size(OBJECTS_TAB) / sizeof(s32)) - 2;
-    objectOriginalTab = reasset_fst_alloc_load_file(OBJECTS_TAB, NULL);
+    s32 *originalObjTab = reasset_fst_alloc_load_file(OBJECTS_TAB, NULL);
 
     list_init(&objectList, sizeof(ObjectEntry), objectOriginalCount);
-    u32list_init(&objectIDList, objectOriginalCount);
     list_set_element_free_callback(&objectList, object_list_element_free);
+    u32list_init(&objectIDList, objectOriginalCount);
     objectMap = recomputil_create_u32_value_hashmap();
     objectResolveMap = reasset_resolve_map_create("Object");
 
@@ -128,11 +127,13 @@ void reasset_objects_init(void) {
         ReAssetID id = reasset_base_id(i);
         ObjectEntry *entry = get_or_create_object(id);
 
-        s32 offset = objectOriginalTab[i];
-        s32 size = objectOriginalTab[i + 1] - offset;
+        s32 offset = originalObjTab[i];
+        s32 size = originalObjTab[i + 1] - offset;
 
         buffer_set_base(&entry->object, OBJECTS_BIN, offset, size);
     }
+
+    recomp_free(originalObjTab);
 
     // Object Indices
     objectIndexOriginalCount = reasset_fst_get_file_size(OBJINDEX_BIN) / sizeof(s16);
@@ -323,8 +324,6 @@ void reasset_objects_cleanup(void) {
     list_free(&objectList);
     u32list_free(&objectIDList);
     recomputil_destroy_u32_value_hashmap(objectMap);
-    recomp_free(objectOriginalTab);
-    objectOriginalTab = NULL;
 }
 
 // MARK: Objects
