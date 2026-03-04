@@ -52,6 +52,7 @@ static U32List mapIDList; // list[ReAssetID]
 static U32ValueHashmapHandle mapMap; // ReAssetID -> map list index
 static ReAssetResolveMap mapResolveMap;
 static U32ValueHashmapHandle mapObjectResolveMapMap; // ReAssetID -> ReAssetResolveMap
+static U32ValueHashmapHandle mapObjectOriginalSetMap; // ReAssetID -> U32HashsetHandle (ReAssetID)
 
 static void map_object_list_element_free(void *element) {
     MapObjectEntry *patch = element;
@@ -156,6 +157,11 @@ static MapEntry* get_or_create_map(ReAssetID id) {
 
         // Create resolve map for object setup list
         create_map_object_resolve_map(id);
+
+        // If base, create a hashset for original object UIDs
+        if (idData->namespace == REASSET_BASE_NAMESPACE) {
+            recomputil_u32_value_hashmap_insert(mapObjectOriginalSetMap, id, recomputil_create_u32_hashset());
+        }
     }
 
     return list_get(&mapList, listIdx);
@@ -184,6 +190,7 @@ void reasset_maps_init(void) {
     mapMap = recomputil_create_u32_value_hashmap();
     mapResolveMap = reasset_resolve_map_create("Map");
     mapObjectResolveMapMap = recomputil_create_u32_value_hashmap();
+    mapObjectOriginalSetMap = recomputil_create_u32_value_hashmap();
 
     // Add base maps (preserving order)
     Buffer objectSubfileTempBuffer = {0};
@@ -194,6 +201,9 @@ void reasset_maps_init(void) {
 
         ReAssetID id = reasset_base_id(i);
         MapEntry *entry = get_or_create_map(id);
+        U32HashsetHandle originalObjectSet;
+        reasset_assert(recomputil_u32_value_hashmap_get(mapObjectOriginalSetMap, id, &originalObjectSet),
+            "[reasset] bug! Map %d object original set hashmap get failed.", i);
 
         u32 idx;
 
@@ -234,6 +244,8 @@ void reasset_maps_init(void) {
             if (setup->uID > entry->objects.maxUID) {
                 entry->objects.maxUID = setup->uID;
             }
+
+            recomputil_u32_hashset_insert(originalObjectSet, setupID);
 
             objoffset += setupSize;
         }
@@ -636,6 +648,16 @@ RECOMP_EXPORT ReAssetResolveMap reasset_maps_get_resolve_map(void) {
 }
 
 // MARK: Map Objects
+
+_Bool reasset_map_objects_is_base_uid(ReAssetID mapID, s32 uid) {
+    U32HashsetHandle originalObjectSet;
+    if (recomputil_u32_value_hashmap_get(mapObjectOriginalSetMap, mapID, &originalObjectSet)) {
+        ReAssetID id = reasset_base_id(uid);
+        return recomputil_u32_hashset_contains(originalObjectSet, id);
+    }
+
+    return FALSE;
+}
 
 RECOMP_EXPORT void reasset_map_objects_set(ReAssetID mapID, ReAssetID id, const void *data, u32 sizeBytes) {
     reasset_assert_stage_set_call("reasset_map_objects_set");

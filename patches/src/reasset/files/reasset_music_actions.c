@@ -70,8 +70,8 @@ void reasset_music_actions_init(void) {
     mActionOriginalCount = reasset_fst_get_file_size(MUSICACTIONS_BIN) / sizeof(MusicAction);
 
     list_init(&mActionList, sizeof(MusicActionEntry), mActionOriginalCount);
-    u32list_init(&mActionIDList, mActionOriginalCount);
     list_set_element_free_callback(&mActionList, maction_list_element_free);
+    u32list_init(&mActionIDList, mActionOriginalCount);
     mActionMap = recomputil_create_u32_value_hashmap();
     mActionResolveMap = reasset_resolve_map_create("MusicAction");
 

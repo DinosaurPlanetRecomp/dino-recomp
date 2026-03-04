@@ -21,7 +21,6 @@ typedef struct {
 } MPEGEntry;
 
 static s32 mpegOriginalCount;
-static s32 *mpegOriginalTab;
 static List mpegList; // list[MPEGEntry]
 static U32List mpegIDList; // list[ReAssetID]
 static U32ValueHashmapHandle mpegMap; // ReAssetID -> mpeg list index
@@ -67,11 +66,11 @@ static void mpeg_list_element_free(void *element) {
 
 void reasset_mpeg_init(void) {
     mpegOriginalCount = (reasset_fst_get_file_size(MPEG_TAB) / sizeof(s32)) - 1;
-    mpegOriginalTab = reasset_fst_alloc_load_file(MPEG_TAB, NULL);
+    s32 *mpegOriginalTab = reasset_fst_alloc_load_file(MPEG_TAB, NULL);
 
     list_init(&mpegList, sizeof(MPEGEntry), mpegOriginalCount);
-    u32list_init(&mpegIDList, mpegOriginalCount);
     list_set_element_free_callback(&mpegList, mpeg_list_element_free);
+    u32list_init(&mpegIDList, mpegOriginalCount);
     mpegMap = recomputil_create_u32_value_hashmap();
     mpegResolveMap = reasset_resolve_map_create("MPEG");
 
@@ -85,6 +84,8 @@ void reasset_mpeg_init(void) {
 
         buffer_set_base(&entry->mpeg, MPEG_BIN, offset, size);
     }
+
+    recomp_free(mpegOriginalTab);
 }
 
 void reasset_mpeg_repack(void) {
@@ -141,8 +142,6 @@ void reasset_mpeg_repack(void) {
     list_free(&mpegList);
     u32list_free(&mpegIDList);
     recomputil_destroy_u32_value_hashmap(mpegMap);
-    recomp_free(mpegOriginalTab);
-    mpegOriginalTab = NULL;
 }
 
 static void assert_custom_mpeg_id(const char *funcName, ReAssetID id) {

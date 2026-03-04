@@ -411,6 +411,10 @@ static void assert_custom_object_index_id(const char *funcName, ReAssetID id) {
     }
 }
 
+_Bool reasset_object_indices_is_base_id(s32 id) {
+    return id >= 0 && id < objectIndexOriginalCount;
+}
+
 RECOMP_EXPORT void reasset_object_indices_set(ReAssetID id, ReAssetID objID) {
     reasset_assert_stage_set_call("reasset_object_indices_set");
     assert_custom_object_index_id("reasset_object_indices_set", id);

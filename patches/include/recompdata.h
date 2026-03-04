@@ -81,6 +81,35 @@ DECLARE_FUNC(int, recomputil_u32_memory_hashmap_erase, U32MemoryHashmapHandle ha
 // Returns the number of elements in the map.
 DECLARE_FUNC(unsigned long, recomputil_u32_memory_hashmap_size, U32MemoryHashmapHandle handle);
 
+//////////////////
+// u32 hashsets //
+//////////////////
+
+typedef unsigned long U32HashsetHandle;
+
+// Creates a hashset of u32 keys.
+// Returns the handle for that hashset.
+DECLARE_FUNC(U32HashsetHandle, recomputil_create_u32_hashset, void);
+
+// Destroys a u32 hashset.
+DECLARE_FUNC(void, recomputil_destroy_u32_hashset, U32HashsetHandle handle);
+
+// Checks if a u32 hashset contains the given key.
+// Returns 1 if the key exists in the set, otherwise returns 0.
+DECLARE_FUNC(int, recomputil_u32_hashset_contains, U32HashsetHandle handle, collection_key_t key);
+
+// Inserts a key into a u32 hashset.
+// Returns 1 if the key was inserted (i.e. it did not exist in the set), otherwise returns 0.
+DECLARE_FUNC(int, recomputil_u32_hashset_insert, U32HashsetHandle handle, collection_key_t key);
+
+// Erases a key from a u32 hashset.
+// Returns 1 if the key was erased (i.e. it exited in the set), otherwise returns 0.
+DECLARE_FUNC(int, recomputil_u32_hashset_erase, U32HashsetHandle handle, collection_key_t key);
+
+// Gets the size of a u32 hashset.
+// Returns the number of elements in the set.
+DECLARE_FUNC(unsigned long, recomputil_u32_hashset_size, U32HashsetHandle handle);
+
 ///////////////////
 // data slotmaps //
 ///////////////////

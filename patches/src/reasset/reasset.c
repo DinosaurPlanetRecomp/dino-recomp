@@ -13,6 +13,7 @@
 #include "reasset/files/reasset_maps.h"
 #include "reasset/files/reasset_mpeg.h"
 #include "reasset/files/reasset_objects.h"
+#include "reasset/files/reasset_sequences.h"
 #include "reasset/files/reasset_textures.h"
 #include "reasset/special/reasset_dlls.h"
 #include "reasset/special/reasset_menus.h"
@@ -109,6 +110,7 @@ static void reasset_run_init(void) {
     reasset_mpeg_init();
     reasset_music_actions_init();
     reasset_objects_init();
+    reasset_sequences_init();
     reasset_textures_init();
 
     reasset_dlls_init();
@@ -120,6 +122,7 @@ static void reasset_run_repack(void) {
     reasset_mpeg_repack();
     reasset_music_actions_repack();
     reasset_objects_repack();
+    reasset_sequences_repack();
     reasset_textures_repack();
 
     reasset_dlls_repack();
@@ -128,14 +131,16 @@ static void reasset_run_repack(void) {
 
 static void reasset_run_patch(void) {
     reasset_objects_patch();
-reasset_textures_patch();
+    reasset_sequences_patch();
+    reasset_textures_patch();
 
     reasset_menus_patch();
 }
 
 static void reasset_run_cleanup(void) {
     reasset_objects_cleanup();
-reasset_textures_cleanup();
+    reasset_sequences_cleanup();
+    reasset_textures_cleanup();
 
     reasset_menus_cleanup();
 }
@@ -162,7 +167,7 @@ void reasset_run(void) {
     reassetStage = REASSET_STAGE_MODIFY;
     reasset_on_modify();
 
-    reasset_log("[reasset] == Resolve ==\n");
+    reasset_log("[reasset] == Resolve ==\n"); // TODO: rename to patch stage?
     reassetStage = REASSET_STAGE_RESOLVE;
     reasset_iterator_clear_all(); // Previous iterators are no longer valid
     reasset_run_repack();
