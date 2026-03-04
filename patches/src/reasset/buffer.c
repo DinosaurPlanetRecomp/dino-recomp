@@ -40,6 +40,11 @@ void buffer_free(Buffer *buffer) {
 void buffer_set(Buffer *buffer, const void *data, u32 size) {
     reasset_assert(buffer != NULL, "[reasset:buffer_set] Buffer cannot be null!");
 
+    if (size == 0) {
+        buffer->size = 0;
+        return;
+    }
+
     if (buffer->ptr == NULL) {
         // Buffer not allocated yet
         buffer->ptr = recomp_alloc(size);
@@ -89,6 +94,11 @@ _Bool buffer_is_set(const Buffer *buffer) {
 void buffer_zero(Buffer *buffer, u32 size) {
     reasset_assert(buffer != NULL, "[reasset:buffer_zero] Buffer cannot be null!");
 
+    if (size == 0) {
+        buffer->size = 0;
+        return;
+    }
+
     if (buffer->ptr == NULL) {
         // Buffer not allocated yet
         buffer->ptr = recomp_alloc(size);
@@ -106,6 +116,11 @@ void buffer_zero(Buffer *buffer, u32 size) {
 
 void buffer_resize(Buffer *buffer, u32 size) {
     reasset_assert(buffer != NULL, "[reasset:buffer_resize] Buffer cannot be null!");
+
+    if (size == 0) {
+        buffer->size = 0;
+        return;
+    }
 
     if (buffer->ptr == NULL) {
         // Buffer not allocated yet
@@ -132,7 +147,7 @@ void buffer_copy_to(const Buffer *buffer, void *dst, u32 offset) {
 
     if (buffer->ptr == NULL || buffer->size == 0) {
         // Copy from base if set
-        if (buffer->base.isSet) {
+        if (buffer->base.isSet && buffer->base.size > 0) {
             if ((u32)_dst & 0x7) {
                 // Unaligned dest, load into temp buffer first
                 if (sTempBuffer.data == NULL || buffer->base.size > sTempBuffer.capacity) {
@@ -157,6 +172,11 @@ void buffer_copy_to(const Buffer *buffer, void *dst, u32 offset) {
 
 void buffer_load_from_file(Buffer *buffer, s32 fileID, u32 offset, u32 size) {
     reasset_assert(buffer != NULL, "[reasset:buffer_load_from_file] Buffer cannot be null!");
+
+    if (size == 0) {
+        buffer->size = 0;
+        return;
+    }
 
     if (buffer->ptr == NULL) {
         // Buffer not allocated yet
