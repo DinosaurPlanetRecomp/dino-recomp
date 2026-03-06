@@ -9,7 +9,7 @@
 #include "recomp/dlls/engine/60_post_recomp.h"
 
 extern u8 data_0;
-extern u8 data_4;
+extern u8 dExpansionPakMissing;
 
 extern f32 bss_0;
 extern s8 bss_4;
@@ -19,7 +19,7 @@ extern f32 bss_C;
 extern f32 bss_10;
 
 RECOMP_PATCH s32 dll_60_update1() {
-    if (data_4 == 1) {
+    if (dExpansionPakMissing == 1) {
         return 0;
     } else {
         bss_0 += gUpdateRateF;
