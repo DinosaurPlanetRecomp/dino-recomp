@@ -54,7 +54,7 @@ void reasset_dlls_repack(void) {
 
         u16 id = recomp_register_dll(entry->bank, entry->exportCount, entry->ctor, entry->dtor, entry->vtblPtr);
 
-        reasset_resolve_map_resolve_id(dllResolveMap, entry->id, -1, id, NULL);
+        reasset_resolve_map_resolve_id(dllResolveMap, entry->id, -1, id);
     }
 
     // Finalize resolve map

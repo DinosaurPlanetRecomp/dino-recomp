@@ -10,6 +10,7 @@
 #include "reasset/reasset_iterator.h"
 #include "reasset/buffer.h"
 #include "reasset/list.h"
+#include "reasset/bin_ptr.h"
 
 #include "PR/ultratypes.h"
 #include "sys/fs.h"
@@ -28,12 +29,14 @@ typedef struct {
     ReAssetID id;
     s32 numFrames;
     Buffer texture;
+    BinPtr texturePtr;
 } TextureEntry;
 
 typedef struct {
     ReAssetID id;
     TextureBank bank;
     ReAssetID texID;
+    BinPtr binPtr;
 } TexTableEntry;
 
 static s32 texOriginalCount[NUM_TEXTURE_BANKS];
@@ -211,10 +214,11 @@ static void repack_textures_internal(void) {
                     namespaceName, idData->identifier);
             }
 
-            reasset_resolve_map_resolve_id(texResolveMap[bank], entry->id, -1, i, (u8*)newBin + offset);
+            reasset_resolve_map_resolve_id(texResolveMap[bank], entry->id, -1, i);
 
             newTab[i] = ((entry->numFrames & 0xFF) << 24) | (offset & 0x00FFFFFF);
-            buffer_copy_to(&entry->texture, newBin, offset);
+            bin_ptr_set(&entry->texturePtr, newBin, offset, buffer_get_size(&entry->texture));
+            buffer_copy_to_bin_ptr(&entry->texture, &entry->texturePtr);
             offset += buffer_get_size(&entry->texture);
 
             offset = mmAlign8(offset);
@@ -256,7 +260,9 @@ static void repack_texture_table_internal(void) {
                 namespaceName, idData->identifier);
         }
 
-        reasset_resolve_map_resolve_id(texTableResolveMap, entry->id, -1, i, (u8*)newBin + (i * sizeof(u16)));
+        reasset_resolve_map_resolve_id(texTableResolveMap, entry->id, -1, i);
+        
+        bin_ptr_set(&entry->binPtr, newBin, i * sizeof(u16), sizeof(u16));
 
         // Note: Nothing to write to bin here. Values will be filled in during the patch stage
     }
@@ -282,8 +288,8 @@ void reasset_textures_patch(void) {
     for (s32 i = 0; i < numTexTableEntries; i++) {
         TexTableEntry *entry = list_get(&texTableList, i);
 
-        u16 *entryPtr;
-        if (reasset_resolve_map_lookup_ptr(texTableResolveMap, entry->id, (void**)&entryPtr) == -1) {
+        u16 *entryPtr = entry->binPtr.ptr;
+        if (entryPtr == NULL) {
             continue;
         }
 
@@ -374,7 +380,11 @@ RECOMP_EXPORT void* reasset_textures_get(TextureBank bank, ReAssetID id, s32 *ou
         *outNumFrames = entry->numFrames;
     }
 
-    return buffer_get(&entry->texture, outSizeBytes);
+    if (reassetStage == REASSET_STAGE_RESOLVE) {
+        return bin_ptr_get(&entry->texturePtr, outSizeBytes);
+    } else {
+        return buffer_get(&entry->texture, outSizeBytes);
+    }
 }
 
 RECOMP_EXPORT ReAssetIterator reasset_textures_create_iterator(TextureBank bank) {

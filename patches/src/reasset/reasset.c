@@ -187,8 +187,8 @@ void reasset_assert_stage_set_call(const char *functionName) {
 }
 
 void reasset_assert_stage_get_call(const char *functionName) {
-    reasset_assert(reassetStage == REASSET_STAGE_MODIFY, 
-        "[reasset] %s can only be called during the modify stage.", functionName);
+    reasset_assert(reassetStage == REASSET_STAGE_MODIFY || reassetStage == REASSET_STAGE_RESOLVE, 
+        "[reasset] %s can only be called during the modify and resolve stages.", functionName);
 }
 
 void reasset_assert_stage_delete_call(const char *functionName) {

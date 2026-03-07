@@ -51,7 +51,7 @@ void reasset_menus_repack(void) {
 
         s32 id = recomp_add_new_menu();
 
-        reasset_resolve_map_resolve_id(menuResolveMap, entry->id, -1, id, NULL);
+        reasset_resolve_map_resolve_id(menuResolveMap, entry->id, -1, id);
     }
 
     // Finalize resolve map

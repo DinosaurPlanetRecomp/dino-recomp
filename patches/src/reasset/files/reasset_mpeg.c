@@ -8,6 +8,7 @@
 #include "reasset/reasset_namespace.h"
 #include "reasset/reasset_fst.h"
 #include "reasset/reasset_iterator.h"
+#include "reasset/bin_ptr.h"
 #include "reasset/buffer.h"
 #include "reasset/list.h"
 
@@ -18,6 +19,7 @@
 typedef struct {
     ReAssetID id;
     Buffer mpeg;
+    BinPtr mpegPtr;
 } MPEGEntry;
 
 static s32 mpegOriginalCount;
@@ -119,12 +121,14 @@ void reasset_mpeg_repack(void) {
                 namespaceName, idData->identifier);
         }
 
-        reasset_resolve_map_resolve_id(mpegResolveMap, entry->id, -1, i, (u8*)newBin + offset);
+
+        reasset_resolve_map_resolve_id(mpegResolveMap, entry->id, -1, i);
 
         newTab[i] = offset;
-        buffer_copy_to(&entry->mpeg, newBin, offset);
-        offset += buffer_get_size(&entry->mpeg);
+        bin_ptr_set(&entry->mpegPtr, newBin, offset, buffer_get_size(&entry->mpeg));
+        buffer_copy_to_bin_ptr(&entry->mpeg, &entry->mpegPtr);
 
+        offset += buffer_get_size(&entry->mpeg);
         offset = mmAlign4(offset);
     }
 
@@ -183,7 +187,11 @@ RECOMP_EXPORT void* reasset_mpeg_get(ReAssetID id, u32 *outSizeBytes) {
         return NULL;
     }
 
-    return buffer_get(&entry->mpeg, outSizeBytes);
+    if (reassetStage == REASSET_STAGE_RESOLVE) {
+        return bin_ptr_get(&entry->mpegPtr, NULL);   
+    } else {
+        return buffer_get(&entry->mpeg, outSizeBytes);
+    }
 }
 
 RECOMP_EXPORT ReAssetIterator reasset_mpeg_create_iterator(void) {

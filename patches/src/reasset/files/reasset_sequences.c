@@ -12,6 +12,7 @@
 #include "reasset/files/reasset_objects.h"
 #include "reasset/buffer.h"
 #include "reasset/list.h"
+#include "reasset/bin_ptr.h"
 
 #include "PR/ultratypes.h"
 #include "libc/string.h"
@@ -36,11 +37,13 @@ typedef struct {
     ReAssetNamespace owner;
     s32 eventCount;
     Buffer curve;
+    BinPtr curvePtr;
 } AnimCurveEntry;
 
 typedef struct {
     s32 eventCount;
     Buffer curve;
+    BinPtr curvePtr;
 } ActorCurve;
 
 typedef struct {
@@ -49,6 +52,7 @@ typedef struct {
     ReAssetID mapID;
     _Bool hasMap;
     Buffer seq;
+    BinPtr seqPtr;
     List actorCurves; // list[ActorCurve]
 } ObjSeqEntry;
 
@@ -311,10 +315,10 @@ void reasset_sequences_repack(void) {
         tabEntry->eventCount = curve->eventCount;
         tabEntry->offset = animCurvesBinOffset;
 
-        buffer_copy_to(&curve->curve, animCurvesBin, animCurvesBinOffset);
+        bin_ptr_set(&curve->curvePtr, animCurvesBin, animCurvesBinOffset, tabEntry->size);
+        buffer_copy_to_bin_ptr(&curve->curve, &curve->curvePtr);
 
-        reasset_resolve_map_resolve_id(curvesResolveMap, curve->id, curve->owner, animCurvesTabIdx, 
-            (u8*)animCurvesBin + animCurvesBinOffset);
+        reasset_resolve_map_resolve_id(curvesResolveMap, curve->id, curve->owner, animCurvesTabIdx);
 
         animCurvesTabIdx += 1;
 
@@ -335,10 +339,10 @@ void reasset_sequences_repack(void) {
         s32 numActors = seqSize / 8;
         
         objSeqTab[objSeqTabIdx] = objSeqBinActorIdx;
-        buffer_copy_to(&seq->seq, objSeqBin, objSeqBinOffset);
+        bin_ptr_set(&seq->seqPtr, objSeqBin, objSeqBinOffset, seqSize);
+        buffer_copy_to_bin_ptr(&seq->seq, &seq->seqPtr);
 
-        reasset_resolve_map_resolve_id(seqsResolveMap, seq->id, seq->owner, objSeqTabIdx, 
-            (u8*)objSeqBin + objSeqBinOffset);
+        reasset_resolve_map_resolve_id(seqsResolveMap, seq->id, seq->owner, objSeqTabIdx);
 
         objSeqBinActorIdx += numActors;
 
@@ -424,9 +428,9 @@ void reasset_sequences_patch(void) {
         }
         
         // Get pointer to seq data
-        s32 numActors = buffer_get_size(&seq->seq) / sizeof(Actor);
-        Actor *actors;
-        if (reasset_resolve_map_lookup_ptr(seqsResolveMap, seq->id, (void**)&actors) == -1) {
+        s32 numActors = seq->seqPtr.size / sizeof(Actor);
+        Actor *actors = seq->seqPtr.ptr;
+        if (actors == NULL) {
             continue;
         }
 
@@ -549,7 +553,11 @@ RECOMP_EXPORT void* reasset_anim_curves_get(ReAssetID id, s32 *outEventCount, u3
         *outEventCount = entry->eventCount;
     }
 
-    return buffer_get(&entry->curve, outSizeBytes);
+    if (reassetStage == REASSET_STAGE_RESOLVE) {
+        return bin_ptr_get(&entry->curvePtr, outSizeBytes);
+    } else {
+        return buffer_get(&entry->curve, outSizeBytes);
+    }
 }
 
 RECOMP_EXPORT ReAssetIterator reasset_anim_curves_create_iterator(void) {
@@ -626,7 +634,11 @@ RECOMP_EXPORT void* reasset_object_sequences_get(ReAssetID id, u32 *outSizeBytes
         return NULL;
     }
 
-    return buffer_get(&entry->seq, outSizeBytes);
+    if (reassetStage == REASSET_STAGE_RESOLVE) {
+        return bin_ptr_get(&entry->seqPtr, outSizeBytes);
+    } else {
+        return buffer_get(&entry->seq, outSizeBytes);
+    }
 }
 
 RECOMP_EXPORT void reasset_object_sequences_set_curve(ReAssetID id, s32 actor, s32 eventCount, const void *data, u32 sizeBytes) {
@@ -676,7 +688,11 @@ RECOMP_EXPORT void* reasset_object_sequences_get_curve(ReAssetID id, s32 actor, 
         *outEventCount = curve->eventCount;
     }
 
-    return buffer_get(&curve->curve, outSizeBytes);
+    if (reassetStage == REASSET_STAGE_RESOLVE) {
+        return bin_ptr_get(&curve->curvePtr, outSizeBytes);
+    } else {
+        return buffer_get(&curve->curve, outSizeBytes);
+    }
 }
 
 RECOMP_EXPORT ReAssetIterator reasset_object_sequences_create_iterator(void) {

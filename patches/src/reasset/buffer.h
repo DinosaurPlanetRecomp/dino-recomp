@@ -2,6 +2,8 @@
 
 #include "PR/ultratypes.h"
 
+#include "bin_ptr.h"
+
 typedef struct {
     void *ptr;
     u32 size;
@@ -23,5 +25,6 @@ _Bool buffer_is_set(const Buffer *buffer);
 void buffer_zero(Buffer *buffer, u32 size);
 void buffer_resize(Buffer *buffer, u32 size);
 void buffer_copy_to(const Buffer *buffer, void *dst, u32 offset);
+void buffer_copy_to_bin_ptr(const Buffer *buffer, const BinPtr *binPtr);
 void buffer_load_from_file(Buffer *buffer, s32 fileID, u32 offset, u32 size);
 void buffer_set_base(Buffer *buffer, s32 fileID, u32 offset, u32 size);

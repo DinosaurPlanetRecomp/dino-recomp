@@ -10,6 +10,7 @@
 #include "reasset/reasset_iterator.h"
 #include "reasset/list.h"
 #include "reasset/buffer.h"
+#include "reasset/bin_ptr.h"
 
 #include "PR/ultratypes.h"
 #include "libc/string.h"
@@ -25,9 +26,13 @@ typedef struct {
     ReAssetID id;
     ReAssetNamespace owner;
     Buffer header;
+    BinPtr headerPtr;
     Buffer blocks;
+    BinPtr blocksPtr;
     Buffer gridA1;
+    BinPtr gridA1Ptr;
     Buffer gridA2;
+    BinPtr gridA2Ptr;
     struct {
         List list; // list[MapObjectEntry]
         U32List idList; // list[ReAssetID]
@@ -35,13 +40,16 @@ typedef struct {
         s32 maxUID;
     } objects;
     Buffer gridB1;
+    BinPtr gridB1Ptr;
     Buffer gridB2;
+    BinPtr gridB2Ptr;
 } MapEntry;
 
 typedef struct {
     ReAssetID id;
     ReAssetNamespace owner;
     Buffer object;
+    BinPtr objectPtr;
     _Bool delete;
 } MapObjectEntry;
 
@@ -359,11 +367,12 @@ void reasset_maps_repack(void) {
         }
 
         // Resolve map itself
-        reasset_resolve_map_resolve_id(mapResolveMap, entry->id, entry->owner, i, (u8*)newBin + offset);
+        reasset_resolve_map_resolve_id(mapResolveMap, entry->id, entry->owner, i);
 
         // Header
         newTab[tabIndex + 0] = offset;
-        buffer_copy_to(&entry->header, newBin, offset);
+        bin_ptr_set(&entry->headerPtr, newBin, offset, sizeof(MapHeader));
+        buffer_copy_to_bin_ptr(&entry->header, &entry->headerPtr);
 
         MapHeader *header = (MapHeader*)((u8*)newBin + offset);
         header->objectInstanceCount = newNumObjects;
@@ -372,17 +381,20 @@ void reasset_maps_repack(void) {
 
         // Blocks
         newTab[tabIndex + 1] = offset;
-        buffer_copy_to(&entry->blocks, newBin, offset);
+        bin_ptr_set(&entry->blocksPtr, newBin, offset, buffer_get_size(&entry->blocks));
+        buffer_copy_to_bin_ptr(&entry->blocks, &entry->blocksPtr);
         offset += buffer_get_size(&entry->blocks);
 
         // Grid A1
         newTab[tabIndex + 2] = offset;
-        buffer_copy_to(&entry->gridA1, newBin, offset);
+        bin_ptr_set(&entry->gridA1Ptr, newBin, offset, buffer_get_size(&entry->gridA1));
+        buffer_copy_to_bin_ptr(&entry->gridA1, &entry->gridA1Ptr);
         offset += buffer_get_size(&entry->gridA1);
 
         // Grid A2
         newTab[tabIndex + 3] = offset;
-        buffer_copy_to(&entry->gridA2, newBin, offset);
+        bin_ptr_set(&entry->gridA2Ptr, newBin, offset, buffer_get_size(&entry->gridA2));
+        buffer_copy_to_bin_ptr(&entry->gridA2, &entry->gridA2Ptr);
         offset += buffer_get_size(&entry->gridA2);
 
         // Objects
@@ -398,7 +410,8 @@ void reasset_maps_repack(void) {
                 MapObjectEntry *objEntry = list_get(&entry->objects.list, u32list_get(objList, j));
 
                 u32 setupSize = mmAlign4(buffer_get_size(&objEntry->object));
-                buffer_copy_to(&objEntry->object, newBin, offset);
+                bin_ptr_set(&objEntry->objectPtr, newBin, offset, setupSize);
+                buffer_copy_to_bin_ptr(&objEntry->object, &objEntry->objectPtr);
 
                 ObjSetup *setup = (ObjSetup*)((u8*)newBin + offset);
                 // Always recalculate size
@@ -412,7 +425,7 @@ void reasset_maps_repack(void) {
                 }
 
                 // Resolve object setup
-                reasset_resolve_map_resolve_id(objResolveMap, objEntry->id, objEntry->owner, setup->uID, (u8*)newBin + offset);
+                reasset_resolve_map_resolve_id(objResolveMap, objEntry->id, objEntry->owner, setup->uID);
 
                 offset += setupSize;
             }
@@ -420,12 +433,14 @@ void reasset_maps_repack(void) {
 
         // Grid B1
         newTab[tabIndex + 5] = offset;
-        buffer_copy_to(&entry->gridB1, newBin, offset);
+        bin_ptr_set(&entry->gridB1Ptr, newBin, offset, buffer_get_size(&entry->gridB1));
+        buffer_copy_to_bin_ptr(&entry->gridB1, &entry->gridB1Ptr);
         offset += buffer_get_size(&entry->gridB1);
 
         // Grid B2
         newTab[tabIndex + 6] = offset;
-        buffer_copy_to(&entry->gridB2, newBin, offset);
+        bin_ptr_set(&entry->gridB2Ptr, newBin, offset, buffer_get_size(&entry->gridB2));
+        buffer_copy_to_bin_ptr(&entry->gridB2, &entry->gridB2Ptr);
         offset += buffer_get_size(&entry->gridB2);
 
         offset = mmAlign16(offset);
@@ -501,6 +516,10 @@ RECOMP_EXPORT void* reasset_maps_get_header(ReAssetID id) {
         return NULL;
     }
 
+    if (reassetStage == REASSET_STAGE_RESOLVE) {
+        return bin_ptr_get(&entry->headerPtr, NULL);
+    }
+
     if (buffer_get_size(&entry->header) == 0) {
         buffer_zero(&entry->header, sizeof(MapHeader));
     }
@@ -529,7 +548,11 @@ RECOMP_EXPORT void* reasset_maps_get_blocks(ReAssetID id, u32 *outSizeBytes) {
         return NULL;
     }
 
-    return buffer_get(&entry->blocks, outSizeBytes);
+    if (reassetStage == REASSET_STAGE_RESOLVE) {
+        return bin_ptr_get(&entry->blocksPtr, outSizeBytes);
+    } else {
+        return buffer_get(&entry->blocks, outSizeBytes);
+    }
 }
 
 RECOMP_EXPORT void reasset_maps_set_grid_a1(ReAssetID id, const void *data, u32 sizeBytes) {
@@ -553,7 +576,11 @@ RECOMP_EXPORT void* reasset_maps_get_grid_a1(ReAssetID id, u32 *outSizeBytes) {
         return NULL;
     }
 
-    return buffer_get(&entry->gridA1, outSizeBytes);
+    if (reassetStage == REASSET_STAGE_RESOLVE) {
+        return bin_ptr_get(&entry->gridA1Ptr, outSizeBytes);
+    } else {
+        return buffer_get(&entry->gridA1, outSizeBytes);
+    }
 }
 
 RECOMP_EXPORT void reasset_maps_set_grid_a2(ReAssetID id, const void *data, u32 sizeBytes) {
@@ -577,7 +604,11 @@ RECOMP_EXPORT void* reasset_maps_get_grid_a2(ReAssetID id, u32 *outSizeBytes) {
         return NULL;
     }
 
-    return buffer_get(&entry->gridA2, outSizeBytes);
+    if (reassetStage == REASSET_STAGE_RESOLVE) {
+        return bin_ptr_get(&entry->gridA2Ptr, outSizeBytes);
+    } else {
+        return buffer_get(&entry->gridA2, outSizeBytes);
+    }
 }
 
 RECOMP_EXPORT void reasset_maps_set_grid_b1(ReAssetID id, const void *data, u32 sizeBytes) {
@@ -601,7 +632,11 @@ RECOMP_EXPORT void* reasset_maps_get_grid_b1(ReAssetID id, u32 *outSizeBytes) {
         return NULL;
     }
 
-    return buffer_get(&entry->gridB1, outSizeBytes);
+    if (reassetStage == REASSET_STAGE_RESOLVE) {
+        return bin_ptr_get(&entry->gridB1Ptr, outSizeBytes);
+    } else {
+        return buffer_get(&entry->gridB1, outSizeBytes);
+    }
 }
 
 RECOMP_EXPORT void reasset_maps_set_grid_b2(ReAssetID id, const void *data, u32 sizeBytes) {
@@ -625,7 +660,11 @@ RECOMP_EXPORT void* reasset_maps_get_grid_b2(ReAssetID id, u32 *outSizeBytes) {
         return NULL;
     }
 
-    return buffer_get(&entry->gridB2, outSizeBytes);
+    if (reassetStage == REASSET_STAGE_RESOLVE) {
+        return bin_ptr_get(&entry->gridB2Ptr, outSizeBytes);
+    } else {
+        return buffer_get(&entry->gridB2, outSizeBytes);
+    }
 }
 
 RECOMP_EXPORT ReAssetIterator reasset_maps_create_iterator(void) {
@@ -696,6 +735,10 @@ RECOMP_EXPORT void* reasset_map_objects_get(ReAssetID mapID, ReAssetID id, u32 *
             *outSizeBytes = 0;
         }
         return NULL;
+    }
+
+    if (reassetStage == REASSET_STAGE_RESOLVE) {
+        return bin_ptr_get(&objEntry->objectPtr, outSizeBytes);
     }
 
     if (buffer_get_size(&objEntry->object) == 0) {

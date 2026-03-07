@@ -3,6 +3,7 @@
 #include "patches.h"
 #include "reasset.h"
 #include "reasset/reasset_fst.h"
+#include "reasset/bin_ptr.h"
 
 #include "PR/ultratypes.h"
 #include "PR/os.h"
@@ -168,6 +169,17 @@ void buffer_copy_to(const Buffer *buffer, void *dst, u32 offset) {
     } else {
         bcopy(buffer->ptr, _dst, buffer->size);
     }
+}
+
+void buffer_copy_to_bin_ptr(const Buffer *buffer, const BinPtr *binPtr) {
+    reasset_assert(buffer != NULL, "[reasset:buffer_copy_to_bin_ptr] Buffer cannot be null!");
+    reasset_assert(binPtr != NULL, "[reasset:buffer_copy_to_bin_ptr] Bin ptr cannot be null!");
+
+    reasset_assert(buffer->size <= binPtr->size, 
+        "[reasset:buffer_copy_to_bin_ptr] Buffer is too large for the bin ptr destination! %d > %d",
+        buffer->size, binPtr->size);
+
+    buffer_copy_to(buffer, binPtr->ptr, 0);
 }
 
 void buffer_load_from_file(Buffer *buffer, s32 fileID, u32 offset, u32 size) {

@@ -11,6 +11,7 @@
 #include "reasset/special/reasset_dlls.h"
 #include "reasset/buffer.h"
 #include "reasset/list.h"
+#include "reasset/bin_ptr.h"
 
 #include "PR/ultratypes.h"
 #include "game/objects/object_def.h"
@@ -21,11 +22,13 @@ typedef struct {
     ReAssetID id;
     ReAssetNamespace owner;
     Buffer object;
+    BinPtr objectPtr;
 } ObjectEntry;
 
 typedef struct {
     ReAssetID id;
     ReAssetID objID;
+    BinPtr binPtr;
 } ObjectIndexEntry;
 
 static s32 objectOriginalCount;
@@ -192,10 +195,11 @@ static void reasset_objects_repack_internal(void) {
                 namespaceName, idData->identifier, name);
         }
 
-        reasset_resolve_map_resolve_id(objectResolveMap, entry->id, entry->owner, i, (u8*)newBin + offset);
+        reasset_resolve_map_resolve_id(objectResolveMap, entry->id, entry->owner, i);
 
         newTab[i] = offset;
-        buffer_copy_to(&entry->object, newBin, offset);
+        bin_ptr_set(&entry->objectPtr, newBin, offset, buffer_get_size(&entry->object));
+        buffer_copy_to_bin_ptr(&entry->object, &entry->objectPtr);
         offset += buffer_get_size(&entry->object);
 
         offset = mmAlign4(offset);
@@ -235,7 +239,9 @@ static void reasset_objects_indices_repack_internal(void) {
                 namespaceName, idData->identifier);
         }
 
-        reasset_resolve_map_resolve_id(objectIndexResolveMap, entry->id, -1, i, (u8*)newBin + (i * sizeof(s16)));
+        reasset_resolve_map_resolve_id(objectIndexResolveMap, entry->id, -1, i);
+
+        bin_ptr_set(&entry->binPtr, newBin, i * sizeof(s16), sizeof(s16));
 
         // Note: Nothing to write to bin here. Values will be filled in during the patch stage
     }
@@ -262,8 +268,8 @@ void reasset_objects_patch(void) {
             continue;
         }
 
-        ObjDef *object;
-        if (reasset_resolve_map_lookup_ptr(objectResolveMap, entry->id, (void**)&object) == -1) {
+        ObjDef *object = entry->objectPtr.ptr;
+        if (object == NULL) {
             continue;
         }
 
@@ -291,8 +297,8 @@ void reasset_objects_patch(void) {
     for (s32 i = 0; i < numIndices; i++) {
         ObjectIndexEntry *entry = list_get(&objectIndexList, i);
 
-        s16 *indexPtr;
-        if (reasset_resolve_map_lookup_ptr(objectIndexResolveMap, entry->id, (void**)&indexPtr) == -1) {
+        s16 *indexPtr = entry->binPtr.ptr;
+        if (indexPtr == NULL) {
             continue;
         }
 
@@ -372,7 +378,11 @@ RECOMP_EXPORT void* reasset_objects_get(ReAssetID id, u32 *outSizeBytes) {
         return NULL;
     }
 
-    return buffer_get(&entry->object, outSizeBytes);
+    if (reassetStage == REASSET_STAGE_RESOLVE) {
+        return bin_ptr_get(&entry->objectPtr, outSizeBytes);
+    } else {
+        return buffer_get(&entry->object, outSizeBytes);
+    }
 }
 
 RECOMP_EXPORT ReAssetIterator reasset_objects_create_iterator(void) {

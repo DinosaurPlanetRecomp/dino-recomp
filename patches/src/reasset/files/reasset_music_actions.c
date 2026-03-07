@@ -8,6 +8,7 @@
 #include "reasset/reasset_namespace.h"
 #include "reasset/reasset_fst.h"
 #include "reasset/reasset_iterator.h"
+#include "reasset/bin_ptr.h"
 #include "reasset/buffer.h"
 #include "reasset/list.h"
 
@@ -19,6 +20,7 @@ typedef struct {
     ReAssetID id;
     ReAssetNamespace owner;
     Buffer action;
+    BinPtr actionPtr;
 } MusicActionEntry;
 
 static s32 mActionOriginalCount;
@@ -92,10 +94,10 @@ void reasset_music_actions_repack(void) {
     for (s32 i = 0; i < newCount; i++) {
         MusicActionEntry *entry = list_get(&mActionList, i);
 
-        void *dst = (u8*)newActions + (i * sizeof(MusicAction));
-        buffer_copy_to(&entry->action, dst, 0);
+        bin_ptr_set(&entry->actionPtr, newActions, i * sizeof(MusicAction), sizeof(MusicAction));
+        buffer_copy_to_bin_ptr(&entry->action, &entry->actionPtr);
 
-        reasset_resolve_map_resolve_id(mActionResolveMap, entry->id, entry->owner, i, dst);
+        reasset_resolve_map_resolve_id(mActionResolveMap, entry->id, entry->owner, i);
     }
 
     // Finalize resolve map
@@ -148,7 +150,11 @@ RECOMP_EXPORT void* reasset_music_actions_get(ReAssetID id) {
         return NULL;
     }
 
-    return buffer_get(&entry->action, NULL);
+    if (reassetStage == REASSET_STAGE_RESOLVE) {
+        return bin_ptr_get(&entry->actionPtr, NULL);   
+    } else {
+        return buffer_get(&entry->action, NULL);
+    }
 }
 
 RECOMP_EXPORT ReAssetIterator reasset_music_actions_create_iterator(void) {
