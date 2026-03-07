@@ -11,6 +11,7 @@
 
 #include "reasset/files/reasset_music_actions.h"
 #include "reasset/files/reasset_maps.h"
+#include "reasset/files/reasset_models.h"
 #include "reasset/files/reasset_mpeg.h"
 #include "reasset/files/reasset_objects.h"
 #include "reasset/files/reasset_sequences.h"
@@ -107,6 +108,7 @@ const char *DINO_FS_FILENAMES[NUM_FILES] = {
 
 static void reasset_run_init(void) {
     reasset_maps_init();
+    reasset_models_init();
     reasset_mpeg_init();
     reasset_music_actions_init();
     reasset_objects_init();
@@ -119,6 +121,7 @@ static void reasset_run_init(void) {
 
 static void reasset_run_repack(void) {
     reasset_maps_repack();
+    reasset_models_repack();
     reasset_mpeg_repack();
     reasset_music_actions_repack();
     reasset_objects_repack();
@@ -130,6 +133,7 @@ static void reasset_run_repack(void) {
 }
 
 static void reasset_run_patch(void) {
+    reasset_models_patch();
     reasset_objects_patch();
     reasset_sequences_patch();
     reasset_textures_patch();
@@ -138,6 +142,7 @@ static void reasset_run_patch(void) {
 }
 
 static void reasset_run_cleanup(void) {
+    reasset_models_cleanup();
     reasset_objects_cleanup();
     reasset_sequences_cleanup();
     reasset_textures_cleanup();
