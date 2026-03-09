@@ -54,7 +54,6 @@ typedef struct {
 } MapObjectEntry;
 
 static s32 mapOriginalCount;
-static s32 *mapOriginalTab;
 static List mapList; // list[MapEntry]
 static U32List mapIDList; // list[ReAssetID]
 static U32ValueHashmapHandle mapMap; // ReAssetID -> map list index
@@ -190,7 +189,7 @@ static void map_list_element_free(void *element) {
 
 void reasset_maps_init(void) {
     mapOriginalCount = reasset_fst_get_file_size(MAPS_TAB) / (sizeof(u32) * 7);
-    mapOriginalTab = reasset_fst_alloc_load_file(MAPS_TAB, NULL);
+    s32 *mapOriginalTab = reasset_fst_alloc_load_file(MAPS_TAB, NULL);
 
     list_init(&mapList, sizeof(MapEntry), mapOriginalCount);
     u32list_init(&mapIDList, mapOriginalCount);
@@ -266,6 +265,7 @@ void reasset_maps_init(void) {
     }
 
     buffer_free(&objectSubfileTempBuffer);
+    recomp_free(mapOriginalTab);
 }
 
 void reasset_maps_repack(void) {
@@ -466,11 +466,12 @@ void reasset_maps_repack(void) {
     for (u32 i = 0; i < ARRAYCOUNT(objSetupLists); i++) {
         u32list_free(&objSetupLists[i]);
     }
+}
+
+void reasset_maps_cleanup(void) {
     list_free(&mapList);
     u32list_free(&mapIDList);
     recomputil_destroy_u32_value_hashmap(mapMap);
-    recomp_free(mapOriginalTab);
-    mapOriginalTab = NULL;
 }
 
 // MARK: Maps

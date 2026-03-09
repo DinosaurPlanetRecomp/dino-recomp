@@ -106,8 +106,9 @@ void reasset_music_actions_repack(void) {
     // Set new file
     reasset_fst_set_internal(MUSICACTIONS_BIN, newActions, newCount * sizeof(MusicAction), /*ownedByReAsset=*/TRUE);
     reasset_log("[reasset] Rebuilt MUSICACTIONS.bin (count: %d).\n", newCount);
+}
 
-    // Clean up
+void reasset_music_actions_cleanup(void) {
     u32list_free(&mActionIDList);
     list_free(&mActionList);
     recomputil_destroy_u32_value_hashmap(mActionMap);

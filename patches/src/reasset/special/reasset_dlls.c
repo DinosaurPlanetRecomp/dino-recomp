@@ -61,8 +61,9 @@ void reasset_dlls_repack(void) {
     reasset_resolve_map_finalize(dllResolveMap);
 
     reasset_log("[reasset] Registered %d new DLLs.\n", newCount);
+}
 
-    // Clean up
+void reasset_dlls_cleanup(void) {
     list_free(&dllList);
     recomputil_destroy_u32_value_hashmap(dllMap);
 }

@@ -141,8 +141,9 @@ void reasset_mpeg_repack(void) {
     reasset_fst_set_internal(MPEG_TAB, newTab, newTabSize, /*ownedByReAsset=*/TRUE);
     reasset_fst_set_internal(MPEG_BIN, newBin, newBinSize, /*ownedByReAsset=*/TRUE);
     reasset_log("[reasset] Rebuilt MPEG.tab & MPEG.bin (count: %d, bin size: 0x%X).\n", newCount, newBinSize);
+}
 
-    // Clean up
+void reasset_mpeg_cleanup(void) {
     list_free(&mpegList);
     u32list_free(&mpegIDList);
     recomputil_destroy_u32_value_hashmap(mpegMap);

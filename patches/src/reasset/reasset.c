@@ -9,10 +9,11 @@
 #include "reasset/reasset_namespace.h"
 #include "reasset/reasset_iterator.h"
 
-#include "reasset/files/reasset_music_actions.h"
+#include "reasset/files/reasset_anims.h"
 #include "reasset/files/reasset_maps.h"
 #include "reasset/files/reasset_models.h"
 #include "reasset/files/reasset_mpeg.h"
+#include "reasset/files/reasset_music_actions.h"
 #include "reasset/files/reasset_objects.h"
 #include "reasset/files/reasset_sequences.h"
 #include "reasset/files/reasset_textures.h"
@@ -107,6 +108,7 @@ const char *DINO_FS_FILENAMES[NUM_FILES] = {
 };
 
 static void reasset_run_init(void) {
+    reasset_anims_init();
     reasset_maps_init();
     reasset_models_init();
     reasset_mpeg_init();
@@ -120,6 +122,7 @@ static void reasset_run_init(void) {
 }
 
 static void reasset_run_repack(void) {
+    reasset_anims_repack();
     reasset_maps_repack();
     reasset_models_repack();
     reasset_mpeg_repack();
@@ -142,11 +145,16 @@ static void reasset_run_patch(void) {
 }
 
 static void reasset_run_cleanup(void) {
+    reasset_anims_cleanup();
+    reasset_maps_cleanup();
     reasset_models_cleanup();
+    reasset_mpeg_cleanup();
+    reasset_music_actions_cleanup();
     reasset_objects_cleanup();
     reasset_sequences_cleanup();
     reasset_textures_cleanup();
 
+    reasset_dlls_cleanup();
     reasset_menus_cleanup();
 }
 
@@ -177,13 +185,14 @@ void reasset_run(void) {
     reasset_iterator_clear_all(); // Previous iterators are no longer valid
     reasset_run_repack();
     reasset_run_patch();
-    reasset_run_cleanup();
     reasset_fst_rebuild();
     reasset_on_resolve();
 
     reasset_log("[reasset] == Committed ==\n");
     reassetStage = REASSET_STAGE_COMMITTED;
     reasset_on_committed();
+
+    reasset_run_cleanup();
 }
 
 void reasset_assert_stage_set_call(const char *functionName) {

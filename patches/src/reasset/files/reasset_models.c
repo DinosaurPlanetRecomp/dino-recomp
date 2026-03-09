@@ -8,6 +8,7 @@
 #include "reasset/reasset_namespace.h"
 #include "reasset/reasset_fst.h"
 #include "reasset/reasset_iterator.h"
+#include "reasset/files/reasset_anims.h"
 #include "reasset/files/reasset_textures.h"
 #include "reasset/buffer.h"
 #include "reasset/list.h"
@@ -370,6 +371,7 @@ void reasset_models_repack(void) {
 
 void reasset_models_patch(void) {
     ReAssetResolveMap tex1ResolveMap = reasset_textures_get_resolve_map(TEX1);
+    ReAssetResolveMap animResolveMap = reasset_anims_get_resolve_map();
 
     // Patch in resolved IDs
     s32 numModels = list_get_length(&modelList);
@@ -410,10 +412,37 @@ void reasset_models_patch(void) {
             }
         }
 
+        // Patch modanim anim IDs
         u32 modanimsSize;
         s16 *modanims = bin_ptr_get(&entry->modanimsPtr, &modanimsSize);
         if (modanims != NULL) {
-            // TODO: anims
+            s32 numModanims = modanimsSize / sizeof(s16);
+
+            s32 bank = 0;
+            s32 idInBank = 0;
+            for (s32 k = 0; k < numModanims; k++) {
+                s32 animID = modanims[k];
+                if (animID == -1) {
+                    // end of modanim bank
+                    bank++;
+                    idInBank = 0;
+                    continue;
+                }
+
+                if (!reasset_anims_is_base_id(animID)) {
+                    s32 resolvedID = reasset_resolve_map_lookup(animResolveMap, reasset_id(entry->owner, animID));
+                    if (resolvedID != -1) {
+                        modanims[k] = resolvedID;
+                    } else {
+                        modanims[k] = 0;
+
+                        reasset_log_warning("[reasset] WARN: Failed to patch modanim (%s:%d) %d:%d (%d) anim ID 0x%X. Anim was not defined!\n",
+                            namespaceName, identifier, bank, idInBank, k, animID);
+                    }
+                }
+
+                idInBank++;
+            }
         }
     }
 
