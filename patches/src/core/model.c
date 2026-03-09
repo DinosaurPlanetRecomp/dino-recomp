@@ -84,7 +84,7 @@ RECOMP_PATCH ModelInstance* model_load_create_instance(s32 id, u32 flags) {
     _Bool isUncompressed = FALSE;
     if (uncompressedSize < 0) {
         isUncompressed = TRUE;
-        uncompressedSize = (sp48 - 0x10);
+        uncompressedSize = (sp48 - 0xC);
     }
     sp28 = model_load_anim_remap_table(id, sp3E, sp42);
     sp28 += uncompressedSize + 500;
@@ -98,13 +98,13 @@ RECOMP_PATCH ModelInstance* model_load_create_instance(s32 id, u32 flags) {
         }
         return NULL;
     }
-    temp = (((u32)model + sp28) - sp48) - 0x10;
-    modelInst = (ModelInstance *) (temp - (temp % 16));
-    read_file_region(MODELS_BIN, (void*) modelInst, sp4C, sp48);
-    // @recomp: Support uncompressed models (note: uncompressed data starts at +0x10 instead of +0xD)
+    // @recomp: Support uncompressed models (note: uncompressed data starts at +0xC instead of +0xD)
     if (isUncompressed) {
-        bcopy((u8*)modelInst + 0x10, model, uncompressedSize);
+        read_file_region(MODELS_BIN, model, sp4C + 0xC, uncompressedSize);
     } else {
+        temp = (((u32)model + sp28) - sp48) - 0x10;
+        modelInst = (ModelInstance *) (temp - (temp % 16));
+        read_file_region(MODELS_BIN, (void*) modelInst, sp4C, sp48);
         rarezip_uncompress((u8*)modelInst + 8, (u8*)model, sp28);
     }
     model->materials = (ModelTexture*) ((u32)model->materials + (u32)model);

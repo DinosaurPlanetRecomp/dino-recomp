@@ -80,7 +80,7 @@ RECOMP_PATCH Texture* tex_load(s32 id, s32 param2) {
         // @recomp: Support uncompressed textures
         _Bool notCompressed = uncompressedSize == -1;
         if (notCompressed) {
-            uncompressedSize = compressedSize;
+            uncompressedSize = compressedSize - 0x4;
         }
         tex = mmAlloc((uncompressedSize + 0xE4), gTexAllocTag, NULL);
         if (tex == NULL) {
@@ -90,10 +90,9 @@ RECOMP_PATCH Texture* tex_load(s32 id, s32 param2) {
             firstTex->animDuration = (s16) (numFrames << 8);
             frame = numFrames;
         } else {
-            // @recomp: Support uncompressed textures
+            // @recomp: Support uncompressed textures (note: uncompressed data starts at +0x4 instead of +0x5)
             if (notCompressed) {
-                read_file_region(binFileID, tex, gTexLoadBuffer[frame << 1] + offset, compressedSize);
-                bcopy((u8*)tex + 5, tex, compressedSize - 5);
+                read_file_region(binFileID, tex, gTexLoadBuffer[frame << 1] + offset + 0x4, uncompressedSize);
             } else {
                 temp = (s32)((((u8*)tex + uncompressedSize) - compressedSize) + 0xE4);
                 temp_s3 = (u8*)(temp - (temp % 16));

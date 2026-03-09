@@ -199,15 +199,15 @@ static void model_decompress(Buffer *buffer) {
         return;
     }
 
-    // header + gzip header + alignment padding + data
-    u32 newSize = mmAlign16(8 + 5) + decompressedSize;
+    // header + gzip header - 1 + data
+    u32 newDataOffset = 8 + 4; // Note: Must be 4-byte aligned
+    u32 newSize = newDataOffset + decompressedSize;
     void *newData = recomp_alloc(newSize);
     bzero(newData, newSize);
 
     bcopy(data, newData, 8); // header
     *((s32*)((u8*)newData + 0x8)) = -1; // decompressedSize
-    *((u8*)newData + 0xC) = 0; // unk zero byte after size
-    rarezip_uncompress((u8*)data + 8, (u8*)newData + mmAlign16(8 + 5), decompressedSize);
+    rarezip_uncompress((u8*)data + 8, (u8*)newData + newDataOffset, decompressedSize);
 
     buffer_set(buffer, newData, newSize);
 
@@ -388,7 +388,7 @@ void reasset_models_patch(void) {
             reasset_assert(rarezip_uncompress_size((u8*)modelBin + 8) == -1,
                 "[reasset] bug! Model needs to be uncompressed for the patch stage.");
             
-            Model *model = (Model*)((u8*)modelBin + 0x10);
+            Model *model = (Model*)((u8*)modelBin + 0xC);
 
             // Patch texture IDs
             ModelTexture *materials = (ModelTexture*)((u32)model->materials + (u32)model);
