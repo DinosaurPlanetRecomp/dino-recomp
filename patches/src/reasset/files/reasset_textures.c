@@ -19,12 +19,6 @@
 #define TEXTABENTRY_OFFSET(entry) (entry & 0x00FFFFFF)
 #define TEXTABENTRY_NFRAMES(entry) ((entry & 0xFF000000) >> 24)
 
-typedef enum TextureBank {
-    TEX0,
-    TEX1,
-    NUM_TEXTURE_BANKS
-} TextureBank;
-
 typedef struct {
     ReAssetID id;
     s32 numFrames;
@@ -407,6 +401,12 @@ RECOMP_EXPORT ReAssetResolveMap reasset_textures_get_resolve_map(TextureBank ban
     assert_tex_bank("reasset_textures_get_resolve_map", bank);
 
     return texResolveMap[bank];
+}
+
+_Bool reasset_textures_is_base_id(TextureBank bank, s32 id) {
+    assert_tex_bank("reasset_textures_is_base_id", bank);
+
+    return id >= 0 && id < texOriginalCount[bank];
 }
 
 // MARK: Texture Table

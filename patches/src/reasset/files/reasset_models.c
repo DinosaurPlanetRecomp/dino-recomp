@@ -8,13 +8,16 @@
 #include "reasset/reasset_namespace.h"
 #include "reasset/reasset_fst.h"
 #include "reasset/reasset_iterator.h"
+#include "reasset/files/reasset_textures.h"
 #include "reasset/buffer.h"
 #include "reasset/list.h"
 #include "reasset/bin_ptr.h"
 
 #include "PR/ultratypes.h"
+#include "sys/gfx/model.h"
 #include "sys/fs.h"
 #include "sys/memory.h"
+#include "sys/rarezip.h"
 
 typedef struct {
     ReAssetID id;
@@ -182,8 +185,47 @@ void reasset_models_init(void) {
     recomp_free(originalIndexTab);
 }
 
+static void model_decompress(Buffer *buffer) {
+    u32 size;
+    void *data = buffer_get(buffer, &size);
+    if (data == NULL || size < 0xD) {
+        // Invalid model buffer
+        return;
+    }
+
+    s32 decompressedSize = rarezip_uncompress_size((u8*)data + 8);
+    if (decompressedSize <= 0) {
+        // Already decompressed or zero size
+        return;
+    }
+
+    // header + gzip header + alignment padding + data
+    u32 newSize = mmAlign16(8 + 5) + decompressedSize;
+    void *newData = recomp_alloc(newSize);
+    bzero(newData, newSize);
+
+    bcopy(data, newData, 8); // header
+    *((s32*)((u8*)newData + 0x8)) = -1; // decompressedSize
+    *((u8*)newData + 0xC) = 0; // unk zero byte after size
+    rarezip_uncompress((u8*)data + 8, (u8*)newData + mmAlign16(8 + 5), decompressedSize);
+
+    buffer_set(buffer, newData, newSize);
+
+    recomp_free(newData);
+}
+
 static void reasset_models_repack_internal(void) {
     s32 newCount = list_get_length(&modelList);
+
+    for (s32 i = 0; i < newCount; i++) {
+        ModelEntry *entry = list_get(&modelList, i);
+
+        if (entry->owner != REASSET_BASE_NAMESPACE) {
+            // For any model that needs to be patched (those not owned by base), 
+            // we need them to be uncompressed.
+            model_decompress(&entry->model);
+        }
+    }
 
     // Calculate new sizes
     u32 newModelsBinSize = 0;
@@ -260,6 +302,13 @@ static void reasset_models_repack_internal(void) {
     newModanimsTab[newCount] = modanimsBinOffset;
     newAmapTab[newCount] = amapBinOffset;
 
+    reasset_assert((u32)modelsBinOffset <= newModelsBinSize, 
+        "[reasset] Overflow writing MODELS.bin. %d > %d", modelsBinOffset, newModelsBinSize);
+    reasset_assert((u32)modanimsBinOffset <= newModanimsBinSize, 
+        "[reasset] Overflow writing MODANIM.bin. %d > %d", modanimsBinOffset, newModanimsBinSize);
+    reasset_assert((u32)amapBinOffset <= newAmapBinSize, 
+        "[reasset] Overflow writing AMAP.bin. %d > %d", amapBinOffset, newAmapBinSize);
+
     // Finalize resolve maps
     reasset_resolve_map_finalize(modelResolveMap);
     reasset_resolve_map_finalize(modanimResolveMap);
@@ -320,7 +369,9 @@ void reasset_models_repack(void) {
 }
 
 void reasset_models_patch(void) {
-    // Patch in resolved model IDs
+    ReAssetResolveMap tex1ResolveMap = reasset_textures_get_resolve_map(TEX1);
+
+    // Patch in resolved IDs
     s32 numModels = list_get_length(&modelList);
     for (s32 i = 0; i < numModels; i++) {
         ModelEntry *entry = list_get(&modelList, i);
@@ -328,9 +379,35 @@ void reasset_models_patch(void) {
             continue;
         }
 
-        void *model = entry->modelPtr.ptr;
-        if (model != NULL) {
-            // TODO: textures
+        const char *namespaceName;
+        s32 identifier;
+        reasset_id_lookup_name(entry->id, &namespaceName, &identifier);
+
+        void *modelBin = entry->modelPtr.ptr;
+        if (modelBin != NULL) {
+            reasset_assert(rarezip_uncompress_size((u8*)modelBin + 8) == -1,
+                "[reasset] bug! Model needs to be uncompressed for the patch stage.");
+            
+            Model *model = (Model*)((u8*)modelBin + 0x10);
+
+            // Patch texture IDs
+            ModelTexture *materials = (ModelTexture*)((u32)model->materials + (u32)model);
+            for (s32 k = 0; k < model->textureCount; k++) {
+                s32 *texIDPtr = (s32*)&materials[k].texture;
+                s32 texID = *texIDPtr;
+
+                if (!reasset_textures_is_base_id(TEX1, texID)) {
+                    s32 resolvedID = reasset_resolve_map_lookup(tex1ResolveMap, reasset_id(entry->owner, texID));
+                    if (resolvedID != -1) {
+                        *texIDPtr = resolvedID;
+                    } else {
+                        *texIDPtr = 16; // fallback texture to make it obvious it's a bad texture
+
+                        reasset_log_warning("[reasset] WARN: Failed to patch model (%s:%d) texture %d ID 0x%X. Texture was not defined!\n",
+                            namespaceName, identifier, k, texID);
+                    }
+                }
+            }
         }
 
         u32 modanimsSize;

@@ -260,7 +260,7 @@ void reasset_objects_repack(void) {
 }
 
 void reasset_objects_patch(void) {
-    // Patch in resolved object IDs
+    // Patch in resolved IDs
     s32 numObjects = list_get_length(&objectList);
     for (s32 i = 0; i < numObjects; i++) {
         ObjectEntry *entry = list_get(&objectList, i);
