@@ -10,6 +10,9 @@ static s32 recomp_lastDialogVolume = 100;
 void recomp_pull_game_options(void) {
     static s32 b_firstCall = TRUE;
 
+    if (b_firstCall) {
+        gDLL_29_Gplay->vtbl->load_game_options();
+    }
     GplayOptions *options = gDLL_29_Gplay->vtbl->get_game_options();
 
     s32 recompMusicVol = (recomp_get_bgm_volume() / 100.0f) * 256;
