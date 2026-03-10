@@ -23,6 +23,10 @@
 #   include "utf8conv/utf8conv.h"
 #endif
 
+#if defined(__APPLE__)
+#   include "imgui/backends/imgui_impl_metal.h"
+#endif
+
 #if defined(_WIN32)
 #include "plume_d3d12.h"
 #endif
@@ -74,8 +78,7 @@ static RT64::UserConfiguration::GraphicsAPI get_graphics_api() {
 #elif defined(__gnu_linux__)
             return RT64::UserConfiguration::GraphicsAPI::Vulkan;
 #elif defined(__APPLE__)
-            // TODO: Add MoltenVK option for Mac?
-            return RT64::UserConfiguration::GraphicsAPI::Vulkan;
+            return RT64::UserConfiguration::GraphicsAPI::Metal;
 #else
             static_assert(false && "Unimplemented")
 #endif
@@ -156,6 +159,12 @@ void begin() {
         }
         case RT64::UserConfiguration::GraphicsAPI::Vulkan: {
             ImGui_ImplVulkan_NewFrame();
+            break;
+        }
+        case RT64::UserConfiguration::GraphicsAPI::Metal: {
+#ifdef __APPLE__
+            ImGui_ImplMetal_NewFrame(nullptr);
+#endif
             break;
         }
         default:
@@ -276,6 +285,15 @@ static void rt64_init_hook(plume::RenderInterface* _interface, plume::RenderDevi
             ImGui_ImplVulkan_Init(&initInfo);
             break;
         }
+        case RT64::UserConfiguration::GraphicsAPI::Metal: {
+#ifdef __APPLE__
+            ImGui_ImplMetal_Init(nullptr);
+#else
+            assert(false && "Metal only available on macOS.");
+            return;
+#endif
+            break;
+        }
         default:
             assert(false && "Unknown Graphics API.");
             break;
@@ -312,6 +330,12 @@ static void rt64_draw_hook(plume::RenderCommandList* command_list, plume::Render
                 ImGui_ImplVulkan_RenderDrawData(draw_data, interface_command_list->vk);
                 break;
             }
+            case RT64::UserConfiguration::GraphicsAPI::Metal: {
+#ifdef __APPLE__
+                ImGui_ImplMetal_RenderDrawData(draw_data, nullptr);
+#endif
+                break;
+            }
             default:
                 assert(false && "Unknown Graphics API.");
                 break;
@@ -343,6 +367,12 @@ static void rt64_deinit_hook() {
             ImGui_ImplVulkan_Shutdown();
             vulkanContext.reset(nullptr);
             break;
+        case RT64::UserConfiguration::GraphicsAPI::Metal: {
+#ifdef __APPLE__
+            ImGui_ImplMetal_Shutdown();
+#endif
+            break;
+        }
         default:
             assert(false && "Unknown Graphics API.");
             break;

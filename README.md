@@ -39,6 +39,7 @@ If you would like to see this recomp improve, consider contributing to the decom
 #### Where is the savefile stored?
 - Windows: `%LOCALAPPDATA%\DinoPlanetRecompiled\saves`
 - Linux: `~/.config/DinoPlanetRecompiled/saves`
+- macOS: `~/Library/Application Support/DinoPlanetRecompiled/saves`
 
 #### How do I choose a different ROM?
 **You don't.** This project is **only** a port of the beta ROM released by Forest of Illusion on Feb. 20, 2021. **It is not an emulator and it cannot run any arbitrary ROM.**
