@@ -7,8 +7,6 @@
 #include "dbgui.h"
 #include "recomp_options.h"
 
-#include "sys/gfx/gx.h"
-#include "sys/gfx/map.h"
 #include "sys/audio.h"
 #include "sys/asset_thread.h"
 #include "sys/dl_debug.h"
@@ -20,8 +18,9 @@
 #include "sys/objects.h"
 #include "sys/print.h"
 #include "sys/framebuffer_fx.h"
+#include "sys/map.h"
+#include "sys/vi.h"
 #include "types.h"
-#include "functions.h"
 #include "dll.h"
 #include "ui_funcs.h"
 

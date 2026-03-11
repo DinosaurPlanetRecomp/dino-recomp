@@ -2,15 +2,16 @@
 #include "patches/rcp.h"
 
 #include "PR/gbi.h"
-#include "sys/gfx/gx.h"
-#include "sys/gfx/map.h"
 #include "sys/camera.h"
 #include "sys/rsp_segment.h"
-#include "functions.h"
+#include "sys/vi.h"
+#include "sys/map.h"
 
 extern u8 sBGPrimColourR;
 extern u8 sBGPrimColourG;
 extern u8 sBGPrimColourB;
+
+extern u16 *gFramebufferEnd;
 
 RECOMP_PATCH void func_80037A14(Gfx **gdl, Mtx **mtx, s32 param3) {
     s32 resolution;

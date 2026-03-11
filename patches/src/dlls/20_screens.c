@@ -3,8 +3,7 @@
 
 #include "PR/gbi.h"
 #include "sys/memory.h"
-#include "sys/gfx/map.h"
-#include "functions.h"
+#include "sys/map.h"
 
 #include "recomp/dlls/engine/20_screens_recomp.h"
 

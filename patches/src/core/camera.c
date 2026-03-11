@@ -1,11 +1,11 @@
 #include "patches.h"
 
 #include "sys/math.h"
-#include "sys/gfx/gx.h"
 #include "sys/camera.h"
 #include "sys/main.h"
-#include "functions.h"
-#include "variables.h"
+#include "sys/map.h"
+#include "sys/gfx/model_asm.h"
+#include "sys/vi.h"
 
 extern s32 gIsShadowTexActive;
 

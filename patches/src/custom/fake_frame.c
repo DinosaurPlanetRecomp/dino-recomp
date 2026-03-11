@@ -7,12 +7,12 @@
 #include "PR/ultratypes.h"
 #include "PR/gbi.h"
 #include "PR/os.h"
-#include "sys/gfx/gx.h"
-#include "sys/gfx/map.h"
 #include "sys/main.h"
 #include "sys/rcp.h"
 #include "sys/rsp_segment.h"
-#include "functions.h"
+#include "sys/map.h"
+#include "sys/vi.h"
+#include "sys/camera.h"
 #include "types.h"
 
 extern OSMesgQueue gVideoMesgQueue;
@@ -28,6 +28,9 @@ extern Triangle *gCurPol;
 
 extern u8 gFrameBufIdx;
 extern s8 gPauseState;
+
+extern u8 gViUpdateRateTarget;
+extern u8 gViUpdateRate;
 
 extern void vi_swap_buffers(void);
 extern void vi_func_8005DEE8(void);

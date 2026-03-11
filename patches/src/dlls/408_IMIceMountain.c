@@ -5,8 +5,8 @@
 #include "dlls/objects/common/vehicle.h"
 #include "game/objects/object.h"
 #include "game/gamebits.h"
-#include "sys/gfx/gx.h"
 #include "sys/objects.h"
+#include "sys/vi.h"
 #include "dll.h"
 
 #include "recomp/dlls/objects/408_IMIceMountain_recomp.h"

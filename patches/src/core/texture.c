@@ -2,7 +2,6 @@
 
 #include "PR/ultratypes.h"
 #include "PR/gbi.h"
-#include "PR/os.h"
 #include "sys/gfx/texture.h"
 #include "sys/fs.h"
 #include "sys/memory.h"
@@ -20,7 +19,7 @@ extern s32 *gTexLoadBuffer; // scratch space used when loading texture bin heade
 extern Gfx *tex_setup_display_lists(Texture *texture, Gfx *gdl);
 
 // Note: this is based off of a nonmatch
-RECOMP_PATCH Texture* tex_load(s32 id, s32 param2) {
+RECOMP_PATCH Texture* tex_load(s32 id, u8 param2) {
     u32 binFileID; // sp74
     Texture* tex;
     s32 temp;
