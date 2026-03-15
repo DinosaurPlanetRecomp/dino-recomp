@@ -8,12 +8,12 @@
 #include "reasset/reasset_namespace.h"
 #include "reasset/reasset_fst.h"
 #include "reasset/reasset_iterator.h"
+#include "reasset/files/reasset_blocks.h"
 #include "reasset/list.h"
 #include "reasset/buffer.h"
 #include "reasset/bin_ptr.h"
 
 #include "PR/ultratypes.h"
-#include "libc/string.h"
 #include "game/objects/object_id.h"
 #include "sys/fs.h"
 #include "sys/map.h"
@@ -24,11 +24,11 @@
 
 typedef struct {
     ReAssetID id;
-    ReAssetNamespace owner;
     Buffer header;
     BinPtr headerPtr;
     Buffer blocks;
     BinPtr blocksPtr;
+    ReAssetNamespace blocksOwner;
     Buffer gridA1;
     BinPtr gridA1Ptr;
     Buffer gridA2;
@@ -108,17 +108,11 @@ static void create_map_object_resolve_map(ReAssetID id) {
     }
 
     ReAssetIDData *idData = reasset_id_lookup_data(id);
-
-    // Make name
     const char *namespaceName;
     reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    const char *resolveMapNameTemp = recomp_sprintf_helper("MapObject (%s:%d)", namespaceName, idData->identifier);
-    u32 resolveMapNameLen = strlen(resolveMapNameTemp);
-    char *resolveMapName = recomp_alloc(resolveMapNameLen + 1);
-    bcopy(resolveMapNameTemp, resolveMapName, resolveMapNameLen);
-    resolveMapName[resolveMapNameLen] = '\0';
+
+    const char *resolveMapName = reasset_alloc_sprintf("MapObject (Map %s:%d)", namespaceName, idData->identifier);
     
-    // Add
     recomputil_u32_value_hashmap_insert(mapObjectResolveMapMap, id, reasset_resolve_map_create(resolveMapName));
 }
 
@@ -148,7 +142,7 @@ static MapEntry* get_or_create_map(ReAssetID id) {
         
         MapEntry *entry = list_add(&mapList);
         entry->id = id;
-        entry->owner = idData->namespace;
+        entry->blocksOwner = idData->namespace;
         buffer_init(&entry->header, 0);
         buffer_init(&entry->blocks, 0);
         buffer_init(&entry->gridA1, 0);
@@ -367,7 +361,7 @@ void reasset_maps_repack(void) {
         }
 
         // Resolve map itself
-        reasset_resolve_map_resolve_id(mapResolveMap, entry->id, entry->owner, i);
+        reasset_resolve_map_resolve_id(mapResolveMap, entry->id, -1, i);
 
         // Header
         newTab[tabIndex + 0] = offset;
@@ -468,6 +462,70 @@ void reasset_maps_repack(void) {
     }
 }
 
+void reasset_maps_patch(void) {
+    ReAssetResolveMap trkblkResolveMap = reasset_trkblk_get_resolve_map();
+
+    s32 numMaps = list_get_length(&mapList);
+    for (s32 i = 0; i < numMaps; i++) {
+        MapEntry *mapEntry = list_get(&mapList, i);
+
+        const char *namespaceName;
+        s32 identifier;
+        reasset_id_lookup_name(mapEntry->id, &namespaceName, &identifier);
+
+        // Patch blocks grid references to trkblk/blocks
+        if (mapEntry->blocksOwner != REASSET_BASE_NAMESPACE) {
+            MapHeader *mapHeader = mapEntry->headerPtr.ptr;
+            u32 *mapBlocksBin = mapEntry->blocksPtr.ptr;
+            if (mapHeader != NULL && mapBlocksBin != NULL) {
+                for (s32 x = 0; x < mapHeader->gridSizeX; x++) {
+                    for (s32 z = 0; z < mapHeader->gridSizeZ; z++) {
+                        u32 entry = mapBlocksBin[x + (z * mapHeader->gridSizeX)];
+                        u32 blockID = (entry >> 17) & 0x3F;
+                        u32 trkblkID = (entry >> 23) & 0x3F;
+                        u32 remainder = entry & ~((0x3F << 23) | (0x3F << 17));
+
+                        if (trkblkID != 0x3F && !reasset_trkblk_is_base_id(trkblkID)) {
+                            s32 resolvedID = reasset_resolve_map_lookup(trkblkResolveMap, reasset_id(mapEntry->blocksOwner, trkblkID));
+                            if (resolvedID != -1) {
+                                trkblkID = resolvedID;
+                            } else {
+                                reasset_log_warning("[reasset] WARN: Failed to patch map (%s:%d) block grid %d,%d trkblk ID 0x%X. TrkBlk was not defined!\n",
+                                    namespaceName, identifier,
+                                    x, z,
+                                    trkblkID);
+
+                                trkblkID = -1;
+                            }
+                        }
+
+                        if (blockID != 0x3F && !reasset_blocks_is_base_id(trkblkID, blockID)) {
+                            ReAssetID trkblkAssetID = reasset_trkblk_is_base_id(trkblkID)
+                                ? reasset_base_id(trkblkID)
+                                : reasset_id(mapEntry->blocksOwner, trkblkID);
+                            ReAssetResolveMap blocksResolveMap = reasset_blocks_get_resolve_map(trkblkAssetID);
+
+                            s32 resolvedID = reasset_resolve_map_lookup(blocksResolveMap, reasset_id(mapEntry->blocksOwner, blockID));
+                            if (resolvedID != -1) {
+                                blockID = resolvedID;
+                            } else {
+                                reasset_log_warning("[reasset] WARN: Failed to patch map (%s:%d) block grid %d,%d block ID 0x%X/0x%X. Block was not defined!\n",
+                                    namespaceName, identifier,
+                                    x, z,
+                                    trkblkID, blockID);
+
+                                blockID = -1;
+                            }
+                        }
+
+                        mapBlocksBin[x + (z * mapHeader->gridSizeX)] = ((trkblkID & 0x3F) << 23) | ((blockID & 0x3F) << 17) | remainder;
+                    }
+                }
+            }
+        }
+    }
+}
+
 void reasset_maps_cleanup(void) {
     list_free(&mapList);
     u32list_free(&mapIDList);
@@ -498,13 +556,12 @@ static void log_map_set(ReAssetID id, const char *msg) {
     reasset_log("[reasset] %s: %s:%d\n", msg, namespaceName, idData->identifier);
 }
 
-RECOMP_EXPORT void reasset_maps_set_header(ReAssetID id, ReAssetNamespace owner, const void *data) {
+RECOMP_EXPORT void reasset_maps_set_header(ReAssetID id, const void *data) {
     reasset_assert_stage_set_call("reasset_maps_set_header");
     assert_custom_map_id("reasset_maps_set_header", id);
 
     MapEntry *entry = get_or_create_map(id);
     buffer_set(&entry->header, data, sizeof(MapHeader));
-    entry->owner = owner;
 
     log_map_set(id, "Map header set");
 }
@@ -528,12 +585,13 @@ RECOMP_EXPORT void* reasset_maps_get_header(ReAssetID id) {
     return buffer_get(&entry->header, NULL);
 }
 
-RECOMP_EXPORT void reasset_maps_set_blocks(ReAssetID id, const void *data, u32 sizeBytes) {
+RECOMP_EXPORT void reasset_maps_set_blocks(ReAssetID id, ReAssetNamespace owner, const void *data, u32 sizeBytes) {
     reasset_assert_stage_set_call("reasset_maps_set_blocks");
     assert_custom_map_id("reasset_maps_set_blocks", id);
 
     MapEntry *entry = get_or_create_map(id);
     buffer_set(&entry->blocks, data, sizeBytes);
+    entry->blocksOwner = owner;
 
     log_map_set(id, "Map blocks set");
 }
@@ -706,6 +764,7 @@ RECOMP_EXPORT void reasset_map_objects_set(ReAssetID mapID, ReAssetID id, const 
     MapObjectEntry *objEntry = get_or_create_map_object(entry, id);
     
     buffer_set(&objEntry->object, data, sizeBytes);
+    objEntry->delete = FALSE;
 
     // Logging
     ReAssetIDData *mapIDData = reasset_id_lookup_data(mapID);

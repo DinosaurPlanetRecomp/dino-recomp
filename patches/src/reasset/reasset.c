@@ -10,6 +10,7 @@
 #include "reasset/reasset_iterator.h"
 
 #include "reasset/files/reasset_anims.h"
+#include "reasset/files/reasset_blocks.h"
 #include "reasset/files/reasset_maps.h"
 #include "reasset/files/reasset_models.h"
 #include "reasset/files/reasset_mpeg.h"
@@ -20,6 +21,7 @@
 #include "reasset/special/reasset_dlls.h"
 #include "reasset/special/reasset_menus.h"
 
+#include "libc/string.h"
 #include "sys/fs.h"
 
 RECOMP_DECLARE_EVENT(reasset_on_fst_set());
@@ -109,6 +111,7 @@ const char *DINO_FS_FILENAMES[NUM_FILES] = {
 
 static void reasset_run_init(void) {
     reasset_anims_init();
+    reasset_blocks_init();
     reasset_maps_init();
     reasset_models_init();
     reasset_mpeg_init();
@@ -123,6 +126,7 @@ static void reasset_run_init(void) {
 
 static void reasset_run_repack(void) {
     reasset_anims_repack();
+    reasset_blocks_repack();
     reasset_maps_repack();
     reasset_models_repack();
     reasset_mpeg_repack();
@@ -137,6 +141,8 @@ static void reasset_run_repack(void) {
 
 static void reasset_run_patch(void) {
     reasset_models_patch();
+    reasset_blocks_patch();
+    reasset_maps_patch();
     reasset_objects_patch();
     reasset_sequences_patch();
     reasset_textures_patch();
@@ -146,6 +152,7 @@ static void reasset_run_patch(void) {
 
 static void reasset_run_cleanup(void) {
     reasset_anims_cleanup();
+    reasset_blocks_cleanup();
     reasset_maps_cleanup();
     reasset_models_cleanup();
     reasset_mpeg_cleanup();
@@ -294,4 +301,20 @@ void reasset_error_box(const char *fmt, ...) {
     recomp_error_message_box(recomp_vsprintf_helper(fmt, args));
 
     va_end(args);
+}
+
+const char* reasset_alloc_sprintf(const char *fmt, ...) {
+    va_list args;
+	va_start(args, fmt);
+
+    const char *temp = recomp_vsprintf_helper(fmt, args);
+    u32 tempLen = strlen(temp);
+    
+    char *str = recomp_alloc(tempLen + 1);
+    bcopy(temp, str, tempLen);
+    str[tempLen] = '\0';
+
+    va_end(args);
+
+    return str;
 }

@@ -47,3 +47,5 @@ void reasset_log_warning(const char *fmt, ...);
 void reasset_log_error(const char *fmt, ...);
 void reasset_error(const char *fmt, ...);
 void reasset_error_box(const char *fmt, ...);
+
+const char* reasset_alloc_sprintf(const char *fmt, ...);
