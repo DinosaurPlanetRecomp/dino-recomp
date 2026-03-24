@@ -14,6 +14,8 @@ finish-args:
   #- "--device=dri"
   #- "--device=input"
   - "--filesystem=xdg-config"
+  # required for Gamescope on Steam Deck OLED
+  - "--filesystem=xdg-run/gamescope-0:ro"
 modules:
   - name: DinosaurPlanetRecompiled
     buildsystem: simple
