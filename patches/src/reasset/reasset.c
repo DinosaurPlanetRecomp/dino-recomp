@@ -10,6 +10,7 @@
 #include "reasset/reasset_iterator.h"
 
 #include "reasset/files/reasset_anims.h"
+#include "reasset/files/reasset_bits.h"
 #include "reasset/files/reasset_blocks.h"
 #include "reasset/files/reasset_maps.h"
 #include "reasset/files/reasset_models.h"
@@ -111,6 +112,7 @@ const char *DINO_FS_FILENAMES[NUM_FILES] = {
 
 static void reasset_run_init(void) {
     reasset_anims_init();
+    reasset_bits_init();
     reasset_blocks_init();
     reasset_maps_init();
     reasset_models_init();
@@ -126,6 +128,7 @@ static void reasset_run_init(void) {
 
 static void reasset_run_repack(void) {
     reasset_anims_repack();
+    reasset_bits_repack();
     reasset_blocks_repack();
     reasset_maps_repack();
     reasset_models_repack();
@@ -152,6 +155,7 @@ static void reasset_run_patch(void) {
 
 static void reasset_run_cleanup(void) {
     reasset_anims_cleanup();
+    reasset_bits_cleanup();
     reasset_blocks_cleanup();
     reasset_maps_cleanup();
     reasset_models_cleanup();

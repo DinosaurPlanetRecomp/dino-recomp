@@ -38,6 +38,7 @@ s32 list_get_length(List *list);
 void* list_add(List *list);
 /** Makes copy of element. Returns index of added element. */
 s32 list_add_copy(List *list, const void *element);
+void list_add_range(List *list, List *other);
 void* list_get(List *list, s32 idx);
 
 void ptrlist_init(PtrList *list, s32 initialCapacity);

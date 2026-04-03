@@ -7,6 +7,7 @@
 #include "reasset/string_db.h"
 
 #include "PR/ultratypes.h"
+#include "libc/string.h"
 
 static StringDB sStrDB;
 static U32MemoryHashmapHandle sNamespaceHashmap; // dict[namespace, namespaceData]
@@ -58,18 +59,9 @@ _Bool reasset_namespace_lookup_name(ReAssetNamespace namespace, const char **out
 }
 
 RECOMP_EXPORT ReAssetNamespace reasset_namespace(const char *name) {
+    s32 nameLen = strlen(name);
+    reasset_assert(nameLen > 0 && nameLen <= 16,
+        "[reasset:reasset_namespace] Invalid namespace name: \"%s\". Namespace names must be at least one character long and less than or equal to 16 characters long.");
+
     return namespace_get_or_add(name, /*outData=*/NULL);
-}
-
-// TODO: replace with reasset_namespace_assign_uid(ReAssetNamespace namespace, u32 uid) ?
-RECOMP_EXPORT ReAssetNamespace reasset_define_namespace(const char *name, u32 uid) {
-    ReAssetNamespaceData *data;
-    ReAssetNamespace namespace = namespace_get_or_add(name, &data);
-
-    reasset_assert(!data->isDefined, "[reasset] Namespace '%s' is already defined!", name);
-
-    data->isDefined = TRUE;
-    data->uid = uid;
-
-    return namespace;
 }

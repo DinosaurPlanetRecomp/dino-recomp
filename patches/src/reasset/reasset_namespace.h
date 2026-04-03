@@ -9,9 +9,8 @@ typedef u32 ReAssetNamespace;
 
 typedef struct {
     const char *name;
-    u32 uid;
-    _Bool isDefined;
 } ReAssetNamespaceData;
 
 void reasset_namespace_init(void);
 _Bool reasset_namespace_lookup_name(ReAssetNamespace namespace, const char **outName);
+ReAssetNamespace reasset_namespace(const char *name);

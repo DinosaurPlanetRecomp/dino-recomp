@@ -155,6 +155,18 @@ s32 list_add_copy(List *list, const void *element) {
     return idx;
 }
 
+void list_add_range(List *list, List *other) {
+    reasset_assert(list != NULL, "[reasset:list_add_range] List cannot be null!");
+    reasset_assert(other != NULL, "[reasset:list_add_range] Other list cannot be null!");
+    reasset_assert(list->elementSize == other->elementSize, "[reasset:list_add_range] Both lists must have the same element size!");
+
+    for (s32 i = 0; i < other->length; i++) {
+        void *element = (u8*)other->data + (i * other->elementSize);
+
+        list_add_copy(list, element);
+    }
+}
+
 void* list_get(List *list, s32 idx) {
     reasset_assert(list != NULL, "[reasset:list_get] List cannot be null!");
     reasset_assert(idx >= 0, "[reasset:list_get] Index cannot be negative!");

@@ -80,6 +80,13 @@
         "\t.popsection\n");                   \
     extern u8 identifier[]
 
+#ifndef MAX
+#define MAX(a, b)				((a) > (b) ? (a) : (b))
+#endif
+#ifndef MIN
+#define MIN(a, b)				((a) < (b) ? (a) : (b))
+#endif
+
 void *recomp_alloc(unsigned long size);
 void recomp_free(void *ptr);
 
