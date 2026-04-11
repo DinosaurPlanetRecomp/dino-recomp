@@ -42,7 +42,7 @@ RECOMP_PATCH void dll_64_draw(Gfx **gdl, Mtx **mtxs, Vertex **vtxs) {
     font_window_use_font(1, FONT_DINO_MEDIUM_FONT_IN);
 
     if (sMainRedrawFrames != 0) {
-        func_8003825C(gdl, sBackgroundTexture, 0, 0, 0, 0, 0xFF, 2);
+        rcp_screen_full_write(gdl, sBackgroundTexture, 0, 0, 0, 0, 0xFF, 2);
         
         font_window_set_text_colour(1, 255, 255, 255, 0, 255);
         font_window_add_string_xy(1, 320, 73, sGameTextChunk->strings[0x1E], 1, ALIGN_TOP_CENTER);
@@ -59,7 +59,7 @@ RECOMP_PATCH void dll_64_draw(Gfx **gdl, Mtx **mtxs, Vertex **vtxs) {
     } else {
         // Always redraw background in case picmenu redraws
         func_80010158(&ulx, &lrx, &uly, &lry);
-        func_800382AC(gdl, sBackgroundTexture, 0, 0, uly, lry, 0xFF, 2);
+        rcp_screen_scroll_write(gdl, sBackgroundTexture, 0, 0, uly, lry, 0xFF, 2);
     }
 
     // @recomp: Always redraw all
@@ -70,7 +70,7 @@ RECOMP_PATCH void dll_64_draw(Gfx **gdl, Mtx **mtxs, Vertex **vtxs) {
         if (sMainRedrawFrames == 0) {
             // Make sure we at least redraw the background behind the name letters
             lry = (sLetterBgBoxTexture->height | ((sLetterBgBoxTexture->widthHeightHi & 0xF) << 8));
-            func_800382AC(gdl, sBackgroundTexture, 0, 0, 110, lry + 110, 0xFF, 2);
+            rcp_screen_scroll_write(gdl, sBackgroundTexture, 0, 0, 110, lry + 110, 0xFF, 2);
         }
 
         dll_64_draw_letters(gdl, 179, 110);

@@ -99,7 +99,7 @@ static void recomp_game_tick_hook(void) {
 }
 
 RECOMP_PATCH void game_tick(void) {
-    u8 phi_v1;
+    u8 clearFlags;
     u32 updateRate;
     Gfx **gdl;
 
@@ -142,14 +142,15 @@ RECOMP_PATCH void game_tick(void) {
     gDPSetDepthImage(gCurGfx++, SEGMENT_ADDR(SEGMENT_ZBUFFER, 0));
 
     rsp_init(&gCurGfx);
-    phi_v1 = 2;
 
-    if (func_80041D5C() == 0)
-        phi_v1 = 0;
-    else if (func_80041D74() == 0)
-        phi_v1 = 3;
+    clearFlags = CLEAR_ZBUFFER;
+    if (func_80041D5C() == 0) {
+        clearFlags = CLEAR_NONE;
+    } else if (func_80041D74() == 0) {
+        clearFlags = CLEAR_COLOR | CLEAR_ZBUFFER;
+    }
 
-    func_80037A14(&gCurGfx, &gCurMtx, phi_v1);
+    rcp_clear_screen(&gCurGfx, &gCurMtx, clearFlags);
     voxmap_update_cache_timers();
     func_80013D80();
     audio_func_800121DC();

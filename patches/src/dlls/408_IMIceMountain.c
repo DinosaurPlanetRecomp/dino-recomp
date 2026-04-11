@@ -32,7 +32,7 @@ RECOMP_PATCH void IMIceMountain_do_race(Object *self, IMIceMountain_Data *objdat
     Object *player;
     Object *snowbike;
 
-    gDLL_1_UI->vtbl->func_2B8(7);
+    gDLL_1_cmdmenu->vtbl->disable_buttons(L_CBUTTONS | R_CBUTTONS | D_CBUTTONS);
     // @recomp: Don't force 20 FPS if 60 hz gameplay is enabled
     if (!recomp_get_60fps_enabled()) {
         vi_set_update_rate_target(3); // 20 FPS
@@ -49,7 +49,7 @@ RECOMP_PATCH void IMIceMountain_do_race(Object *self, IMIceMountain_Data *objdat
         }
         gDLL_29_Gplay->vtbl->set_obj_group_status(self->mapID, 1, 1);
         if (racePosition == 1) {
-            gDLL_1_UI->vtbl->func_2B8(1);
+            gDLL_1_cmdmenu->vtbl->disable_buttons(R_CBUTTONS);
             objdata->state = STATE_Race_Won;
             main_set_bits(BIT_Play_Seq_00EA_IM_Sabre_Falls_Into_Hot_Spring, 1);
         } else {
