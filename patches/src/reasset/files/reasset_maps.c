@@ -18,6 +18,7 @@
 #include "sys/fs.h"
 #include "sys/map.h"
 #include "sys/memory.h"
+#include "sys/curves.h"
 #include "macros.h"
 
 #define MAX_OBJ_GROUPS 32
@@ -60,6 +61,9 @@ static U32ValueHashmapHandle mapMap; // ReAssetID -> map list index
 static ReAssetResolveMap mapResolveMap;
 static U32ValueHashmapHandle mapObjectResolveMapMap; // ReAssetID -> ReAssetResolveMap
 static U32ValueHashmapHandle mapObjectOriginalSetMap; // ReAssetID -> U32HashsetHandle (ReAssetID)
+static ReAssetResolveMap curveResolveMap;
+static U32HashsetHandle curveOriginalSet; // set[ReAssetID] (curves and checkpoints)
+static s32 maxCurveUID = 0;
 
 static void map_object_list_element_free(void *element) {
     MapObjectEntry *patch = element;
@@ -192,6 +196,8 @@ void reasset_maps_init(void) {
     mapResolveMap = reasset_resolve_map_create("Map");
     mapObjectResolveMapMap = recomputil_create_u32_value_hashmap();
     mapObjectOriginalSetMap = recomputil_create_u32_value_hashmap();
+    curveResolveMap = reasset_resolve_map_create("Curve/Checkpoint");
+    curveOriginalSet = recomputil_create_u32_hashset();
 
     // Add base maps (preserving order)
     Buffer objectSubfileTempBuffer = {0};
@@ -248,6 +254,14 @@ void reasset_maps_init(void) {
 
             recomputil_u32_hashset_insert(originalObjectSet, setupID);
 
+            if (setup->objId == OBJ_curve || setup->objId == OBJ_checkpoint4) {
+                if (setup->uID > maxCurveUID) {
+                    maxCurveUID = setup->uID;
+                }
+
+                recomputil_u32_hashset_insert(curveOriginalSet, setupID);
+            }
+
             objoffset += setupSize;
         }
 
@@ -293,6 +307,7 @@ void reasset_maps_repack(void) {
     bzero(newBin, newBinSize);
 
     // Rebuild
+    s32 nextCurveUID = maxCurveUID + 1;
     U32List objSetupLists[1 + MAX_OBJ_GROUPS + 1] = {0};
     for (u32 i = 0; i < ARRAYCOUNT(objSetupLists); i++) {
         u32list_init(&objSetupLists[i], 0);
@@ -393,7 +408,7 @@ void reasset_maps_repack(void) {
 
         // Objects
         newTab[tabIndex + 4] = offset;
-        s32 nextUID = entry->objects.maxUID + 1;
+        s32 nextUID = MAX(entry->objects.maxUID + 1, nextCurveUID); // avoid overlap with curve UIDs
         ReAssetResolveMap objResolveMap;
         reasset_assert(recomputil_u32_value_hashmap_get(mapObjectResolveMapMap, entry->id, &objResolveMap),
             "[reasset] bug! Map %d object resolve map hashmap get failed.", i);
@@ -414,12 +429,28 @@ void reasset_maps_repack(void) {
                 // Assign UID for custom assets
                 ReAssetIDData *objIDData = reasset_id_lookup_data(objEntry->id);
                 if (objIDData->namespace != REASSET_BASE_NAMESPACE) {
-                    setup->uID = nextUID;
-                    nextUID += 1;
+                    if (setup->objId == OBJ_curve || setup->objId == OBJ_checkpoint4) {
+                        setup->uID = nextCurveUID;
+                        nextCurveUID += 1;
+
+                        if (nextUID < nextCurveUID) {
+                            nextUID = nextCurveUID;
+                        }
+                    } else {
+                        setup->uID = nextUID;
+                        nextUID += 1;
+
+                        if (nextCurveUID < nextUID) {
+                            nextCurveUID = nextUID;
+                        }
+                    }
                 }
 
                 // Resolve object setup
                 reasset_resolve_map_resolve_id(objResolveMap, objEntry->id, objEntry->owner, setup->uID);
+                if (setup->objId == OBJ_curve || setup->objId == OBJ_checkpoint4) {
+                    reasset_resolve_map_resolve_id(curveResolveMap, objEntry->id, objEntry->owner, setup->uID);
+                }
 
                 offset += setupSize;
             }
@@ -500,7 +531,7 @@ void reasset_maps_patch(void) {
                         }
 
                         if (blockID != 0x3F && !reasset_blocks_is_base_id(trkblkID, blockID)) {
-                            ReAssetID trkblkAssetID = reasset_trkblk_is_base_id(trkblkID)
+                            ReAssetID trkblkAssetID = mapEntry->blocksOwner == REASSET_BASE_NAMESPACE
                                 ? reasset_base_id(trkblkID)
                                 : reasset_id(mapEntry->blocksOwner, trkblkID);
                             ReAssetResolveMap blocksResolveMap = reasset_blocks_get_resolve_map(trkblkAssetID);
@@ -522,6 +553,43 @@ void reasset_maps_patch(void) {
                     }
                 }
             }
+        }
+
+        // Patch curve link IDs
+        s32 numObjects = list_get_length(&mapEntry->objects.list);
+        for (s32 k = 0; k < numObjects; k++) {
+            MapObjectEntry *mapObj = list_get(&mapEntry->objects.list, k);
+            if (mapObj->owner == REASSET_BASE_NAMESPACE) {
+                continue;
+            }
+
+            ObjSetup *setup = bin_ptr_get(&mapObj->objectPtr, NULL);
+            if (setup == NULL) {
+                continue;
+            }
+
+            if (setup->objId == OBJ_curve) {
+                CurveSetup *curve = (CurveSetup*)setup;
+
+                const char *namespaceName;
+                s32 identifier;
+                reasset_id_lookup_name(mapObj->id, &namespaceName, &identifier);
+
+                for (s32 linkno = 0; linkno < 4; linkno++) {
+                    s32 linkUID = curve->links[linkno];
+                    if (linkUID != -1) {
+                        s32 resolvedID = reasset_resolve_map_lookup(curveResolveMap, reasset_id(mapObj->owner, linkUID));
+                        if (resolvedID != -1) {
+                            curve->links[linkno] = resolvedID;
+                        } else if (linkUID > maxCurveUID) { // if not base curve UID
+                            reasset_log_warning("[reasset] WARN: Failed to patch curve (%s:%d) link %d UID 0x%X. Curve was not defined!",
+                                namespaceName, identifier, linkno, linkUID);
+                        }
+                    }
+                }
+            }
+
+            // TODO: patch race checkpoint links (which field is that?)
         }
     }
 }
@@ -748,9 +816,14 @@ RECOMP_EXPORT ReAssetResolveMap reasset_maps_get_resolve_map(void) {
 // MARK: Map Objects
 
 _Bool reasset_map_objects_is_base_uid(ReAssetID mapID, s32 uid) {
+    ReAssetID id = reasset_base_id(uid);
+
+    if (recomputil_u32_hashset_contains(curveOriginalSet, id)) {
+        return TRUE;
+    }
+
     U32HashsetHandle originalObjectSet;
     if (recomputil_u32_value_hashmap_get(mapObjectOriginalSetMap, mapID, &originalObjectSet)) {
-        ReAssetID id = reasset_base_id(uid);
         return recomputil_u32_hashset_contains(originalObjectSet, id);
     }
 
@@ -863,3 +936,10 @@ RECOMP_EXPORT ReAssetResolveMap reasset_map_objects_get_resolve_map(ReAssetID ma
 
     return objResolveMap;
 }
+
+RECOMP_EXPORT ReAssetResolveMap reasset_map_objects_get_curve_resolve_map(void) {
+    reasset_assert_stage_get_resolve_map_call("reasset_map_objects_get_curve_resolve_map");
+
+    return curveResolveMap;
+}
+
