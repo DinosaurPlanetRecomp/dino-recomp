@@ -96,25 +96,8 @@ void reasset_menus_cleanup(void) {
     recomputil_destroy_u32_value_hashmap(menuMap);
 }
 
-static void assert_custom_menu_id(const char *funcName, ReAssetID id) {
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    if (idData->namespace == REASSET_BASE_NAMESPACE) {
-        return;
-    }
-
-    if (idData->identifier >= 0 && idData->identifier <= MENU_LAST_VANILLA_ID) {
-        const char *namespaceName;
-        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-        reasset_error("[reasset:%s] Custom menu identifier %d (%s:%d) cannot overlap with base menu IDs. Reserved IDs: 0x0-%d",
-            funcName,
-            idData->identifier, namespaceName, idData->identifier,
-            MENU_LAST_VANILLA_ID);
-    }
-}
-
 RECOMP_EXPORT void reasset_menus_set(ReAssetID id, ReAssetID dll) {
     reasset_assert_stage_set_call("reasset_menus_set");
-    assert_custom_menu_id("reasset_menus_set", id);
 
     ReAssetIDData *idData = reasset_id_lookup_data(id);
     reasset_assert(idData->namespace != REASSET_BASE_NAMESPACE, 
@@ -130,7 +113,6 @@ RECOMP_EXPORT void reasset_menus_set(ReAssetID id, ReAssetID dll) {
 
 RECOMP_EXPORT void reasset_menus_link(ReAssetID id, ReAssetID externID) {
     reasset_assert_stage_link_call("reasset_menus_link");
-    assert_custom_menu_id("reasset_menus_link", id);
 
     reasset_resolve_map_link(menuResolveMap, id, externID);
 }

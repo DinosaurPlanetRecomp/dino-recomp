@@ -151,24 +151,8 @@ void reasset_anims_cleanup(void) {
     recomputil_destroy_u32_value_hashmap(animMap);
 }
 
-static void assert_custom_anim_id(const char *funcName, ReAssetID id) {
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    if (idData->namespace == REASSET_BASE_NAMESPACE) {
-        return;
-    }
-
-    if (idData->identifier >= 0 && idData->identifier <= animOriginalCount) {
-        const char *namespaceName;
-        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-        reasset_error("[reasset:%s] Custom anim identifier %s:%d cannot overlap base anim IDs. Reserved IDs: 0-%d.",
-            funcName,
-            namespaceName, idData->identifier, animOriginalCount);
-    }
-}
-
 RECOMP_EXPORT void reasset_anims_set(ReAssetID id, ReAssetNamespace owner, const void *data, u32 sizeBytes) {
     reasset_assert_stage_set_call("reasset_anims_set");
-    assert_custom_anim_id("reasset_anims_set", id);
 
     AnimEntry *entry = get_or_create_anim(id);
     buffer_set(&entry->anim, data, sizeBytes);
@@ -206,7 +190,6 @@ RECOMP_EXPORT ReAssetIterator reasset_anims_create_iterator(void) {
 
 RECOMP_EXPORT void reasset_anims_link(ReAssetID id, ReAssetID externID) {
     reasset_assert_stage_link_call("reasset_anims_link");
-    assert_custom_anim_id("reasset_anims_link", id);
 
     reasset_resolve_map_link(animResolveMap, id, externID);
 }

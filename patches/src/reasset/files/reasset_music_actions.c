@@ -114,24 +114,8 @@ void reasset_music_actions_cleanup(void) {
     recomputil_destroy_u32_value_hashmap(mActionMap);
 }
 
-static void assert_custom_maction_id(const char *funcName, ReAssetID id) {
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    if (idData->namespace == REASSET_BASE_NAMESPACE) {
-        return;
-    }
-
-    if (idData->identifier >= 0 && idData->identifier <= mActionOriginalCount) {
-        const char *namespaceName;
-        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-        reasset_error("[reasset:%s] Custom music action identifier %s:%d cannot overlap base music action IDs. Reserved IDs: 0-%d.",
-            funcName,
-            namespaceName, idData->identifier, mActionOriginalCount);
-    }
-}
-
 RECOMP_EXPORT void reasset_music_actions_set(ReAssetID id, ReAssetNamespace owner, const void *data) {
     reasset_assert_stage_set_call("reasset_music_actions_set");
-    assert_custom_maction_id("reasset_music_actions_set", id);
 
     MusicActionEntry *entry = get_or_create_maction(id);
     buffer_set(&entry->action, data, sizeof(MusicAction));
@@ -166,7 +150,6 @@ RECOMP_EXPORT ReAssetIterator reasset_music_actions_create_iterator(void) {
 
 RECOMP_EXPORT void reasset_music_actions_link(ReAssetID id, ReAssetID externID) {
     reasset_assert_stage_link_call("reasset_music_actions_link");
-    assert_custom_maction_id("reasset_music_actions_link", id);
 
     reasset_resolve_map_link(mActionResolveMap, id, externID);
 }

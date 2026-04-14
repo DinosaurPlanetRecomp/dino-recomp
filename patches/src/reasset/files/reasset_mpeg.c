@@ -149,24 +149,8 @@ void reasset_mpeg_cleanup(void) {
     recomputil_destroy_u32_value_hashmap(mpegMap);
 }
 
-static void assert_custom_mpeg_id(const char *funcName, ReAssetID id) {
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    if (idData->namespace == REASSET_BASE_NAMESPACE) {
-        return;
-    }
-
-    if (idData->identifier >= 0 && idData->identifier <= mpegOriginalCount) {
-        const char *namespaceName;
-        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-        reasset_error("[reasset:%s] Custom MPEG identifier %s:%d cannot overlap base MPEG IDs. Reserved IDs: 0-%d.",
-            funcName,
-            namespaceName, idData->identifier, mpegOriginalCount);
-    }
-}
-
 RECOMP_EXPORT void reasset_mpeg_set(ReAssetID id, const void *data, u32 sizeBytes) {
     reasset_assert_stage_set_call("reasset_mpeg_set");
-    assert_custom_mpeg_id("reasset_mpeg_set", id);
 
     MPEGEntry *entry = get_or_create_mpeg(id);
     buffer_set(&entry->mpeg, data, sizeBytes);
@@ -203,7 +187,6 @@ RECOMP_EXPORT ReAssetIterator reasset_mpeg_create_iterator(void) {
 
 RECOMP_EXPORT void reasset_mpeg_link(ReAssetID id, ReAssetID externID) {
     reasset_assert_stage_link_call("reasset_mpeg_link");
-    assert_custom_mpeg_id("reasset_mpeg_link", id);
 
     reasset_resolve_map_link(mpegResolveMap, id, externID);
 }

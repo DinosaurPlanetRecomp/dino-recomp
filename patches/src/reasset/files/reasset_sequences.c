@@ -446,36 +446,31 @@ void reasset_sequences_patch(void) {
             
             if (seq->hasMap && actor->uid != 0) {
                 // Patch UID
-                // Note: We don't make map object UIDs reserved, so we need to always try this lookup
                 s32 resolvedUID = reasset_resolve_map_lookup(mapObjResolveMap, reasset_id(seq->owner, actor->uid));
                 if (resolvedUID != -1) {
                     actor->uid = resolvedUID;
-                } else {
-                    if (!reasset_map_objects_is_base_uid(seq->mapID, actor->uid)) {
-                        const char *namespaceName;
-                        s32 identifier;
-                        reasset_id_lookup_name(seq->id, &namespaceName, &identifier);
-                        reasset_log_warning("[reasset] WARN: Failed to patch sequence (%s:%d) actor %d UID %d. UID was not defined!",
-                            namespaceName, identifier, actorIdx, actor->uid);
-                        actor->uid = 0;
-                    }
+                } else if (!reasset_map_objects_is_base_uid(seq->mapID, actor->uid)) {
+                    const char *namespaceName;
+                    s32 identifier;
+                    reasset_id_lookup_name(seq->id, &namespaceName, &identifier);
+                    reasset_log_warning("[reasset] WARN: Failed to patch sequence (%s:%d) actor %d UID %d. UID was not defined!",
+                        namespaceName, identifier, actorIdx, actor->uid);
+                    actor->uid = 0;
                 }
             }
 
             if (actor->objectID != 0) {
                 // Patch object ID
-                if (!reasset_object_indices_is_base_id(actor->objectID)) {
-                    s32 resolvedID = reasset_resolve_map_lookup(objIndexResolveMap, reasset_id(seq->owner, actor->objectID));
-                    if (resolvedID != -1) {
-                        actor->objectID = resolvedID;
-                    } else {
-                        actor->objectID = 0;
-                        const char *namespaceName;
-                        s32 identifier;
-                        reasset_id_lookup_name(seq->id, &namespaceName, &identifier);
-                        reasset_log_warning("[reasset] WARN: Failed to patch sequence (%s:%d) actor %d object ID %d. Object index was not defined!",
-                            namespaceName, identifier, actorIdx, actor->objectID);
-                    }
+                s32 resolvedID = reasset_resolve_map_lookup(objIndexResolveMap, reasset_id(seq->owner, actor->objectID));
+                if (resolvedID != -1) {
+                    actor->objectID = resolvedID;
+                } else if (!reasset_object_indices_is_base_id(actor->objectID)) {
+                    actor->objectID = 0;
+                    const char *namespaceName;
+                    s32 identifier;
+                    reasset_id_lookup_name(seq->id, &namespaceName, &identifier);
+                    reasset_log_warning("[reasset] WARN: Failed to patch sequence (%s:%d) actor %d object ID %d. Object index was not defined!",
+                        namespaceName, identifier, actorIdx, actor->objectID);
                 }
             }
         }
@@ -505,24 +500,8 @@ void reasset_sequences_cleanup(void) {
 
 // MARK: Anim Curves
 
-static void assert_custom_curve_id(const char *funcName, ReAssetID id) {
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    if (idData->namespace == REASSET_BASE_NAMESPACE) {
-        return;
-    }
-
-    if (idData->identifier >= 0 && idData->identifier <= curvesOriginalCount) {
-        const char *namespaceName;
-        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-        reasset_error("[reasset:%s] Custom anim curve identifier %s:%d cannot overlap base anim curve IDs. Reserved IDs: 0-%d.",
-            funcName,
-            namespaceName, idData->identifier, curvesOriginalCount);
-    }
-}
-
 RECOMP_EXPORT void reasset_anim_curves_set(ReAssetID id, ReAssetNamespace owner, s32 eventCount, const void *data, u32 sizeBytes) {
     reasset_assert_stage_set_call("reasset_anim_curves_set");
-    assert_custom_curve_id("reasset_anim_curves_set", id);
 
     AnimCurveEntry *entry = get_or_create_curve(id);
     buffer_set(&entry->curve, data, sizeBytes);
@@ -568,7 +547,6 @@ RECOMP_EXPORT ReAssetIterator reasset_anim_curves_create_iterator(void) {
 
 RECOMP_EXPORT void reasset_anim_curves_link(ReAssetID id, ReAssetID externID) {
     reasset_assert_stage_link_call("reasset_anim_curves_link");
-    assert_custom_curve_id("reasset_anim_curves_link", id);
 
     reasset_resolve_map_link(curvesResolveMap, id, externID);
 }
@@ -580,21 +558,6 @@ RECOMP_EXPORT ReAssetResolveMap reasset_anim_curves_get_resolve_map(void) {
 }
 
 // MARK: Object Sequences
-
-static void assert_custom_seq_id(const char *funcName, ReAssetID id) {
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    if (idData->namespace == REASSET_BASE_NAMESPACE) {
-        return;
-    }
-
-    if (idData->identifier >= 0 && idData->identifier <= seqsOriginalCount) {
-        const char *namespaceName;
-        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-        reasset_error("[reasset:%s] Custom object sequence identifier %s:%d cannot overlap base object sequence IDs. Reserved IDs: 0-%d.",
-            funcName,
-            namespaceName, idData->identifier, seqsOriginalCount);
-    }
-}
 
 static void set_seq(ReAssetID id, ReAssetNamespace owner, ReAssetID map, _Bool hasMap, const void *data, u32 sizeBytes) {
     ObjSeqEntry *entry = get_or_create_seq(id);
@@ -611,14 +574,12 @@ static void set_seq(ReAssetID id, ReAssetNamespace owner, ReAssetID map, _Bool h
 
 RECOMP_EXPORT void reasset_object_sequences_set(ReAssetID id, ReAssetNamespace owner, const void *data, u32 sizeBytes) {
     reasset_assert_stage_set_call("reasset_object_sequences_set");
-    assert_custom_seq_id("reasset_object_sequences_set", id);
 
     set_seq(id, owner, -1, FALSE, data, sizeBytes);
 }
 
 RECOMP_EXPORT void reasset_object_sequences_set_ex(ReAssetID id, ReAssetNamespace owner, ReAssetID map, const void *data, u32 sizeBytes) {
     reasset_assert_stage_set_call("reasset_object_sequences_set_ex");
-    assert_custom_seq_id("reasset_object_sequences_set_ex", id);
 
     set_seq(id, owner, map, TRUE, data, sizeBytes);
 }
@@ -643,7 +604,6 @@ RECOMP_EXPORT void* reasset_object_sequences_get(ReAssetID id, u32 *outSizeBytes
 
 RECOMP_EXPORT void reasset_object_sequences_set_curve(ReAssetID id, s32 actor, s32 eventCount, const void *data, u32 sizeBytes) {
     reasset_assert_stage_set_call("reasset_object_sequences_set_curve");
-    assert_custom_seq_id("reasset_object_sequences_set_curve", id);
 
     ObjSeqEntry *seq = get_or_create_seq(id);
 
@@ -660,7 +620,6 @@ RECOMP_EXPORT void reasset_object_sequences_set_curve(ReAssetID id, s32 actor, s
 
 RECOMP_EXPORT void* reasset_object_sequences_get_curve(ReAssetID id, s32 actor, s32 *outEventCount, u32 *outSizeBytes) {
     reasset_assert_stage_get_call("reasset_object_sequences_get_curve");
-    assert_custom_seq_id("reasset_object_sequences_get_curve", id);
 
     ObjSeqEntry *seq = get_seq(id);
     if (seq == NULL) {
@@ -703,7 +662,6 @@ RECOMP_EXPORT ReAssetIterator reasset_object_sequences_create_iterator(void) {
 
 RECOMP_EXPORT void reasset_object_sequences_link(ReAssetID id, ReAssetID externID) {
     reasset_assert_stage_link_call("reasset_object_sequences_link");
-    assert_custom_seq_id("reasset_object_sequences_link", id);
 
     reasset_resolve_map_link(seqsResolveMap, id, externID);
 }

@@ -320,21 +320,6 @@ void reasset_textures_cleanup(void) {
 
 // MARK: Textures
 
-static void assert_custom_tex_id(const char *funcName, TextureBank bank, ReAssetID id) {
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    if (idData->namespace == REASSET_BASE_NAMESPACE) {
-        return;
-    }
-
-    if (idData->identifier >= 0 && idData->identifier <= texOriginalCount[bank]) {
-        const char *namespaceName;
-        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-        reasset_error("[reasset:%s] Custom TEX%d identifier %s:%d cannot overlap base texture IDs. Reserved IDs: 0-%d.",
-            funcName, bank,
-            namespaceName, idData->identifier, texOriginalCount[bank]);
-    }
-}
-
 static void assert_tex_bank(const char *funcName, TextureBank bank) {
     reasset_assert(bank >= 0 && bank < NUM_TEXTURE_BANKS, 
         "[reasset:%s] Invalid texture bank: %d", funcName, bank);
@@ -343,7 +328,6 @@ static void assert_tex_bank(const char *funcName, TextureBank bank) {
 RECOMP_EXPORT void reasset_textures_set(TextureBank bank, ReAssetID id, s32 numFrames, const void *data, u32 sizeBytes) {
     reasset_assert_stage_set_call("reasset_textures_set");
     assert_tex_bank("reasset_textures_set", bank);
-    assert_custom_tex_id("reasset_textures_set", bank, id);
 
     TextureEntry *entry = get_or_create_tex(bank, id);
     buffer_set(&entry->texture, data, sizeBytes);
@@ -391,7 +375,6 @@ RECOMP_EXPORT ReAssetIterator reasset_textures_create_iterator(TextureBank bank)
 RECOMP_EXPORT void reasset_textures_link(TextureBank bank, ReAssetID id, ReAssetID externID) {
     reasset_assert_stage_link_call("reasset_textures_link");
     assert_tex_bank("reasset_textures_link", bank);
-    assert_custom_tex_id("reasset_textures_link", bank, id);
 
     reasset_resolve_map_link(texResolveMap[bank], id, externID);
 }
@@ -411,25 +394,9 @@ _Bool reasset_textures_is_base_id(TextureBank bank, s32 id) {
 
 // MARK: Texture Table
 
-static void assert_custom_tex_table_entry(const char *funcName, ReAssetID id) {
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    if (idData->namespace == REASSET_BASE_NAMESPACE) {
-        return;
-    }
-
-    if (idData->identifier >= 0 && idData->identifier <= texTableOriginalCount) {
-        const char *namespaceName;
-        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-        reasset_error("[reasset:%s] Custom texture table identifier %s:%d cannot overlap base texture table IDs. Reserved IDs: 0-%d.",
-            funcName,
-            namespaceName, idData->identifier, texTableOriginalCount);
-    }
-}
-
 RECOMP_EXPORT void reasset_texture_table_set(ReAssetID id, TextureBank bank, ReAssetID texID) {
     reasset_assert_stage_set_call("reasset_texture_table_set");
     assert_tex_bank("reasset_texture_table_set", bank);
-    assert_custom_tex_table_entry("reasset_texture_table_set", id);
 
     TexTableEntry *entry = get_or_create_tex_table_entry(id);
     entry->bank = bank;
@@ -467,7 +434,6 @@ RECOMP_EXPORT ReAssetIterator reasset_texture_table_create_iterator(void) {
 
 RECOMP_EXPORT void reasset_texture_table_link(ReAssetID id, ReAssetID externID) {
     reasset_assert_stage_link_call("reasset_texture_table_link");
-    assert_custom_tex_table_entry("reasset_texture_table_link", id);
 
     reasset_resolve_map_link(texTableResolveMap, id, externID);
 }

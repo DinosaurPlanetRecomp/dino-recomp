@@ -560,18 +560,16 @@ void reasset_blocks_patch(void) {
                     s32 *texIDPtr = (s32*)&materials[k].texture;
                     s32 texID = *texIDPtr;
 
-                    if (!reasset_textures_is_base_id(TEX1, texID)) {
-                        s32 resolvedID = reasset_resolve_map_lookup(tex1ResolveMap, reasset_id(blockEntry->owner, texID));
-                        if (resolvedID != -1) {
-                            *texIDPtr = resolvedID;
-                        } else {
-                            *texIDPtr = 16; // fallback texture to make it obvious it's a bad texture
+                    s32 resolvedID = reasset_resolve_map_lookup(tex1ResolveMap, reasset_id(blockEntry->owner, texID));
+                    if (resolvedID != -1) {
+                        *texIDPtr = resolvedID;
+                    } else if (!reasset_textures_is_base_id(TEX1, texID)) {
+                        *texIDPtr = 16; // fallback texture to make it obvious it's a bad texture
 
-                            reasset_log_warning("[reasset] WARN: Failed to patch block (%s:%d[%s:%d]) texture %d ID 0x%X. Texture was not defined!\n",
-                                trkblkNamespaceName, trkblkIdentifier,
-                                blockNamespaceName, blockIdentifier, 
-                                k, texID);
-                        }
+                        reasset_log_warning("[reasset] WARN: Failed to patch block (%s:%d[%s:%d]) texture %d ID 0x%X. Texture was not defined!\n",
+                            trkblkNamespaceName, trkblkIdentifier,
+                            blockNamespaceName, blockIdentifier, 
+                            k, texID);
                     }
                 }
             }
@@ -587,21 +585,6 @@ void reasset_blocks_cleanup(void) {
 
 // MARK: TrkBlk
 
-static void assert_custom_trkblk_id(const char *funcName, ReAssetID id) {
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    if (idData->namespace == REASSET_BASE_NAMESPACE) {
-        return;
-    }
-
-    if (idData->identifier >= 0 && idData->identifier <= trkblkOriginalCount) {
-        const char *namespaceName;
-        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-        reasset_error("[reasset:%s] Custom trkblk identifier %s:%d cannot overlap base trkblk IDs. Reserved IDs: 0-%d.",
-            funcName,
-            namespaceName, idData->identifier, trkblkOriginalCount);
-    }
-}
-
 RECOMP_EXPORT ReAssetIterator reasset_trkblk_create_iterator(void) {
     reasset_assert_stage_iterator_call("reasset_trkblk_create_iterator");
 
@@ -610,7 +593,6 @@ RECOMP_EXPORT ReAssetIterator reasset_trkblk_create_iterator(void) {
 
 RECOMP_EXPORT void reasset_trkblk_link(ReAssetID id, ReAssetID externID) {
     reasset_assert_stage_link_call("reasset_trkblk_link");
-    assert_custom_trkblk_id("reasset_trkblk_link", id);
 
     reasset_resolve_map_link(trkblkResolveMap.resolveMap, id, externID);
 }
@@ -627,32 +609,10 @@ _Bool reasset_trkblk_is_base_id(s32 id) {
 
 // MARK: Blocks
 
-static void assert_custom_block_id(const char *funcName, TrkBlkEntry *trkblk, ReAssetID id) {
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    if (idData->namespace == REASSET_BASE_NAMESPACE) {
-        return;
-    }
-
-    if (idData->identifier >= 0 && idData->identifier <= trkblk->blocks.originalCount) {
-        const char *trkblkNamespaceName;
-        s32 trkblkIdentifier;
-        reasset_id_lookup_name(trkblk->id, &trkblkNamespaceName, &trkblkIdentifier);
-        const char *namespaceName;
-        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-        reasset_error("[reasset:%s] Custom block identifier %s:%d cannot overlap base block IDs. Reserved IDs (for trkblk %s:%d): 0-%d.",
-            funcName,
-            namespaceName, idData->identifier, 
-            trkblkNamespaceName, trkblkIdentifier,
-            trkblk->blocks.originalCount);
-    }
-}
-
 RECOMP_EXPORT void reasset_blocks_set(ReAssetID trkblkID, ReAssetID id, ReAssetNamespace owner, const void *data, u32 sizeBytes) {
     reasset_assert_stage_set_call("reasset_blocks_set");
-    assert_custom_trkblk_id("reasset_blocks_set", trkblkID);
 
     TrkBlkEntry *trkblk = get_or_create_trkblk(trkblkID);
-    assert_custom_block_id("reasset_blocks_set", trkblk, id);
 
     BlockEntry *entry = get_or_create_block(trkblk, id);
     buffer_set(&entry->block, data, sizeBytes);
@@ -736,39 +696,12 @@ _Bool reasset_blocks_is_base_id(s32 trkblkID, s32 id) {
 
 // MARK: Hits
 
-static void assert_custom_hit_id(const char *funcName, TrkBlkEntry *trkblk, BlockEntry *block, ReAssetID id) {
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    if (idData->namespace == REASSET_BASE_NAMESPACE) {
-        return;
-    }
-
-    if (idData->identifier >= 0 && idData->identifier <= block->hits.originalCount) {
-        const char *trkblkNamespaceName;
-        s32 trkblkIdentifier;
-        reasset_id_lookup_name(trkblk->id, &trkblkNamespaceName, &trkblkIdentifier);
-        const char *blockNamespaceName;
-        s32 blockIdentifier;
-        reasset_id_lookup_name(block->id, &blockNamespaceName, &blockIdentifier);
-        const char *namespaceName;
-        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-        reasset_error("[reasset:%s] Custom hit identifier %s:%d cannot overlap base hit IDs. Reserved IDs (for trkblk %s:%d block %s:%d): 0-%d.",
-            funcName,
-            namespaceName, idData->identifier, 
-            trkblkNamespaceName, trkblkIdentifier,
-            blockNamespaceName, blockIdentifier,
-            block->hits.originalCount);
-    }
-}
-
 RECOMP_EXPORT void reasset_hits_set(ReAssetID trkblkID, ReAssetID blockID, ReAssetID id, ReAssetNamespace owner, const void *data) {
     reasset_assert_stage_set_call("reasset_hits_set");
-    assert_custom_trkblk_id("reasset_hits_set", trkblkID);
 
     TrkBlkEntry *trkblk = get_or_create_trkblk(trkblkID);
-    assert_custom_block_id("reasset_hits_set", trkblk, blockID);
 
     BlockEntry *block = get_or_create_block(trkblk, id);
-    assert_custom_hit_id("reasset_hits_set", trkblk, block, id);
 
     HitEntry *entry = get_or_create_hit(block, id);
     buffer_set(&entry->hit, data, sizeof(HitsLine));

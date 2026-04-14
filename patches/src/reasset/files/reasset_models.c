@@ -398,16 +398,14 @@ void reasset_models_patch(void) {
                 s32 *texIDPtr = (s32*)&materials[k].texture;
                 s32 texID = *texIDPtr;
 
-                if (!reasset_textures_is_base_id(TEX1, texID)) {
-                    s32 resolvedID = reasset_resolve_map_lookup(tex1ResolveMap, reasset_id(entry->owner, texID));
-                    if (resolvedID != -1) {
-                        *texIDPtr = resolvedID;
-                    } else {
-                        *texIDPtr = 16; // fallback texture to make it obvious it's a bad texture
+                s32 resolvedID = reasset_resolve_map_lookup(tex1ResolveMap, reasset_id(entry->owner, texID));
+                if (resolvedID != -1) {
+                    *texIDPtr = resolvedID;
+                } else if (!reasset_textures_is_base_id(TEX1, texID)) {
+                    *texIDPtr = 16; // fallback texture to make it obvious it's a bad texture
 
-                        reasset_log_warning("[reasset] WARN: Failed to patch model (%s:%d) texture %d ID 0x%X. Texture was not defined!\n",
-                            namespaceName, identifier, k, texID);
-                    }
+                    reasset_log_warning("[reasset] WARN: Failed to patch model (%s:%d) texture %d ID 0x%X. Texture was not defined!\n",
+                        namespaceName, identifier, k, texID);
                 }
             }
         }
@@ -429,16 +427,14 @@ void reasset_models_patch(void) {
                     continue;
                 }
 
-                if (!reasset_anims_is_base_id(animID)) {
-                    s32 resolvedID = reasset_resolve_map_lookup(animResolveMap, reasset_id(entry->owner, animID));
-                    if (resolvedID != -1) {
-                        modanims[k] = resolvedID;
-                    } else {
-                        modanims[k] = 0;
+                s32 resolvedID = reasset_resolve_map_lookup(animResolveMap, reasset_id(entry->owner, animID));
+                if (resolvedID != -1) {
+                    modanims[k] = resolvedID;
+                } else if (!reasset_anims_is_base_id(animID)) {
+                    modanims[k] = 0;
 
-                        reasset_log_warning("[reasset] WARN: Failed to patch modanim (%s:%d) %d:%d (%d) anim ID 0x%X. Anim was not defined!\n",
-                            namespaceName, identifier, bank, idInBank, k, animID);
-                    }
+                    reasset_log_warning("[reasset] WARN: Failed to patch modanim (%s:%d) %d:%d (%d) anim ID 0x%X. Anim was not defined!\n",
+                        namespaceName, identifier, bank, idInBank, k, animID);
                 }
 
                 idInBank++;
@@ -487,24 +483,8 @@ void reasset_models_cleanup(void) {
 
 // MARK: Models
 
-static void assert_custom_model_id(const char *funcName, ReAssetID id) {
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    if (idData->namespace == REASSET_BASE_NAMESPACE) {
-        return;
-    }
-
-    if (idData->identifier >= 0 && idData->identifier <= modelOriginalCount) {
-        const char *namespaceName;
-        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-        reasset_error("[reasset:%s] Custom model identifier %s:%d cannot overlap base model IDs. Reserved IDs: 0-%d.",
-            funcName,
-            namespaceName, idData->identifier, modelOriginalCount);
-    }
-}
-
 RECOMP_EXPORT void reasset_models_set(ReAssetID id, ReAssetNamespace owner, const void *data, u32 sizeBytes) {
     reasset_assert_stage_set_call("reasset_models_set");
-    assert_custom_model_id("reasset_models_set", id);
 
     ModelEntry *entry = get_or_create_model(id);
     buffer_set(&entry->model, data, sizeBytes);
@@ -518,7 +498,6 @@ RECOMP_EXPORT void reasset_models_set(ReAssetID id, ReAssetNamespace owner, cons
 
 RECOMP_EXPORT void reasset_models_set_modanims(ReAssetID id, const void *data, u32 sizeBytes) {
     reasset_assert_stage_set_call("reasset_models_set_modanims");
-    assert_custom_model_id("reasset_models_set_modanims", id);
 
     ModelEntry *entry = get_or_create_model(id);
     buffer_set(&entry->modanims, data, sizeBytes);
@@ -531,7 +510,6 @@ RECOMP_EXPORT void reasset_models_set_modanims(ReAssetID id, const void *data, u
 
 RECOMP_EXPORT void reasset_models_set_amap(ReAssetID id, const void *data, u32 sizeBytes) {
     reasset_assert_stage_set_call("reasset_models_set_amap");
-    assert_custom_model_id("reasset_models_set_amap", id);
 
     ModelEntry *entry = get_or_create_model(id);
     buffer_set(&entry->amap, data, sizeBytes);
@@ -604,7 +582,6 @@ RECOMP_EXPORT ReAssetIterator reasset_models_create_iterator(void) {
 
 RECOMP_EXPORT void reasset_models_link(ReAssetID id, ReAssetID externID) {
     reasset_assert_stage_link_call("reasset_models_link");
-    assert_custom_model_id("reasset_models_link", id);
 
     reasset_resolve_map_link(modelResolveMap, id, externID);
     reasset_resolve_map_link(modanimResolveMap, id, externID);
@@ -631,28 +608,12 @@ RECOMP_EXPORT ReAssetResolveMap reasset_models_get_amap_resolve_map(void) {
 
 // MARK: Model Indices
 
-static void assert_custom_model_index_id(const char *funcName, ReAssetID id) {
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    if (idData->namespace == REASSET_BASE_NAMESPACE) {
-        return;
-    }
-
-    if (idData->identifier >= 0 && idData->identifier <= modelIndexOriginalCount) {
-        const char *namespaceName;
-        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-        reasset_error("[reasset:%s] Custom model index identifier %s:%d cannot overlap base model index IDs. Reserved IDs: 0-%d.",
-            funcName,
-            namespaceName, idData->identifier, modelIndexOriginalCount);
-    }
-}
-
 _Bool reasset_model_indices_is_base_id(s32 id) {
     return id >= 0 && id < modelIndexOriginalCount;
 }
 
 RECOMP_EXPORT void reasset_model_indices_set(ReAssetID id, ReAssetID modelID) {
     reasset_assert_stage_set_call("reasset_model_indices_set");
-    assert_custom_model_index_id("reasset_model_indices_set", id);
 
     ModelIndexEntry *entry = get_or_create_model_index(id);
     entry->modelID = modelID;
@@ -686,7 +647,6 @@ RECOMP_EXPORT ReAssetIterator reasset_model_indices_create_iterator(void) {
 
 RECOMP_EXPORT void reasset_model_indices_link(ReAssetID id, ReAssetID externID) {
     reasset_assert_stage_link_call("reasset_model_indices_link");
-    assert_custom_model_index_id("reasset_model_indices_link", id);
 
     reasset_resolve_map_link(modelIndexResolveMap, id, externID);
 }

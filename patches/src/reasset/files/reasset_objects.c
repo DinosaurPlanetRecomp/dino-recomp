@@ -278,15 +278,13 @@ void reasset_objects_patch(void) {
         reasset_id_lookup_name(entry->id, &namespaceName, &identifier);
 
         // Patch DLL ID
-        if (!reasset_dlls_is_base_id(object->dllID)) {
-            s32 resolvedDLL = reasset_dlls_lookup(reasset_id(entry->owner, object->dllID));
-            if (resolvedDLL != -1) {
-                object->dllID = resolvedDLL;
-            } else {
-                object->dllID = 0;
-                reasset_log_warning("[reasset] WARN: Failed to patch object (%s:%d) DLL ID 0x%X. DLL was not defined!\n",
-                    namespaceName, identifier, object->dllID);
-            }
+        s32 resolvedDLL = reasset_dlls_lookup(reasset_id(entry->owner, object->dllID));
+        if (resolvedDLL != -1) {
+            object->dllID = resolvedDLL;
+        } else if (!reasset_dlls_is_base_id(object->dllID)) {
+            object->dllID = 0;
+            reasset_log_warning("[reasset] WARN: Failed to patch object (%s:%d) DLL ID 0x%X. DLL was not defined!\n",
+                namespaceName, identifier, object->dllID);
         }
 
         // TODO: many other things to patch...
@@ -338,24 +336,8 @@ void reasset_objects_cleanup(void) {
 
 // MARK: Objects
 
-static void assert_custom_object_id(const char *funcName, ReAssetID id) {
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    if (idData->namespace == REASSET_BASE_NAMESPACE) {
-        return;
-    }
-
-    if (idData->identifier >= 0 && idData->identifier <= objectOriginalCount) {
-        const char *namespaceName;
-        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-        reasset_error("[reasset:%s] Custom object identifier %s:%d cannot overlap base object IDs. Reserved IDs: 0-%d.",
-            funcName,
-            namespaceName, idData->identifier, objectOriginalCount);
-    }
-}
-
 RECOMP_EXPORT void reasset_objects_set(ReAssetID id, ReAssetNamespace owner, const void *data, u32 sizeBytes) {
     reasset_assert_stage_set_call("reasset_objects_set");
-    assert_custom_object_id("reasset_objects_set", id);
 
     ObjectEntry *entry = get_or_create_object(id);
     buffer_set(&entry->object, data, sizeBytes);
@@ -393,7 +375,6 @@ RECOMP_EXPORT ReAssetIterator reasset_objects_create_iterator(void) {
 
 RECOMP_EXPORT void reasset_objects_link(ReAssetID id, ReAssetID externID) {
     reasset_assert_stage_link_call("reasset_objects_link");
-    assert_custom_object_id("reasset_objects_link", id);
 
     reasset_resolve_map_link(objectResolveMap, id, externID);
 }
@@ -406,28 +387,12 @@ RECOMP_EXPORT ReAssetResolveMap reasset_objects_get_resolve_map(void) {
 
 // MARK: Object Indices
 
-static void assert_custom_object_index_id(const char *funcName, ReAssetID id) {
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    if (idData->namespace == REASSET_BASE_NAMESPACE) {
-        return;
-    }
-
-    if (idData->identifier >= 0 && idData->identifier <= objectIndexOriginalCount) {
-        const char *namespaceName;
-        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-        reasset_error("[reasset:%s] Custom object index identifier %s:%d cannot overlap base object index IDs. Reserved IDs: 0-%d.",
-            funcName,
-            namespaceName, idData->identifier, objectIndexOriginalCount);
-    }
-}
-
 _Bool reasset_object_indices_is_base_id(s32 id) {
     return id >= 0 && id < objectIndexOriginalCount;
 }
 
 RECOMP_EXPORT void reasset_object_indices_set(ReAssetID id, ReAssetID objID) {
     reasset_assert_stage_set_call("reasset_object_indices_set");
-    assert_custom_object_index_id("reasset_object_indices_set", id);
 
     ObjectIndexEntry *entry = get_or_create_object_index(id);
     entry->objID = objID;
@@ -461,7 +426,6 @@ RECOMP_EXPORT ReAssetIterator reasset_object_indices_create_iterator(void) {
 
 RECOMP_EXPORT void reasset_object_indices_link(ReAssetID id, ReAssetID externID) {
     reasset_assert_stage_link_call("reasset_object_indices_link");
-    assert_custom_object_index_id("reasset_object_indices_link", id);
 
     reasset_resolve_map_link(objectIndexResolveMap, id, externID);
 }
