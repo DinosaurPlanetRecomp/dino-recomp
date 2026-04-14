@@ -1,5 +1,6 @@
 #pragma once
 
+#include "reasset.h"
 #include "reasset/reasset_namespace.h"
 
 #include "PR/ultratypes.h"
@@ -18,6 +19,6 @@ typedef struct {
 void reasset_id_init(void);
 ReAssetIDData *reasset_id_lookup_data(ReAssetID id);
 ReAssetIDData *reasset_id_lookup_data_or_null(ReAssetID id);
-_Bool reasset_id_lookup_name(ReAssetID id, const char **outNamespaceName, s32 *outIdentifier);
+ReAssetBool reasset_id_lookup_name(ReAssetID id, const char **outNamespaceName, s32 *outIdentifier);
 ReAssetID reasset_id(ReAssetNamespace namespace, s32 identifier);
 ReAssetID reasset_base_id(s32 identifier);

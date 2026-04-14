@@ -408,7 +408,7 @@ RECOMP_EXPORT void reasset_texture_table_set(ReAssetID id, TextureBank bank, ReA
     reasset_log("[reasset] Texture table entry set: %s:%d\n", namespaceName, idData->identifier);
 }
 
-RECOMP_EXPORT _Bool reasset_texture_table_get(ReAssetID id, TextureBank *outBank, ReAssetID *outTexID) {
+RECOMP_EXPORT ReAssetBool reasset_texture_table_get(ReAssetID id, TextureBank *outBank, ReAssetID *outTexID) {
     reasset_assert_stage_get_call("reasset_texture_table_get");
 
     TexTableEntry *entry = get_tex_table_entry(id);

@@ -38,11 +38,11 @@ ReAssetIterator reasset_iterator_create(U32List *list) {
     return iterator;
 }
 
-RECOMP_EXPORT _Bool reasset_iterator_destroy(ReAssetIterator iterator) {
+RECOMP_EXPORT ReAssetBool reasset_iterator_destroy(ReAssetIterator iterator) {
     return recomputil_memory_slotmap_erase(sIteratorSlotmap, iterator) ? 1 : 0;
 }
 
-RECOMP_EXPORT _Bool reasset_iterator_next(ReAssetIterator iterator, ReAssetID *outID) {
+RECOMP_EXPORT ReAssetBool reasset_iterator_next(ReAssetIterator iterator, ReAssetID *outID) {
     ReAssetIteratorData *data;
     if (!recomputil_memory_slotmap_get(sIteratorSlotmap, iterator, (void**)&data)) {
         reasset_error("[reasset:reasset_iterator_next] Invalid iterator handle: %d", iterator);

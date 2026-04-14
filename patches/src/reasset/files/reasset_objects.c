@@ -403,7 +403,7 @@ RECOMP_EXPORT void reasset_object_indices_set(ReAssetID id, ReAssetID objID) {
     reasset_log("[reasset] Object index set: %s:%d\n", namespaceName, idData->identifier);
 }
 
-RECOMP_EXPORT _Bool reasset_object_indices_get(ReAssetID id, ReAssetID *outObjID) {
+RECOMP_EXPORT ReAssetBool reasset_object_indices_get(ReAssetID id, ReAssetID *outObjID) {
     reasset_assert_stage_get_call("reasset_object_indices_get");
 
     ObjectIndexEntry *entry = get_object_index(id);

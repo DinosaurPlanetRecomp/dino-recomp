@@ -44,7 +44,7 @@ ReAssetIDData *reasset_id_lookup_data_or_null(ReAssetID id) {
     }
 }
 
-RECOMP_EXPORT _Bool reasset_id_lookup(ReAssetID id, ReAssetNamespace *outNamespace, s32 *outIdentifier) {
+RECOMP_EXPORT ReAssetBool reasset_id_lookup(ReAssetID id, ReAssetNamespace *outNamespace, s32 *outIdentifier) {
     ReAssetIDData *data;
     if (recomputil_memory_slotmap_get(sIDSlotmap, id, (void**)&data)) {
         if (outNamespace != NULL) {
@@ -66,14 +66,14 @@ RECOMP_EXPORT _Bool reasset_id_lookup(ReAssetID id, ReAssetNamespace *outNamespa
     }
 }
 
-RECOMP_EXPORT _Bool reasset_id_lookup_name(ReAssetID id, const char **outNamespaceName, s32 *outIdentifier) {
+RECOMP_EXPORT ReAssetBool reasset_id_lookup_name(ReAssetID id, const char **outNamespaceName, s32 *outIdentifier) {
     ReAssetIDData *data;
     if (recomputil_memory_slotmap_get(sIDSlotmap, id, (void**)&data)) {
         if (outIdentifier != NULL) {
             *outIdentifier = data->identifier;
         }
 
-        return reasset_namespace_lookup_name(data->namespace, outNamespaceName);
+        return reasset_namespace_lookup_name(data->namespace, outNamespaceName) ? 1 : 0;
     } else {
         if (outIdentifier != NULL) {
             *outIdentifier = -1;

@@ -19,6 +19,8 @@ void read_from_rom(u32 romAddr, u8* dst, s32 size);
 #define MIN(a, b)				((a) < (b) ? (a) : (b))
 #endif
 
+typedef int ReAssetBool;
+
 typedef enum {
     REASSET_STAGE_UNINITIALIZED,
     REASSET_STAGE_FST_SET,

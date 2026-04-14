@@ -624,7 +624,7 @@ RECOMP_EXPORT void reasset_model_indices_set(ReAssetID id, ReAssetID modelID) {
     reasset_log("[reasset] Model index set: %s:%d\n", namespaceName, idData->identifier);
 }
 
-RECOMP_EXPORT _Bool reasset_model_indices_get(ReAssetID id, ReAssetID *outModelID) {
+RECOMP_EXPORT ReAssetBool reasset_model_indices_get(ReAssetID id, ReAssetID *outModelID) {
     reasset_assert_stage_get_call("reasset_model_indices_get");
 
     ModelIndexEntry *entry = get_model_index(id);

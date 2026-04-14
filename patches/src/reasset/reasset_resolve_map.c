@@ -186,7 +186,7 @@ RECOMP_EXPORT ReAssetNamespace reasset_resolve_map_owner_of(ReAssetResolveMap ma
     return REASSET_INVALID_NAMESPACE;
 }
 
-RECOMP_EXPORT _Bool reasset_resolve_map_id_of(ReAssetResolveMap map, s32 resolvedIdentifier, ReAssetID *outID) {
+RECOMP_EXPORT ReAssetBool reasset_resolve_map_id_of(ReAssetResolveMap map, s32 resolvedIdentifier, ReAssetID *outID) {
     ReAssetResolveMapData *data;
     if (recomputil_memory_slotmap_get(sResolveMapSlotmap, map, (void**)&data)) {
         ReAssetID id;
