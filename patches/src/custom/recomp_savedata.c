@@ -12,10 +12,24 @@
 #include "sys/memory.h"
 #include "macros.h"
 
+RECOMP_DECLARE_EVENT(recomp_savedata_on_loaded(s32 slotno));
+RECOMP_DECLARE_EVENT(recomp_savedata_on_save(s32 slotno));
+RECOMP_DECLARE_EVENT(recomp_savedata_on_saved(s32 slotno));
+
 typedef struct {
     U32List list;
     U32ValueHashmapHandle map; // ReAssetNamespace -> list idx
 } ExtensionSet;
+
+typedef struct {
+    ReAssetNamespace namespace;
+    void *ptr;
+    u32 sizeBytes;
+} CustomSaveData;
+
+static U32ValueHashmapHandle customDataMap; // ReAssetNamespace -> list idx
+static List customDataList; // list[CustomSaveData]
+static _Bool bInitialized = FALSE;
 
 static void extension_set_init(ExtensionSet *set) {
     u32list_init(&set->list, 0);
@@ -45,7 +59,88 @@ static u32 extension_set_lookup(ExtensionSet *set, ReAssetNamespace namespace) {
     return listIdx;
 }
 
-void recomp_savedata_save(RecompFlashData *flash) {
+static void custom_data_list_element_free_callback(void *element) {
+    CustomSaveData *customData = element;
+    if (customData->ptr != NULL) {
+        recomp_free(customData->ptr);
+        customData->ptr = NULL;
+        customData->sizeBytes = 0;
+        customData->namespace = REASSET_INVALID_NAMESPACE;
+    }
+}
+
+static void custom_data_list_clear(void) {
+    list_clear(&customDataList);
+    recomputil_destroy_u32_value_hashmap(customDataMap);
+    customDataMap = recomputil_create_u32_value_hashmap();
+}
+
+static void custom_data_list_set(ReAssetNamespace namespace, void *data, u32 sizeBytes) {
+    u32 listIdx;
+    if (!recomputil_u32_value_hashmap_get(customDataMap, namespace, &listIdx)) {
+        listIdx = list_get_length(&customDataList);
+        list_add(&customDataList);
+
+        recomputil_u32_value_hashmap_insert(customDataMap, namespace, listIdx);
+    }
+
+    CustomSaveData *customData = list_get(&customDataList, listIdx);
+    if (customData->ptr != NULL && customData->sizeBytes != sizeBytes) {
+        recomp_free(customData->ptr);
+        customData->ptr = NULL;
+    }
+    if (customData->ptr == NULL && sizeBytes != 0) {
+        customData->ptr = recomp_alloc(sizeBytes);
+    }
+
+    bcopy(data, customData->ptr, sizeBytes);
+    customData->sizeBytes = sizeBytes;
+
+    customData->namespace = namespace;
+}
+
+static _Bool custom_data_list_get(ReAssetNamespace namespace, void **outData, u32 *outSizeBytes) {
+    u32 listIdx;
+    if (!recomputil_u32_value_hashmap_get(customDataMap, namespace, &listIdx)) {
+        // Not found
+        if (outData != NULL) {
+            *outData = NULL;
+        }
+        if (outSizeBytes != NULL) {
+            *outSizeBytes = 0;
+        }
+        
+        return NULL;
+    }
+
+    CustomSaveData *customData = list_get(&customDataList, listIdx);
+    if (outData != NULL) {
+        *outData = customData->ptr;
+    }
+    if (outSizeBytes != NULL) {
+        *outSizeBytes = customData->sizeBytes;
+    }
+
+    return TRUE;
+}
+
+static void recomp_savedata_init(void) {
+    if (bInitialized) return;
+
+    customDataMap = recomputil_create_u32_value_hashmap();
+    list_init(&customDataList, sizeof(CustomSaveData), 0);
+    list_set_element_free_callback(&customDataList, custom_data_list_element_free_callback);
+
+    bInitialized = TRUE;
+}
+
+void recomp_savedata_save(RecompFlashData *flash, s32 slotno) {
+    if (!bInitialized) recomp_savedata_init();
+
+    // Give mods a chance to set custom data
+    recomp_savedata_on_save(slotno);
+
+    // Setup
     u8 *ptr = (u8*)&flash->recomp + sizeof(RecompSaveDataHeader);
     u8 *flashEndPtr = (u8*)flash + 0x4000;
 
@@ -72,6 +167,12 @@ void recomp_savedata_save(RecompFlashData *flash) {
         extension_set_add(&extensions, ranges->namespace);
     }
 
+    s32 numCustomSaveDataEntries = list_get_length(&customDataList);
+    for (s32 i = 0; i < numCustomSaveDataEntries; i++) {
+        CustomSaveData *customData = list_get(&customDataList, i);
+        extension_set_add(&extensions, customData->namespace);
+    }
+
     // Write extensions
     header->numExtensions = u32list_get_length(&extensions.list);
     for (s32 i = 0; i < header->numExtensions && ptr < flashEndPtr; i++) {
@@ -92,7 +193,15 @@ void recomp_savedata_save(RecompFlashData *flash) {
         ptr += extHeader->namespaceNameLength;
 
         // Write custom data
-        extHeader->sizeBytes = 0; // TODO:
+        void *customDataPtr;
+        u32 customDataSizeBytes;
+        if (custom_data_list_get(namespace, &customDataPtr, &customDataSizeBytes)) {
+            bcopy(customDataPtr, ptr, customDataSizeBytes);
+            extHeader->sizeBytes = customDataSizeBytes;
+        } else {
+            extHeader->sizeBytes = 0;
+        }
+
         ptr += extHeader->sizeBytes;
     }
 
@@ -122,17 +231,22 @@ void recomp_savedata_save(RecompFlashData *flash) {
     }
 
     if (ptr > flashEndPtr) {
-        recomp_eprintf("Overflow when writing recomp savedata! Savefile may be corrupt.");
+        recomp_eprintf("Overflow when writing recomp savedata! Savefile slot %d may be corrupt.", slotno);
     }
 
     // Clean up
     extension_set_free(&extensions);
     list_free(&packedBitNamespaces);
 
-    recomp_printf("Wrote recomp savedata.\n");
+    recomp_printf("Wrote recomp savedata (slot %d).\n", slotno);
+    recomp_savedata_on_saved(slotno);
 }
 
-void recomp_savedata_load(RecompFlashData *flash) {
+void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
+    if (!bInitialized) recomp_savedata_init();
+    
+    // Reset custom data
+    custom_data_list_clear();
     // Reset savegame specific reasset data
     reasset_bits_orphan_init();
 
@@ -141,11 +255,13 @@ void recomp_savedata_load(RecompFlashData *flash) {
     RecompSaveDataHeader *header = &flash->recomp;
     if (header->magic[0] != 'R' || header->magic[1] != 'C') {
         // Missing or invalid recomp savedata
-        recomp_printf("Recomp savedata not found (this is OK).\n");
+        recomp_printf("Recomp savedata not found in slot %d (this is OK).\n", slotno);
+        recomp_savedata_on_loaded(slotno);
         return;
     }
     if (header->version != 1) {
-        recomp_eprintf("Recomp savedata has an invalid version: %d\n", header->version);
+        recomp_eprintf("Recomp savedata (slot %d) has an invalid version: %d\n", slotno, header->version);
+        recomp_savedata_on_loaded(slotno);
         return;
     }
 
@@ -174,7 +290,10 @@ void recomp_savedata_load(RecompFlashData *flash) {
 
         ptr += extHeader->namespaceNameLength;
 
-        // TODO: load custom savedata
+        // Load custom savedata
+        if (extHeader->sizeBytes > 0) {
+            custom_data_list_set(namespace, ptr, extHeader->sizeBytes);
+        }
 
         ptr += extHeader->sizeBytes;
     }
@@ -219,8 +338,8 @@ void recomp_savedata_load(RecompFlashData *flash) {
                 // No room left in the bitstring. Drop the orphaned data to prioritize the current mod list
                 const char *namespaceName;
                 reasset_namespace_lookup_name(namespace, &namespaceName);
-                recomp_eprintf("Dropping orphaned bitstring region %s:%d. The bitstring is full.\n",
-                    namespaceName, region->bitstring);
+                recomp_eprintf("Dropping orphaned bitstring region %s:%d. The bitstring is full. Savefile slot: %d\n",
+                    namespaceName, region->bitstring, slotno);
                 continue;
             }
         }
@@ -238,7 +357,7 @@ void recomp_savedata_load(RecompFlashData *flash) {
     }
 
     if (ptr > flashEndPtr) {
-        recomp_eprintf("Overflow when reading recomp savedata! Savefile may be corrupt.");
+        recomp_eprintf("Overflow when reading recomp savedata! Savefile slot %d may be corrupt.", slotno);
     }
 
     // Clean up
@@ -249,5 +368,34 @@ void recomp_savedata_load(RecompFlashData *flash) {
         recomp_free(extNamespaces);
     }
 
-    recomp_printf("Loaded recomp savedata.\n");
+    recomp_printf("Loaded recomp savedata from slot %d.\n", slotno);
+    recomp_savedata_on_loaded(slotno);
+}
+
+static void validate_extension_name(const char *name) {
+    // Must match reasset namespace name requirements
+    s32 nameLen = strlen(name);
+    if (nameLen <= 0 || nameLen > 16) {
+        recomp_exit_with_error(recomp_sprintf_helper(
+            "Invalid recomp savedata extension name: \"%s\". Extension names must be at least one character long and less than or equal to 16 characters long.",
+            name));
+    }
+}
+
+RECOMP_EXPORT void recomp_savedata_set_custom_data(const char *extensionName, void *data, u32 sizeBytes) {
+    validate_extension_name(extensionName);
+    if (!bInitialized) {
+        recomp_exit_with_error("Cannot call recomp_savedata_set_custom_data before a savegame has been loaded!");
+    }
+
+    custom_data_list_set(reasset_namespace(extensionName), data, sizeBytes);
+}
+
+RECOMP_EXPORT int recomp_savedata_get_custom_data(const char *extensionName, void **outData, u32 *outSizeBytes) {
+    validate_extension_name(extensionName);
+    if (!bInitialized) {
+        recomp_exit_with_error("Cannot call recomp_savedata_get_custom_data before a savegame has been loaded!");
+    }
+
+    return custom_data_list_get(reasset_namespace(extensionName), outData, outSizeBytes) ? 1 : 0;
 }

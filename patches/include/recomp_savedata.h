@@ -51,5 +51,5 @@ typedef struct {
     };
 } RecompFlashData;
 
-void recomp_savedata_save(RecompFlashData *flash);
-void recomp_savedata_load(RecompFlashData *flash);
+void recomp_savedata_save(RecompFlashData *flash, s32 slotno);
+void recomp_savedata_load(RecompFlashData *flash, s32 slotno);

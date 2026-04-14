@@ -93,7 +93,7 @@ RECOMP_PATCH s32 gplay_load_save(s8 idx, u8 startGame) {
 
             // @recomp: Load recomp savedata
             if (ret != 0) {
-                recomp_savedata_load((RecompFlashData*)sSavegame);
+                recomp_savedata_load((RecompFlashData*)sSavegame, sSavegameIdx);
             }
         } else {
             // @recomp: Zero out recomp data when loading from SAVEGAME.bin
@@ -126,7 +126,7 @@ RECOMP_PATCH void gplay_save_game(void) {
         bcopy(&sState.save.file, &sSavegame->asSave.file, sizeof(Savefile));
 
         // @recomp: Write recomp savedata
-        recomp_savedata_save((RecompFlashData*)sSavegame);
+        recomp_savedata_save((RecompFlashData*)sSavegame, sSavegameIdx);
 
         // Alternate save location in flash every time the gamesave is saved
         //

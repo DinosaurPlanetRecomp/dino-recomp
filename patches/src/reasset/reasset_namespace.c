@@ -61,7 +61,8 @@ _Bool reasset_namespace_lookup_name(ReAssetNamespace namespace, const char **out
 RECOMP_EXPORT ReAssetNamespace reasset_namespace(const char *name) {
     s32 nameLen = strlen(name);
     reasset_assert(nameLen > 0 && nameLen <= 16,
-        "[reasset:reasset_namespace] Invalid namespace name: \"%s\". Namespace names must be at least one character long and less than or equal to 16 characters long.");
+        "[reasset:reasset_namespace] Invalid namespace name: \"%s\". Namespace names must be at least one character long and less than or equal to 16 characters long.",
+        name);
 
     return namespace_get_or_add(name, /*outData=*/NULL);
 }

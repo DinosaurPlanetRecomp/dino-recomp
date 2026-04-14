@@ -25,11 +25,11 @@
 #include "libc/string.h"
 #include "sys/fs.h"
 
-RECOMP_DECLARE_EVENT(reasset_on_fst_set());
-RECOMP_DECLARE_EVENT(reasset_on_set());
-RECOMP_DECLARE_EVENT(reasset_on_modify());
-RECOMP_DECLARE_EVENT(reasset_on_resolve());
-RECOMP_DECLARE_EVENT(reasset_on_committed());
+RECOMP_DECLARE_EVENT(reasset_on_fst_set(void));
+RECOMP_DECLARE_EVENT(reasset_on_set(void));
+RECOMP_DECLARE_EVENT(reasset_on_modify(void));
+RECOMP_DECLARE_EVENT(reasset_on_resolve(void));
+RECOMP_DECLARE_EVENT(reasset_on_committed(void));
 
 ReAssetStage reassetStage = REASSET_STAGE_UNINITIALIZED;
 
