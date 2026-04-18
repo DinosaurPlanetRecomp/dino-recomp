@@ -52,7 +52,7 @@ void reasset_fst_rebuild(void) {
 }
 
 void reasset_fst_set_internal(s32 fileID, void *data, u32 size, _Bool ownedByReAsset) {
-    reasset_assert(fileID >= 0 && fileID < NUM_FILES, "[reasset] File ID out of bounds: %d", fileID);
+    reasset_assert(fileID >= 0 && fileID < NUM_FILES, "[reasset:fst_set] File ID out of bounds: %d", fileID);
 
     FstExtEntry *replacement = &fstReplacements[fileID];
     if (replacement->data != NULL && replacement->ownedByReAsset) {
@@ -67,12 +67,26 @@ void reasset_fst_set_internal(s32 fileID, void *data, u32 size, _Bool ownedByReA
 }
 
 RECOMP_EXPORT void reasset_fst_set(s32 fileID, const void *data, u32 size) {
+    void *copy = NULL;
+    if (size > 0) {
+        copy = recomp_alloc(size);
+        bcopy(data, copy, size);
+    }
+
+    reasset_fst_set_internal(fileID, copy, size, /*ownedByReAsset=*/TRUE);
+
+    reasset_log("[reasset] Set FST file replacement for %s.\n", DINO_FS_FILENAMES[fileID]);
+}
+
+RECOMP_EXPORT void reasset_fst_set_static(s32 fileID, const void *data, u32 size) {
     reasset_fst_set_internal(fileID, (void*)data, size, /*ownedByReAsset=*/FALSE);
 
     reasset_log("[reasset] Set FST file replacement for %s.\n", DINO_FS_FILENAMES[fileID]);
 }
 
-u32 reasset_fst_get_file_size(s32 fileID) {
+RECOMP_EXPORT u32 reasset_fst_get_file_size(s32 fileID) {
+    reasset_assert(fileID >= 0 && fileID < NUM_FILES, "[reasset:fst_get_file_size] File ID out of bounds: %d", fileID);
+
     FstExtEntry *replacement = &fstReplacements[fileID];
     if (replacement->data != NULL) {
         return replacement->size;
@@ -81,7 +95,9 @@ u32 reasset_fst_get_file_size(s32 fileID) {
     }
 }
 
-void reasset_fst_read_from_file(s32 fileID, void *dst, u32 offset, u32 size) {
+RECOMP_EXPORT void reasset_fst_read_from_file(s32 fileID, void *dst, u32 offset, u32 size) {
+    reasset_assert(fileID >= 0 && fileID < NUM_FILES, "[reasset:fst_read_from_file] File ID out of bounds: %d", fileID);
+
     FstExtEntry *replacement = &fstReplacements[fileID];
 
     // Do bounds check
@@ -100,7 +116,7 @@ void reasset_fst_read_from_file(s32 fileID, void *dst, u32 offset, u32 size) {
     }
     if (!(*((s32*)&offset) >= 0 && offset < fileSize && (*((s32*)&offset) + size) >= 0 && (offset + size) <= fileSize)) {
         reasset_log_error(
-            "[reasset] fst_ext_read_from_file(%s, %p, 0x%X, 0x%X) out of bounds read! file size: 0x%X\n", 
+            "[reasset] reasset_fst_read_from_file(%s, %p, 0x%X, 0x%X) out of bounds read! file size: 0x%X\n", 
             DINO_FS_FILENAMES[fileID], dst, offset, size, fileSize);
     }
 
