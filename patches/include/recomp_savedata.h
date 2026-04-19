@@ -16,6 +16,12 @@ typedef struct {
     u16 endOffset;
 } RecompSaveBitstring;
 
+typedef struct {
+    s16 resolvedIdentifier;
+    u8 extension; // identifies namespace
+    s32 localID;  // namespaced ID
+} RecompSaveMusicActionLink;
+
 // size: 0x10
 typedef struct {
 /*00*/ char magic[2]; // must be 'RC'

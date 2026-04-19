@@ -114,6 +114,10 @@ void reasset_music_actions_cleanup(void) {
     recomputil_destroy_u32_value_hashmap(mActionMap);
 }
 
+_Bool reasset_music_actions_is_base_id(s32 id) {
+    return id >= 0 && id < mActionOriginalCount;
+}
+
 RECOMP_EXPORT void reasset_music_actions_set(ReAssetID id, ReAssetNamespace owner, const void *data) {
     reasset_assert_stage_set_call("reasset_music_actions_set");
 

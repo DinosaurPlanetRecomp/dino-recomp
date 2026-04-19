@@ -2,16 +2,22 @@
 #include "recomp_funcs.h"
 #include "recompdata.h"
 #include "recomp_savedata.h"
+#include "reasset/reasset_id.h"
 #include "reasset/reasset_namespace.h"
+#include "reasset/reasset_resolve_map.h"
 #include "reasset/files/reasset_bits.h"
+#include "reasset/files/reasset_music_actions.h"
 #include "reasset/list.h"
+#include "reasset/iterable_set.h"
 
 #include "PR/ultratypes.h"
+#include "PR/os.h"
 #include "libc/string.h"
 #include "dlls/engine/29_gplay.h"
 #include "sys/memory.h"
 #include "macros.h"
 
+RECOMP_DECLARE_EVENT(recomp_savedata_on_load(s32 slotno));
 RECOMP_DECLARE_EVENT(recomp_savedata_on_loaded(s32 slotno));
 RECOMP_DECLARE_EVENT(recomp_savedata_on_save(s32 slotno));
 RECOMP_DECLARE_EVENT(recomp_savedata_on_saved(s32 slotno));
@@ -27,11 +33,18 @@ typedef struct {
     u32 sizeBytes;
 } CustomSaveData;
 
+// Links a resolved identifier to its namespace:localID pair
+typedef struct {
+    s32 resolvedIdentifier;
+    ReAssetIDData *idData;
+} IDLink;
+
 static U32ValueHashmapHandle customDataMap; // ReAssetNamespace -> list idx
 static List customDataList; // list[CustomSaveData]
 static _Bool bInitialized = FALSE;
 
 static void extension_set_init(ExtensionSet *set) {
+    bzero(set, sizeof(ExtensionSet));
     u32list_init(&set->list, 0);
     set->map = recomputil_create_u32_value_hashmap();
 }
@@ -152,10 +165,10 @@ void recomp_savedata_save(RecompFlashData *flash, s32 slotno) {
     header->version = 1;
 
     // Determine extensions
-    ExtensionSet extensions = {0};
+    ExtensionSet extensions;
     extension_set_init(&extensions);
 
-    List packedBitNamespaces = {0};
+    List packedBitNamespaces;
     list_init(&packedBitNamespaces, sizeof(PackedBitRanges), 
         list_get_length(reasset_bits_get_packed_namespaces()) + list_get_length(reasset_bits_orphan_get_packed_namespaces()));
     list_add_range(&packedBitNamespaces, reasset_bits_get_packed_namespaces());
@@ -171,6 +184,28 @@ void recomp_savedata_save(RecompFlashData *flash, s32 slotno) {
     for (s32 i = 0; i < numCustomSaveDataEntries; i++) {
         CustomSaveData *customData = list_get(&customDataList, i);
         extension_set_add(&extensions, customData->namespace);
+    }
+
+    IterableSet mactionLinks;
+    iterable_set_init(&mactionLinks, sizeof(IDLink));
+    ReAssetResolveMap mactionResolveMap = reasset_music_actions_get_resolve_map();
+    for (s32 p = 0; p < 2; p++) {
+        PlayerMusicAction *pmactions = &flash->base.asSave.map.unk179C[p];
+        for (s32 i = 0; i < 4; i++) {
+            s32 actionNo = pmactions->actionNums[i];
+            if (actionNo <= 0) {
+                continue;
+            }
+
+            // Save info about custom music actions that are in use
+            ReAssetIDData *actionIDData;
+            if (reasset_resolve_map_id_data_of(mactionResolveMap, actionNo - 1, &actionIDData) 
+                    && actionIDData->namespace != REASSET_BASE_NAMESPACE) {
+                extension_set_add(&extensions, actionIDData->namespace);
+                IDLink link = { .resolvedIdentifier = actionNo - 1, .idData = actionIDData };
+                iterable_set_add(&mactionLinks, actionNo - 1, &link);
+            }
+        }
     }
 
     // Write extensions
@@ -230,11 +265,30 @@ void recomp_savedata_save(RecompFlashData *flash, s32 slotno) {
         }
     }
 
+    // Write music actions
+    List *mactionLinkList = iterable_set_get_list(&mactionLinks);
+    s32 numMActions = list_get_length(mactionLinkList);
+    header->numMusicActions = numMActions;
+    for (s32 i = 0; i < numMActions; i++) {
+        ptr = (u8*)mmAlign4((u32)ptr);
+
+        IDLink *link = list_get(mactionLinkList, i);
+        u32 extension = extension_set_lookup(&extensions, link->idData->namespace);
+        
+        RecompSaveMusicActionLink *saveLink = (RecompSaveMusicActionLink*)ptr;
+        saveLink->resolvedIdentifier = link->resolvedIdentifier;
+        saveLink->extension = (u8)extension;
+        saveLink->localID = link->idData->identifier;
+
+        ptr += sizeof(RecompSaveMusicActionLink);
+    }
+
     if (ptr > flashEndPtr) {
         recomp_eprintf("Overflow when writing recomp savedata! Savefile slot %d may be corrupt.", slotno);
     }
 
     // Clean up
+    iterable_set_free(&mactionLinks);
     extension_set_free(&extensions);
     list_free(&packedBitNamespaces);
 
@@ -244,6 +298,8 @@ void recomp_savedata_save(RecompFlashData *flash, s32 slotno) {
 
 void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
     if (!bInitialized) recomp_savedata_init();
+
+    recomp_savedata_on_load(slotno);
     
     // Reset custom data
     custom_data_list_clear();
@@ -356,11 +412,45 @@ void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
         }
     }
 
+    // Load music action IDs
+    ReAssetResolveMap mactionResolveMap = reasset_music_actions_get_resolve_map();
+    U32ValueHashmapHandle mactionMap = recomputil_create_u32_value_hashmap();
+    for (s32 i = 0; i < header->numMusicActions && ptr < flashEndPtr; i++) {
+        ptr = (u8*)mmAlign4((u32)ptr);
+
+        RecompSaveMusicActionLink *link = (RecompSaveMusicActionLink*)ptr;
+        ptr += sizeof(RecompSaveMusicActionLink);
+
+        ReAssetNamespace namespace = extNamespaces[link->extension];
+        ReAssetID assetID = reasset_id(namespace, link->localID);
+        
+        s32 newResolvedIdentifier = reasset_resolve_map_lookup(mactionResolveMap, assetID);
+        recomputil_u32_value_hashmap_insert(mactionMap, link->resolvedIdentifier, newResolvedIdentifier);
+    }
+    for (s32 p = 0; p < 2; p++) {
+        PlayerMusicAction *pmactions = &savegame->map.unk179C[p];
+        for (s32 i = 0; i < 4; i++) {
+            s32 actionNo = pmactions->actionNums[i];
+            if (actionNo <= 0 || reasset_music_actions_is_base_id(actionNo - 1)) {
+                continue;
+            }
+
+            // Remap to the new identifier of the original asset, if a mod is still providing it
+            s32 newResolvedIdentifier;
+            if (recomputil_u32_value_hashmap_get(mactionMap, actionNo - 1, (u32*)&newResolvedIdentifier)) {
+                pmactions->actionNums[i] = newResolvedIdentifier;
+            } else {
+                pmactions->actionNums[i] = -1;
+            }
+        }
+    }
+
     if (ptr > flashEndPtr) {
         recomp_eprintf("Overflow when reading recomp savedata! Savefile slot %d may be corrupt.", slotno);
     }
 
     // Clean up
+    recomputil_destroy_u32_value_hashmap(mactionMap);
     for (s32 i = 0; i < (s32)ARRAYCOUNT(bitstringSrc); i++) {
         recomp_free(bitstringSrc[i]);
     }

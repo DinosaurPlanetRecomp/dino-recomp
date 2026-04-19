@@ -196,8 +196,9 @@ void reasset_run(void) {
     reasset_iterator_clear_all(); // Previous iterators are no longer valid
     reasset_run_repack();
     reasset_run_patch();
-    reasset_fst_rebuild();
     reasset_on_resolve();
+
+    reasset_fst_rebuild();
 
     reasset_log("[reasset] == Committed ==\n");
     reassetStage = REASSET_STAGE_COMMITTED;

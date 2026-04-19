@@ -201,6 +201,21 @@ RECOMP_EXPORT ReAssetBool reasset_resolve_map_id_of(ReAssetResolveMap map, s32 r
     return FALSE;
 }
 
+ReAssetBool reasset_resolve_map_id_data_of(ReAssetResolveMap map, s32 resolvedIdentifier, ReAssetIDData **outIDData) {
+    ReAssetResolveMapData *data;
+    if (recomputil_memory_slotmap_get(sResolveMapSlotmap, map, (void**)&data)) {
+        ReAssetID id;
+        if (recomputil_u32_value_hashmap_get(data->reverseIDMap, resolvedIdentifier, &id)) {
+            if (outIDData != NULL) {
+                *outIDData = reasset_id_lookup_data(id);
+            }
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 RECOMP_EXPORT ReAssetIterator reasset_resolve_map_create_iterator(ReAssetResolveMap map) {
     ReAssetResolveMapData *data;
     if (recomputil_memory_slotmap_get(sResolveMapSlotmap, map, (void**)&data)) {
