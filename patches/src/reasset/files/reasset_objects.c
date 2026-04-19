@@ -9,6 +9,7 @@
 #include "reasset/reasset_fst.h"
 #include "reasset/reasset_iterator.h"
 #include "reasset/files/reasset_models.h"
+#include "reasset/files/reasset_sequences.h"
 #include "reasset/special/reasset_dlls.h"
 #include "reasset/buffer.h"
 #include "reasset/list.h"
@@ -262,6 +263,7 @@ void reasset_objects_repack(void) {
 
 void reasset_objects_patch(void) {
     ReAssetResolveMap modelResolveMap = reasset_models_get_resolve_map();
+    ReAssetResolveMap seqResolveMap = reasset_object_sequences_get_resolve_map();
 
     // Patch in resolved IDs
     s32 numObjects = list_get_length(&objectList);
@@ -322,6 +324,24 @@ void reasset_objects_patch(void) {
                     reasset_log_warning("[reasset] WARN: Failed to patch object (%s:%d) model[%d] 0x%X. Model was not defined!\n",
                         namespaceName, identifier, k, modelIdx);
                     modelList[k] = 0x3E9; // DummyObject model
+                }
+            }
+        }
+
+        // Patch seq IDs
+        if (object->numSequences > 0 && object->pSeq != 0) {
+            s16 *seqList = (s16*)((u8*)object + (u32)object->pSeq);
+
+            for (s32 k = 0; k < object->numSequences; k++) {
+                s16 seqID = seqList[k];
+
+                s32 resolvedSeqID = reasset_resolve_map_lookup(seqResolveMap, reasset_id(entry->owner, seqID));
+                if (resolvedSeqID != -1) {
+                    seqList[k] = resolvedSeqID;
+                } else if (!reasset_object_sequences_is_base_id(seqID)) {
+                    reasset_log_warning("[reasset] WARN: Failed to patch object (%s:%d) seq[%d] 0x%X. Object sequence was not defined!\n",
+                        namespaceName, identifier, k, seqID);
+                    seqList[k] = -1;
                 }
             }
         }

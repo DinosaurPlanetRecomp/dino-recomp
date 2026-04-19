@@ -559,6 +559,10 @@ RECOMP_EXPORT ReAssetResolveMap reasset_anim_curves_get_resolve_map(void) {
 
 // MARK: Object Sequences
 
+_Bool reasset_object_sequences_is_base_id(s32 id) {
+    return id >= 0 && id < seqsOriginalCount;
+}
+
 static void set_seq(ReAssetID id, ReAssetNamespace owner, ReAssetID map, _Bool hasMap, const void *data, u32 sizeBytes) {
     ObjSeqEntry *entry = get_or_create_seq(id);
     buffer_set(&entry->seq, data, sizeBytes);
