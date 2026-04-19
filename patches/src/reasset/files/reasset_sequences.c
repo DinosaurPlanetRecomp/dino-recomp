@@ -465,12 +465,12 @@ void reasset_sequences_patch(void) {
                 if (resolvedID != -1) {
                     actor->objectID = resolvedID;
                 } else if (!reasset_object_indices_is_base_id(actor->objectID)) {
-                    actor->objectID = 0;
                     const char *namespaceName;
                     s32 identifier;
                     reasset_id_lookup_name(seq->id, &namespaceName, &identifier);
                     reasset_log_warning("[reasset] WARN: Failed to patch sequence (%s:%d) actor %d object ID %d. Object index was not defined!",
                         namespaceName, identifier, actorIdx, actor->objectID);
+                    actor->objectID = 0;
                 }
             }
         }

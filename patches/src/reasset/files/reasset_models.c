@@ -483,6 +483,10 @@ void reasset_models_cleanup(void) {
 
 // MARK: Models
 
+_Bool reasset_models_is_base_id(s32 id) {
+    return id >= 0 && id < modelOriginalCount;
+}
+
 RECOMP_EXPORT void reasset_models_set(ReAssetID id, ReAssetNamespace owner, const void *data, u32 sizeBytes) {
     reasset_assert_stage_set_call("reasset_models_set");
 

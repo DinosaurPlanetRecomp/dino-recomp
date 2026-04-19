@@ -8,6 +8,7 @@
 #include "reasset/reasset_namespace.h"
 #include "reasset/reasset_fst.h"
 #include "reasset/reasset_iterator.h"
+#include "reasset/files/reasset_models.h"
 #include "reasset/special/reasset_dlls.h"
 #include "reasset/buffer.h"
 #include "reasset/list.h"
@@ -260,6 +261,8 @@ void reasset_objects_repack(void) {
 }
 
 void reasset_objects_patch(void) {
+    ReAssetResolveMap modelResolveMap = reasset_models_get_resolve_map();
+
     // Patch in resolved IDs
     s32 numObjects = list_get_length(&objectList);
     for (s32 i = 0; i < numObjects; i++) {
@@ -278,13 +281,49 @@ void reasset_objects_patch(void) {
         reasset_id_lookup_name(entry->id, &namespaceName, &identifier);
 
         // Patch DLL ID
-        s32 resolvedDLL = reasset_dlls_lookup(reasset_id(entry->owner, object->dllID));
-        if (resolvedDLL != -1) {
-            object->dllID = resolvedDLL;
-        } else if (!reasset_dlls_is_base_id(object->dllID)) {
-            object->dllID = 0;
-            reasset_log_warning("[reasset] WARN: Failed to patch object (%s:%d) DLL ID 0x%X. DLL was not defined!\n",
-                namespaceName, identifier, object->dllID);
+        if (object->dllID != 0) {
+            s32 resolvedDLL = reasset_dlls_lookup(reasset_id(entry->owner, object->dllID));
+            if (resolvedDLL != -1) {
+                object->dllID = resolvedDLL;
+            } else if (!reasset_dlls_is_base_id(object->dllID)) {
+                reasset_log_warning("[reasset] WARN: Failed to patch object (%s:%d) DLL ID 0x%X. DLL was not defined!\n",
+                    namespaceName, identifier, object->dllID);
+                object->dllID = 0;
+            }
+        }
+
+        // Patch collectable seq object IDs
+        if (object->collectableDef != 0) {
+            CollectableDef *collectableDef = (CollectableDef*)((u8*)object + (u32)object->collectableDef);
+            if (collectableDef->seqObjectID != -1) {
+                s32 resolvedObjID = reasset_resolve_map_lookup(objectIndexResolveMap, 
+                    reasset_id(entry->owner, collectableDef->seqObjectID));
+                if (resolvedObjID != -1) {
+                    collectableDef->seqObjectID = resolvedObjID;
+                } else if (collectableDef->seqObjectID >= objectIndexOriginalCount) { // if not base ID
+                    reasset_log_warning("[reasset] WARN: Failed to patch object (%s:%d) collectable def seq obj 0x%X. Object was not defined!\n",
+                        namespaceName, identifier, collectableDef->seqObjectID);
+                    collectableDef->seqObjectID = 0; // DummyObject
+                }
+            }
+        }
+
+        // Patch model IDs
+        if (object->numModels > 0 && object->pModelList != 0) {
+            u32 *modelList = (u32*)((u8*)object + (u32)object->pModelList);
+
+            for (s32 k = 0; k < object->numModels; k++) {
+                u32 modelIdx = modelList[k];
+
+                s32 resolvedModelIdx = reasset_resolve_map_lookup(modelResolveMap, reasset_id(entry->owner, modelIdx));
+                if (resolvedModelIdx != -1) {
+                    modelList[k] = resolvedModelIdx;
+                } else if (!reasset_models_is_base_id(modelIdx)) {
+                    reasset_log_warning("[reasset] WARN: Failed to patch object (%s:%d) model[%d] 0x%X. Model was not defined!\n",
+                        namespaceName, identifier, k, modelIdx);
+                    modelList[k] = 0x3E9; // DummyObject model
+                }
+            }
         }
 
         // TODO: many other things to patch...
