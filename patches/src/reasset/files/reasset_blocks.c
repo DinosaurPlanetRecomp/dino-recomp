@@ -701,7 +701,7 @@ RECOMP_EXPORT void reasset_hits_set(ReAssetID trkblkID, ReAssetID blockID, ReAss
 
     TrkBlkEntry *trkblk = get_or_create_trkblk(trkblkID);
 
-    BlockEntry *block = get_or_create_block(trkblk, id);
+    BlockEntry *block = get_or_create_block(trkblk, blockID);
 
     HitEntry *entry = get_or_create_hit(block, id);
     buffer_set(&entry->hit, data, sizeof(HitsLine));
@@ -721,6 +721,35 @@ RECOMP_EXPORT void reasset_hits_set(ReAssetID trkblkID, ReAssetID blockID, ReAss
         trkblkNamespaceName, trkblkIdentifier,
         blockNamespaceName, blockIdentifier,
         namespaceName, identifier);
+}
+
+RECOMP_EXPORT void reasset_hits_set_bulk(ReAssetID trkblkID, ReAssetID blockID, ReAssetNamespace owner, ReAssetID *idArray, const void **dataArray, s32 count) {
+    reasset_assert_stage_set_call("reasset_hits_set");
+
+    TrkBlkEntry *trkblk = get_or_create_trkblk(trkblkID);
+
+    BlockEntry *block = get_or_create_block(trkblk, blockID);
+
+    for (s32 i = 0; i < count; i++) {
+        ReAssetID id = idArray[i];
+        const void *data = dataArray[i];
+
+        HitEntry *entry = get_or_create_hit(block, id);
+        buffer_set(&entry->hit, data, sizeof(HitsLine));
+        entry->owner = owner;
+        entry->delete = FALSE;
+    }
+
+    const char *trkblkNamespaceName;
+    s32 trkblkIdentifier;
+    reasset_id_lookup_name(trkblkID, &trkblkNamespaceName, &trkblkIdentifier);
+    const char *blockNamespaceName;
+    s32 blockIdentifier;
+    reasset_id_lookup_name(blockID, &blockNamespaceName, &blockIdentifier);
+    reasset_log("[reasset] Hit bulk set for %s:%d[%s:%d] (%d entries)\n", 
+        trkblkNamespaceName, trkblkIdentifier,
+        blockNamespaceName, blockIdentifier,
+        count);
 }
 
 RECOMP_EXPORT void* reasset_hits_get(ReAssetID trkblkID, ReAssetID blockID, ReAssetID id) {
