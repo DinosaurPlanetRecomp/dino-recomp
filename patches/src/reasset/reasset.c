@@ -25,9 +25,13 @@
 #include "libc/string.h"
 #include "sys/fs.h"
 
+RECOMP_DECLARE_EVENT(reasset_on_init(void));
 RECOMP_DECLARE_EVENT(reasset_on_fst_set(void));
+RECOMP_DECLARE_EVENT(reasset_on_fst_set_low_priority(void));
 RECOMP_DECLARE_EVENT(reasset_on_set(void));
+RECOMP_DECLARE_EVENT(reasset_on_set_low_priority(void));
 RECOMP_DECLARE_EVENT(reasset_on_modify(void));
+RECOMP_DECLARE_EVENT(reasset_on_modify_low_priority(void));
 RECOMP_DECLARE_EVENT(reasset_on_resolve(void));
 RECOMP_DECLARE_EVENT(reasset_on_committed(void));
 
@@ -176,22 +180,26 @@ void reasset_run(void) {
     reasset_resolve_map_init();
 
     reasset_fst_init();
+    reasset_on_init();
 
     reasset_log("[reasset] == FST Set ==\n");
     reassetStage = REASSET_STAGE_FST_SET;
+    reasset_on_fst_set_low_priority();
     reasset_on_fst_set();
 
     reasset_run_init();
 
     reasset_log("[reasset] == Set ==\n");
     reassetStage = REASSET_STAGE_SET;
+    reasset_on_set_low_priority();
     reasset_on_set();
 
     reasset_log("[reasset] == Modify ==\n");
     reassetStage = REASSET_STAGE_MODIFY;
+    reasset_on_modify_low_priority();
     reasset_on_modify();
 
-    reasset_log("[reasset] == Resolve ==\n"); // TODO: rename to patch stage?
+    reasset_log("[reasset] == Resolve ==\n");
     reassetStage = REASSET_STAGE_RESOLVE;
     reasset_iterator_clear_all(); // Previous iterators are no longer valid
     reasset_run_repack();
@@ -223,8 +231,8 @@ void reasset_assert_stage_delete_call(const char *functionName) {
 }
 
 void reasset_assert_stage_iterator_call(const char *functionName) {
-    reasset_assert(reassetStage == REASSET_STAGE_MODIFY, 
-        "[reasset] %s can only be called during the modify stage.", functionName);
+    reasset_assert(reassetStage == REASSET_STAGE_MODIFY || reassetStage == REASSET_STAGE_RESOLVE, 
+        "[reasset] %s can only be called during the modify and resolve stages.", functionName);
 }
 
 void reasset_assert_stage_link_call(const char *functionName) {
