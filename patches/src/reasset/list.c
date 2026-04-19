@@ -15,6 +15,8 @@ void list_init(List *list, s32 elementSize, s32 initialCapacity) {
     reasset_assert(list != NULL, "[reasset:list_init] List cannot be null!");
     reasset_assert(initialCapacity >= 0, "[reasset:list_init] Capacity cannot be negative!");
 
+    bzero(list, sizeof(List));
+
     if (initialCapacity > 0) {
         list->data = recomp_alloc(elementSize * initialCapacity);
         reasset_assert(list->data != NULL, "[reasset:list_init] List data alloc failed!");
@@ -181,6 +183,8 @@ void ptrlist_init(PtrList *list, s32 initialCapacity) {
     reasset_assert(list != NULL, "[reasset:ptrlist_init] List cannot be null!");
     reasset_assert(initialCapacity >= 0, "[reasset:ptrlist_init] Capacity cannot be negative!");
 
+    bzero(list, sizeof(PtrList));
+
     if (initialCapacity > 0) {
         list->data = recomp_alloc(sizeof(void*) * initialCapacity);
         reasset_assert(list->data != NULL, "[reasset:ptrlist_init] List data alloc failed!");
@@ -325,6 +329,8 @@ void* ptrlist_get(PtrList *list, s32 idx) {
 void u32list_init(U32List *list, s32 initialCapacity) {
     reasset_assert(list != NULL, "[reasset:u32list_init] List cannot be null!");
     reasset_assert(initialCapacity >= 0, "[reasset:u32list_init] Capacity cannot be negative!");
+
+    bzero(list, sizeof(U32List));
 
     if (initialCapacity > 0) {
         list->data = recomp_alloc(sizeof(u32) * initialCapacity);

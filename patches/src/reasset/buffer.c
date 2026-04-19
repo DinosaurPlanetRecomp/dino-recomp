@@ -17,6 +17,8 @@ void buffer_init(Buffer *buffer, u32 initialCapacity) {
     reasset_assert(buffer != NULL, "[reasset:buffer_init] Buffer cannot be null!");
     reasset_assert(buffer->ptr == NULL, "[reasset:buffer_init] Buffer is already initialized!");
 
+    bzero(buffer, sizeof(Buffer));
+
     if (initialCapacity > 0) {
         buffer->ptr = recomp_alloc(initialCapacity);
     } else {
