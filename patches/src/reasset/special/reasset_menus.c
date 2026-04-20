@@ -57,7 +57,7 @@ void reasset_menus_repack(void) {
     // Finalize resolve map
     reasset_resolve_map_finalize(menuResolveMap);
 
-    reasset_log("[reasset] Registered %d new menus.\n", newCount);
+    reasset_log_info("[reasset] Registered %d new menus.\n", newCount);
 }
 
 void reasset_menus_patch(void) {
@@ -108,7 +108,7 @@ RECOMP_EXPORT void reasset_menus_set(ReAssetID id, ReAssetID dll) {
 
     const char *namespaceName;
     reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log("[reasset] Menu set: %s:%d\n", namespaceName, idData->identifier);
+    reasset_log_debug("[reasset] Menu set: %s:%d\n", namespaceName, idData->identifier);
 }
 
 RECOMP_EXPORT void reasset_menus_link(ReAssetID id, ReAssetID externID) {

@@ -105,7 +105,7 @@ void reasset_music_actions_repack(void) {
 
     // Set new file
     reasset_fst_set_internal(MUSICACTIONS_BIN, newActions, newCount * sizeof(MusicAction), /*ownedByReAsset=*/TRUE);
-    reasset_log("[reasset] Rebuilt MUSICACTIONS.bin (count: %d).\n", newCount);
+    reasset_log_info("[reasset] Rebuilt MUSICACTIONS.bin (count: %d).\n", newCount);
 }
 
 void reasset_music_actions_cleanup(void) {
@@ -128,7 +128,7 @@ RECOMP_EXPORT void reasset_music_actions_set(ReAssetID id, ReAssetNamespace owne
     ReAssetIDData *idData = reasset_id_lookup_data(id);
     const char *namespaceName;
     reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log("[reasset] Music action set: %s:%d\n", namespaceName, idData->identifier);
+    reasset_log_debug("[reasset] Music action set: %s:%d\n", namespaceName, idData->identifier);
 }
 
 RECOMP_EXPORT void* reasset_music_actions_get(ReAssetID id) {

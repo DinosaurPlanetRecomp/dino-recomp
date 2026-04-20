@@ -139,3 +139,8 @@
     flex-direction: row;
 }
 
+.config__tip {
+    @extend %label-xs;
+    margin: space(16) space(28);
+    color: $color-primary;
+}

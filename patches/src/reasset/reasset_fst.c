@@ -35,7 +35,7 @@ void reasset_fst_rebuild(void) {
         FstExtEntry *replacement = &fstReplacements[i];
         gFST->offsets[i] = offset;
 
-        //reasset_log("[reasset] %04x -> %s.\n", (s32)&__file1Address + offset, DINO_FS_FILENAMES[i]);
+        //reasset_log_debug("[reasset] %04x -> %s.\n", (s32)&__file1Address + offset, DINO_FS_FILENAMES[i]);
 
         if (replacement->data != NULL) {
             offset += replacement->size;
@@ -48,7 +48,7 @@ void reasset_fst_rebuild(void) {
 
     gFST->offsets[i] = offset;
 
-    reasset_log("[reasset] Rebuilt FS.tab.\n");
+    reasset_log_info("[reasset] Rebuilt FS.tab.\n");
 }
 
 void reasset_fst_set_internal(s32 fileID, void *data, u32 size, _Bool ownedByReAsset) {
@@ -75,13 +75,13 @@ RECOMP_EXPORT void reasset_fst_set(s32 fileID, const void *data, u32 size) {
 
     reasset_fst_set_internal(fileID, copy, size, /*ownedByReAsset=*/TRUE);
 
-    reasset_log("[reasset] Set FST file replacement for %s.\n", DINO_FS_FILENAMES[fileID]);
+    reasset_log_debug("[reasset] Set FST file replacement for %s.\n", DINO_FS_FILENAMES[fileID]);
 }
 
 RECOMP_EXPORT void reasset_fst_set_static(s32 fileID, const void *data, u32 size) {
     reasset_fst_set_internal(fileID, (void*)data, size, /*ownedByReAsset=*/FALSE);
 
-    reasset_log("[reasset] Set FST file replacement for %s.\n", DINO_FS_FILENAMES[fileID]);
+    reasset_log_debug("[reasset] Set FST file replacement for %s.\n", DINO_FS_FILENAMES[fileID]);
 }
 
 RECOMP_EXPORT u32 reasset_fst_get_file_size(s32 fileID) {
@@ -126,7 +126,7 @@ RECOMP_EXPORT void reasset_fst_read_from_file(s32 fileID, void *dst, u32 offset,
     if (replacement->data != NULL) {
         // Read replacement file
         bcopy((u8*)replacement->data + offset, dst, size);
-        //reasset_log("[reasset] Reading from FST file replacement for %d.\n", fileID);
+        //reasset_log_debug("[reasset] Reading from FST file replacement for %d.\n", fileID);
     } else {
         // Read original ROM
         u32 fileOffset = originalFst->offsets[fileID];
@@ -174,7 +174,7 @@ s32 reasset_fst_audio_dma(void *dst, u32 romAddr, u32 size) {
         return FALSE;
     }
 
-    //reasset_log("[reasset] [AUDIO DMA] Reading from FST file replacement for %d. %x   %x\n", fileID, offset, size);
+    //reasset_log_debug("[reasset] [AUDIO DMA] Reading from FST file replacement for %d. %x   %x\n", fileID, offset, size);
 
     bcopy((u8*)replacement->data + offset, dst, size);
     return TRUE;

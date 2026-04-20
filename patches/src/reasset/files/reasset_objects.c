@@ -193,7 +193,7 @@ static void reasset_objects_repack_internal(void) {
 
             const char *namespaceName;
             reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-            reasset_log("[reasset] New object: %s:%d \"%s\"\n", 
+            reasset_log_debug("[reasset] New object: %s:%d \"%s\"\n", 
                 namespaceName, idData->identifier, name);
         }
 
@@ -216,7 +216,7 @@ static void reasset_objects_repack_internal(void) {
     // Set new files
     reasset_fst_set_internal(OBJECTS_TAB, newTab, newTabSize, /*ownedByReAsset=*/TRUE);
     reasset_fst_set_internal(OBJECTS_BIN, newBin, newBinSize, /*ownedByReAsset=*/TRUE);
-    reasset_log("[reasset] Rebuilt OBJECTS.tab & OBJECTS.bin (count: %d, bin size: 0x%X).\n", newCount, newBinSize);
+    reasset_log_info("[reasset] Rebuilt OBJECTS.tab & OBJECTS.bin (count: %d, bin size: 0x%X).\n", newCount, newBinSize);
 }
 
 static void reasset_objects_indices_repack_internal(void) {
@@ -237,7 +237,7 @@ static void reasset_objects_indices_repack_internal(void) {
         if (idData->namespace != REASSET_BASE_NAMESPACE) {
             const char *namespaceName;
             reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-            reasset_log("[reasset] New object index: %s:%d\n", 
+            reasset_log_debug("[reasset] New object index: %s:%d\n", 
                 namespaceName, idData->identifier);
         }
 
@@ -253,7 +253,7 @@ static void reasset_objects_indices_repack_internal(void) {
 
     // Set new files
     reasset_fst_set_internal(OBJINDEX_BIN, newBin, newIndexBinSize, /*ownedByReAsset=*/TRUE);
-    reasset_log("[reasset] Rebuilt OBJINDEX.bin (count: %d, bin size: 0x%X).\n", newCount, newIndexBinSize);
+    reasset_log_info("[reasset] Rebuilt OBJINDEX.bin (count: %d, bin size: 0x%X).\n", newCount, newIndexBinSize);
 }
 
 void reasset_objects_repack(void) {
@@ -405,7 +405,7 @@ RECOMP_EXPORT void reasset_objects_set(ReAssetID id, ReAssetNamespace owner, con
     ReAssetIDData *idData = reasset_id_lookup_data(id);
     const char *namespaceName;
     reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log("[reasset] Object set: %s:%d\n", namespaceName, idData->identifier);
+    reasset_log_debug("[reasset] Object set: %s:%d\n", namespaceName, idData->identifier);
 }
 
 RECOMP_EXPORT void* reasset_objects_get(ReAssetID id, u32 *outSizeBytes) {
@@ -459,7 +459,7 @@ RECOMP_EXPORT void reasset_object_indices_set(ReAssetID id, ReAssetID objID) {
     ReAssetIDData *idData = reasset_id_lookup_data(id);
     const char *namespaceName;
     reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log("[reasset] Object index set: %s:%d\n", namespaceName, idData->identifier);
+    reasset_log_debug("[reasset] Object index set: %s:%d\n", namespaceName, idData->identifier);
 }
 
 RECOMP_EXPORT ReAssetBool reasset_object_indices_get(ReAssetID id, ReAssetID *outObjID) {

@@ -9,6 +9,7 @@ DECLARE_FUNC(void, recomp_puts, const char* data, u32 size);
 DECLARE_FUNC(void, recomp_eputs, const char* data, u32 size);
 DECLARE_FUNC(s32, recomp_get_diprintf_enabled, void);
 DECLARE_FUNC(s32, recomp_get_debug_dll_logging_enabled, void);
+DECLARE_FUNC(s32, recomp_get_debug_reasset_loglevel, void);
 
 typedef enum {
     RECOMP_ASPECT_ORIGINAL,
@@ -28,6 +29,7 @@ DECLARE_FUNC(f32, recomp_get_aspect_ratio, void);
 DECLARE_FUNC(RecompHUDRatio, recomp_get_hud_ratio_mode, void);
 DECLARE_FUNC(int, recomp_get_refresh_rate, void);
 DECLARE_FUNC(f32, recomp_powf, f32, f32);
+DECLARE_FUNC(u32, recomp_time_us, void);
 DECLARE_FUNC(s32, recomp_get_60fps_enabled, void);
 DECLARE_FUNC(s32, recomp_get_bgm_volume, void);
 DECLARE_FUNC(s32, recomp_get_sfx_volume, void);

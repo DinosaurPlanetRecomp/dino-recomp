@@ -128,11 +128,12 @@ RECOMP_PATCH void block_load(s32 id, s32 param_2, s32 globalMapIdx, u8 queue) {
     block_load_hits(block, id, queue, (HitsLine*)mmAlign8(addr));
 
     // @recomp: Restore printf
-    s32 allocSize = ((s32*)gMapReadBuffer)[0];
-    s32 actualSize = addr - (u32)block;
-    if (actualSize != allocSize) {
-        recomp_eprintf("Blocksize error(1): %d should be %d\n", actualSize, allocSize);
-    }
+    // TODO: this trips for most blocks... is this calculation right?
+    // s32 allocSize = ((s32*)gMapReadBuffer)[0];
+    // s32 actualSize = addr - (u32)block;
+    // if (actualSize != allocSize) {
+    //     recomp_eprintf("Blocksize error(1): %d should be %d\n", actualSize, allocSize);
+    // }
 
     if (queue != 0) {
         queue_block_emplace(1, (u32* ) block, (u8*)id, param_2, globalMapIdx);

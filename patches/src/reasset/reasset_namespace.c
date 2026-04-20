@@ -31,7 +31,7 @@ static ReAssetNamespace namespace_get_or_add(const char *name, ReAssetNamespaceD
         // First time referencing this namespace, initialize it
         data->name = safeName;
 
-        reasset_log("[reasset] Namespace created: %s (%d)\n", safeName, namespace);
+        reasset_log_debug("[reasset] Namespace created: %s (%d)\n", safeName, namespace);
     }
 
     if (outData != NULL) {

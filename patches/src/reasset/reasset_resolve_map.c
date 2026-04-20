@@ -133,19 +133,20 @@ static _Bool resolve_id_internal(ReAssetResolveMapData *data, ReAssetID id, ReAs
     recomputil_u32_value_hashmap_insert(data->ownershipMap, resolvedIdentifier, owner);
     recomputil_u32_value_hashmap_insert(data->reverseIDMap, resolvedIdentifier, id);
 
-    // TODO: skip if logging is disabled
-    ReAssetIDData *idData = reasset_id_lookup_data_or_null(id);
-    if (idData != NULL && idData->namespace != REASSET_BASE_NAMESPACE && idData->identifier != -1) {
-        s32 identifier;
-        const char *namespaceName;
-        reasset_id_lookup_name(id, &namespaceName, &identifier);
-        const char *ownerName;
-        reasset_namespace_lookup_name(owner, &ownerName);
-        reasset_log("[reasset] Resolved %s %s:%d -> %d (owned by %s)\n", 
-            data->assetTypeName,
-            namespaceName, identifier,
-            resolvedIdentifier,
-            ownerName);
+    if (reasset_is_debug_logging_enabled()) {
+        ReAssetIDData *idData = reasset_id_lookup_data_or_null(id);
+        if (idData != NULL && idData->namespace != REASSET_BASE_NAMESPACE && idData->identifier != -1) {
+            s32 identifier;
+            const char *namespaceName;
+            reasset_id_lookup_name(id, &namespaceName, &identifier);
+            const char *ownerName;
+            reasset_namespace_lookup_name(owner, &ownerName);
+            reasset_log_debug("[reasset] Resolved %s %s:%d -> %d (owned by %s)\n", 
+                data->assetTypeName,
+                namespaceName, identifier,
+                resolvedIdentifier,
+                ownerName);
+        }
     }
 
     return created;

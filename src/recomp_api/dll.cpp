@@ -13,7 +13,7 @@ extern "C" void recomp_on_dll_load(uint8_t* rdram, recomp_context* ctx) {
 
     load_overlay_by_id(dllno - 1, ramAddr);
 
-    if (dino::config::get_debug_stdout_enabled() && dino::config::get_debug_dll_logging_enabled()) {
+    if (dino::config::get_debug_dll_logging_enabled()) {
         printf("Loaded DLL %u to address 0x%08X\n", dllno, ramAddr);
     }
 }
@@ -23,7 +23,7 @@ extern "C" void recomp_on_dll_unload(uint8_t* rdram, recomp_context* ctx) {
 
     unload_overlay_by_id(dllno - 1);
 
-    if (dino::config::get_debug_stdout_enabled() && dino::config::get_debug_dll_logging_enabled()) {
+    if (dino::config::get_debug_dll_logging_enabled()) {
         printf("Unloaded DLL %u\n", dllno);
     }
 }

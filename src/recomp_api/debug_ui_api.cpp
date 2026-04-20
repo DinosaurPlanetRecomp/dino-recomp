@@ -16,10 +16,6 @@ extern "C" void dbgui_is_open(uint8_t* rdram, recomp_context* ctx) {
     _return<s32>(ctx, dino::debug_ui::is_open());
 }
 
-extern "C" void dbgui_is_enabled(uint8_t* rdram, recomp_context* ctx) {
-    _return<s32>(ctx, dino::config::get_debug_ui_enabled());
-}
-
 extern "C" void dbgui_ui_frame_begin(uint8_t* rdram, recomp_context* ctx) {
     dino::debug_ui::ui_frame_begin();
 }
@@ -603,7 +599,6 @@ extern "C" void dbgui_foreground_rect_filled(uint8_t* rdram, recomp_context* ctx
 namespace dino::recomp_api {
     void register_debug_ui_exports() {
         REGISTER_EXPORT(dbgui_is_open);
-        REGISTER_EXPORT(dbgui_is_enabled);
         REGISTER_EXPORT(dbgui_begin);
         REGISTER_EXPORT(dbgui_end);
         REGISTER_EXPORT(dbgui_text);

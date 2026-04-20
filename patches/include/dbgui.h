@@ -49,7 +49,6 @@ DECLARE_FUNC(void, dbgui_end_combo);
 DECLARE_FUNC(s32, dbgui_selectable, const char *label, s32 selected);
 DECLARE_FUNC(s32, dbgui_button, const char *label);
 DECLARE_FUNC(s32, dbgui_is_open);
-DECLARE_FUNC(s32, dbgui_is_enabled);
 DECLARE_FUNC(s32, dbgui_begin_main_menu_bar);
 DECLARE_FUNC(void, dbgui_end_main_menu_bar);
 DECLARE_FUNC(s32, dbgui_begin_menu, const char *label);

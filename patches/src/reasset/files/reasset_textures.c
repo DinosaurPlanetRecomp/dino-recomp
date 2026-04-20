@@ -203,7 +203,7 @@ static void repack_textures_internal(void) {
             if (idData->namespace != REASSET_BASE_NAMESPACE) {
                 const char *namespaceName;
                 reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-                reasset_log("[reasset] New %s entry: %s:%d\n",
+                reasset_log_debug("[reasset] New %s entry: %s:%d\n",
                     bankNames[bank], 
                     namespaceName, idData->identifier);
             }
@@ -227,7 +227,7 @@ static void repack_textures_internal(void) {
         // Set new files
         reasset_fst_set_internal(tabIDs[bank], newTab, newTabSize, /*ownedByReAsset=*/TRUE);
         reasset_fst_set_internal(binIDs[bank], newBin, newBinSize, /*ownedByReAsset=*/TRUE);
-        reasset_log("[reasset] Rebuilt %s.tab & %s.bin (count: %d, bin size: 0x%X).\n", 
+        reasset_log_info("[reasset] Rebuilt %s.tab & %s.bin (count: %d, bin size: 0x%X).\n", 
             bankNames[bank], bankNames[bank], newCount, newBinSize);
     }
 }
@@ -250,7 +250,7 @@ static void repack_texture_table_internal(void) {
         if (idData->namespace != REASSET_BASE_NAMESPACE) {
             const char *namespaceName;
             reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-            reasset_log("[reasset] New texture table entry: %s:%d\n", 
+            reasset_log_debug("[reasset] New texture table entry: %s:%d\n", 
                 namespaceName, idData->identifier);
         }
 
@@ -268,7 +268,7 @@ static void repack_texture_table_internal(void) {
 
     // Set new files
     reasset_fst_set_internal(TEXTABLE_BIN, newBin, newBinSize, /*ownedByReAsset=*/TRUE);
-    reasset_log("[reasset] Rebuilt TEXTABLE.bin (count: %d, bin size: 0x%X).\n", newCount, newBinSize);
+    reasset_log_info("[reasset] Rebuilt TEXTABLE.bin (count: %d, bin size: 0x%X).\n", newCount, newBinSize);
 }
 
 void reasset_textures_repack(void) {
@@ -336,7 +336,7 @@ RECOMP_EXPORT void reasset_textures_set(TextureBank bank, ReAssetID id, s32 numF
     ReAssetIDData *idData = reasset_id_lookup_data(id);
     const char *namespaceName;
     reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log("[reasset] TEX%d set: %s:%d\n", bank, namespaceName, idData->identifier);
+    reasset_log_debug("[reasset] TEX%d set: %s:%d\n", bank, namespaceName, idData->identifier);
 }
 
 RECOMP_EXPORT void* reasset_textures_get(TextureBank bank, ReAssetID id, s32 *outNumFrames, u32 *outSizeBytes) {
@@ -405,7 +405,7 @@ RECOMP_EXPORT void reasset_texture_table_set(ReAssetID id, TextureBank bank, ReA
     ReAssetIDData *idData = reasset_id_lookup_data(id);
     const char *namespaceName;
     reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log("[reasset] Texture table entry set: %s:%d\n", namespaceName, idData->identifier);
+    reasset_log_debug("[reasset] Texture table entry set: %s:%d\n", namespaceName, idData->identifier);
 }
 
 RECOMP_EXPORT ReAssetBool reasset_texture_table_get(ReAssetID id, TextureBank *outBank, ReAssetID *outTexID) {

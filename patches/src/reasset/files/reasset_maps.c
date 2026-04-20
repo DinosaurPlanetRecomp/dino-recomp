@@ -321,7 +321,7 @@ void reasset_maps_repack(void) {
         if (idData->namespace != REASSET_BASE_NAMESPACE) {
             const char *namespaceName;
             reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-            reasset_log("[reasset] New map: %s:%d\n", namespaceName, idData->identifier);
+            reasset_log_debug("[reasset] New map: %s:%d\n", namespaceName, idData->identifier);
         }
 
         // Sort object setups
@@ -334,7 +334,7 @@ void reasset_maps_repack(void) {
                 ReAssetIDData *objIDData = reasset_id_lookup_data(objEntry->id);
                 const char *namespaceName;
                 reasset_namespace_lookup_name(objIDData->namespace, &namespaceName);
-                reasset_log("[reasset] Deleted map object %s:%d\n", 
+                reasset_log_debug("[reasset] Deleted map object %s:%d\n", 
                     namespaceName, objIDData->identifier);
                 continue;
             }
@@ -485,7 +485,7 @@ void reasset_maps_repack(void) {
     // Set new files
     reasset_fst_set_internal(MAPS_TAB, newTab, newTabSize, /*ownedByReAsset=*/TRUE);
     reasset_fst_set_internal(MAPS_BIN, newBin, newBinSize, /*ownedByReAsset=*/TRUE);
-    reasset_log("[reasset] Rebuilt MAPS.tab & MAPS.bin (count: %d, bin size: 0x%X).\n", newCount, newBinSize);
+    reasset_log_info("[reasset] Rebuilt MAPS.tab & MAPS.bin (count: %d, bin size: 0x%X).\n", newCount, newBinSize);
 
     // Clean up
     for (u32 i = 0; i < ARRAYCOUNT(objSetupLists); i++) {
@@ -606,7 +606,7 @@ static void log_map_set(ReAssetID id, const char *msg) {
     ReAssetIDData *idData = reasset_id_lookup_data(id);
     const char *namespaceName;
     reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log("[reasset] %s: %s:%d\n", msg, namespaceName, idData->identifier);
+    reasset_log_debug("[reasset] %s: %s:%d\n", msg, namespaceName, idData->identifier);
 }
 
 RECOMP_EXPORT void reasset_maps_set_header(ReAssetID id, const void *data) {
@@ -818,15 +818,17 @@ RECOMP_EXPORT void reasset_map_objects_set(ReAssetID mapID, ReAssetID id, const 
     objEntry->delete = FALSE;
 
     // Logging
-    ReAssetIDData *mapIDData = reasset_id_lookup_data(mapID);
-    ReAssetIDData *objIDData = reasset_id_lookup_data(id);
-    const char *mapNamespaceName;
-    reasset_namespace_lookup_name(mapIDData->namespace, &mapNamespaceName);
-    const char *objNamespaceName;
-    reasset_namespace_lookup_name(objIDData->namespace, &objNamespaceName);
-    reasset_log("[reasset] Map object set: %s:%d[%s:%d]\n", 
-        mapNamespaceName, mapIDData->identifier,
-        objNamespaceName, objIDData->identifier);
+    if (reasset_is_debug_logging_enabled()) {
+        ReAssetIDData *mapIDData = reasset_id_lookup_data(mapID);
+        ReAssetIDData *objIDData = reasset_id_lookup_data(id);
+        const char *mapNamespaceName;
+        reasset_namespace_lookup_name(mapIDData->namespace, &mapNamespaceName);
+        const char *objNamespaceName;
+        reasset_namespace_lookup_name(objIDData->namespace, &objNamespaceName);
+        reasset_log_debug("[reasset] Map object set: %s:%d[%s:%d]\n", 
+            mapNamespaceName, mapIDData->identifier,
+            objNamespaceName, objIDData->identifier);
+    }
 }
 
 RECOMP_EXPORT void* reasset_map_objects_get(ReAssetID mapID, ReAssetID id, u32 *outSizeBytes) {

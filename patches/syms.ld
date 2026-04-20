@@ -36,7 +36,7 @@ dbgui_end_child = 0x8F00007C;
 dbgui_checkbox = 0x8F000080;
 dbgui_input_int = 0x8F000084;
 dbgui_input_float = 0x8F000088;
-dbgui_is_enabled = 0x8F00008C;
+
 dbgui_color_float4_to_u32 = 0x8F000090;
 dbgui_foreground_text = 0x8F000094;
 dbgui_foreground_line = 0x8F000098;
@@ -120,3 +120,5 @@ recomputil_u32_hashset_contains = 0x8F00022C;
 recomputil_u32_hashset_insert = 0x8F000230;
 recomputil_u32_hashset_erase = 0x8F000234;
 recomputil_u32_hashset_size = 0x8F000238;
+recomp_get_debug_reasset_loglevel = 0x8F00023C;
+recomp_time_us = 0x8F000240;

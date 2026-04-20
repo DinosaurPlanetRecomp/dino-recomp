@@ -38,12 +38,6 @@ void dbgui_character_cheat_window(s32 *open) {
 }
 
 void dbgui_character_cheat_game_tick() {
-    if (!dbgui_is_enabled()) {
-        infinite_health = FALSE;
-        infinite_mana = FALSE;
-        return;
-    }
-    
     PlayerStats *char_stats = gDLL_29_Gplay->vtbl->get_player_stats();
 
     if (infinite_health) {

@@ -412,7 +412,7 @@ void reasset_blocks_repack(void) {
         ReAssetIDData *trkblkIDData = reasset_id_lookup_data(trkblkEntry->id);
 
         if (trkblkIDData->namespace != REASSET_BASE_NAMESPACE) {
-            reasset_log("[reasset] New trkblk entry: %s:%d\n", trkblkNamespace, trkblkIdentifier);
+            reasset_log_debug("[reasset] New trkblk entry: %s:%d\n", trkblkNamespace, trkblkIdentifier);
         }
 
         trkblkBin[trkblkIdx] = absoluteBlockIdx;
@@ -432,7 +432,7 @@ void reasset_blocks_repack(void) {
             ReAssetIDData *blockIDData = reasset_id_lookup_data(block->id);
 
             if (blockIDData->namespace != REASSET_BASE_NAMESPACE) {
-                reasset_log("[reasset] New block: %s:%d[%s:%d]\n", 
+                reasset_log_debug("[reasset] New block: %s:%d[%s:%d]\n", 
                     trkblkNamespace, trkblkIdentifier,
                     blockNamespace, blockIdentifier);
             }
@@ -460,7 +460,7 @@ void reasset_blocks_repack(void) {
                     const char *hitNamespace;
                     reasset_id_lookup_name(hit->id, &hitNamespace, &hitIdentifier);
 
-                    reasset_log("[reasset] Deleted hit %s:%d[%s:%d][%s:%d]\n", 
+                    reasset_log_debug("[reasset] Deleted hit %s:%d[%s:%d][%s:%d]\n", 
                         trkblkNamespace, trkblkIdentifier,
                         blockNamespace, blockIdentifier,
                         hitNamespace, hitIdentifier);
@@ -515,13 +515,13 @@ void reasset_blocks_repack(void) {
 
     // Set new files
     reasset_fst_set_internal(TRKBLK_BIN, trkblkBin, trkblkBinSize, /*ownedByReAsset=*/TRUE);
-    reasset_log("[reasset] Rebuilt TRKBLK.bin (count: %d).\n", newTrkblkCount);
+    reasset_log_info("[reasset] Rebuilt TRKBLK.bin (count: %d).\n", newTrkblkCount);
     reasset_fst_set_internal(BLOCKS_TAB, blocksTab, blocksTabSize, /*ownedByReAsset=*/TRUE);
     reasset_fst_set_internal(BLOCKS_BIN, blocksBin, blocksBinSize, /*ownedByReAsset=*/TRUE);
-    reasset_log("[reasset] Rebuilt BLOCKS.tab & BLOCKS.bin (count: %d, bin size: 0x%X).\n", totalNewBlocks, blocksBinSize);
+    reasset_log_info("[reasset] Rebuilt BLOCKS.tab & BLOCKS.bin (count: %d, bin size: 0x%X).\n", totalNewBlocks, blocksBinSize);
     reasset_fst_set_internal(HITS_TAB, hitsTab, hitsTabSize, /*ownedByReAsset=*/TRUE);
     reasset_fst_set_internal(HITS_BIN, hitsBin, hitsBinSize, /*ownedByReAsset=*/TRUE);
-    reasset_log("[reasset] Rebuilt HITS.tab & HITS.bin (count: %d, bin size: 0x%X).\n", totalNewBlocks, hitsBinSize);
+    reasset_log_info("[reasset] Rebuilt HITS.tab & HITS.bin (count: %d, bin size: 0x%X).\n", totalNewBlocks, hitsBinSize);
 }
 
 void reasset_blocks_patch(void) {
@@ -624,7 +624,7 @@ RECOMP_EXPORT void reasset_blocks_set(ReAssetID trkblkID, ReAssetID id, ReAssetN
     const char *namespaceName;
     s32 identifier;
     reasset_id_lookup_name(id, &namespaceName, &identifier);
-    reasset_log("[reasset] Block set: %s:%d[%s:%d]\n", 
+    reasset_log_debug("[reasset] Block set: %s:%d[%s:%d]\n", 
         trkblkNamespaceName, trkblkIdentifier,
         namespaceName, identifier);
 }
@@ -708,19 +708,21 @@ RECOMP_EXPORT void reasset_hits_set(ReAssetID trkblkID, ReAssetID blockID, ReAss
     entry->owner = owner;
     entry->delete = FALSE;
 
-    const char *trkblkNamespaceName;
-    s32 trkblkIdentifier;
-    reasset_id_lookup_name(trkblkID, &trkblkNamespaceName, &trkblkIdentifier);
-    const char *blockNamespaceName;
-    s32 blockIdentifier;
-    reasset_id_lookup_name(blockID, &blockNamespaceName, &blockIdentifier);
-    const char *namespaceName;
-    s32 identifier;
-    reasset_id_lookup_name(id, &namespaceName, &identifier);
-    reasset_log("[reasset] Hit set: %s:%d[%s:%d][%s:%d]\n", 
-        trkblkNamespaceName, trkblkIdentifier,
-        blockNamespaceName, blockIdentifier,
-        namespaceName, identifier);
+    if (reasset_is_debug_logging_enabled()) {
+        const char *trkblkNamespaceName;
+        s32 trkblkIdentifier;
+        reasset_id_lookup_name(trkblkID, &trkblkNamespaceName, &trkblkIdentifier);
+        const char *blockNamespaceName;
+        s32 blockIdentifier;
+        reasset_id_lookup_name(blockID, &blockNamespaceName, &blockIdentifier);
+        const char *namespaceName;
+        s32 identifier;
+        reasset_id_lookup_name(id, &namespaceName, &identifier);
+        reasset_log_debug("[reasset] Hit set: %s:%d[%s:%d][%s:%d]\n", 
+            trkblkNamespaceName, trkblkIdentifier,
+            blockNamespaceName, blockIdentifier,
+            namespaceName, identifier);
+    }
 }
 
 RECOMP_EXPORT void reasset_hits_set_bulk(ReAssetID trkblkID, ReAssetID blockID, ReAssetNamespace owner, ReAssetID *idArray, const void **dataArray, s32 count) {
@@ -746,7 +748,7 @@ RECOMP_EXPORT void reasset_hits_set_bulk(ReAssetID trkblkID, ReAssetID blockID, 
     const char *blockNamespaceName;
     s32 blockIdentifier;
     reasset_id_lookup_name(blockID, &blockNamespaceName, &blockIdentifier);
-    reasset_log("[reasset] Hit bulk set for %s:%d[%s:%d] (%d entries)\n", 
+    reasset_log_debug("[reasset] Hit bulk set for %s:%d[%s:%d] (%d entries)\n", 
         trkblkNamespaceName, trkblkIdentifier,
         blockNamespaceName, blockIdentifier,
         count);

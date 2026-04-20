@@ -22,6 +22,12 @@ void read_from_rom(u32 romAddr, u8* dst, s32 size);
 typedef int ReAssetBool;
 
 typedef enum {
+    REASSET_LOGLEVEL_WARNING = 0,
+    REASSET_LOGLEVEL_INFO = 1,
+    REASSET_LOGLEVEL_DEBUG = 2
+} ReAssetLogLevel;
+
+typedef enum {
     REASSET_STAGE_UNINITIALIZED,
     REASSET_STAGE_FST_SET,
     REASSET_STAGE_SET,
@@ -42,9 +48,12 @@ void reasset_assert_stage_iterator_call(const char *functionName);
 void reasset_assert_stage_link_call(const char *functionName);
 void reasset_assert_stage_get_resolve_map_call(const char *functionName);
 
+_Bool reasset_is_debug_logging_enabled(void);
+
 void reasset_assert(_Bool condition, const char *fmt, ...);
 void reasset_assert_no_exit(_Bool condition, const char *fmt, ...);
-void reasset_log(const char *fmt, ...);
+void reasset_log_debug(const char *fmt, ...);
+void reasset_log_info(const char *fmt, ...);
 void reasset_log_warning(const char *fmt, ...);
 void reasset_log_error(const char *fmt, ...);
 void reasset_error(const char *fmt, ...);

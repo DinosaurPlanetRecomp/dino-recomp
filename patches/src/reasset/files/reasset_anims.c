@@ -119,7 +119,7 @@ void reasset_anims_repack(void) {
         if (idData->namespace != REASSET_BASE_NAMESPACE) {
             const char *namespaceName;
             reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-            reasset_log("[reasset] New anim: %s:%d\n", 
+            reasset_log_debug("[reasset] New anim: %s:%d\n", 
                 namespaceName, idData->identifier);
         }
 
@@ -142,7 +142,7 @@ void reasset_anims_repack(void) {
     // Set new files
     reasset_fst_set_internal(ANIM_TAB, newTab, newTabSize, /*ownedByReAsset=*/TRUE);
     reasset_fst_set_internal(ANIM_BIN, newBin, newBinSize, /*ownedByReAsset=*/TRUE);
-    reasset_log("[reasset] Rebuilt ANIM.tab & ANIM.bin (count: %d, bin size: 0x%X).\n", newCount, newBinSize);
+    reasset_log_info("[reasset] Rebuilt ANIM.tab & ANIM.bin (count: %d, bin size: 0x%X).\n", newCount, newBinSize);
 }
 
 void reasset_anims_cleanup(void) {
@@ -161,7 +161,7 @@ RECOMP_EXPORT void reasset_anims_set(ReAssetID id, ReAssetNamespace owner, const
     ReAssetIDData *idData = reasset_id_lookup_data(id);
     const char *namespaceName;
     reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log("[reasset] Anim set: %s:%d\n", namespaceName, idData->identifier);
+    reasset_log_debug("[reasset] Anim set: %s:%d\n", namespaceName, idData->identifier);
 }
 
 RECOMP_EXPORT void* reasset_anims_get(ReAssetID id, u32 *outSizeBytes) {

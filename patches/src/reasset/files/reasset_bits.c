@@ -154,7 +154,7 @@ void reasset_bits_repack(void) {
             s32 identifier;
             const char *namespaceName;
             reasset_id_lookup_name(entry->id, &namespaceName, &identifier);
-            reasset_log("[reasset] New bit: %s:%d\n", namespaceName, identifier);
+            reasset_log_debug("[reasset] New bit: %s:%d\n", namespaceName, identifier);
 
             reasset_resolve_map_resolve_id(bitsResolveMap, entry->id, list->namespace, bittableIndex);
 
@@ -201,7 +201,7 @@ void reasset_bits_repack(void) {
 
     // Set new file
     reasset_fst_set_internal(BITTABLE_BIN, bittableBin, bittableBinSize, /*ownedByReAsset=*/TRUE);
-    reasset_log("[reasset] Rebuilt BITTABLE.bin (count: %d).\n", newBittableCount);
+    reasset_log_info("[reasset] Rebuilt BITTABLE.bin (count: %d).\n", newBittableCount);
 
     // Clean up
     recomp_free(bittableOriginal);

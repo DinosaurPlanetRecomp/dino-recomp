@@ -408,12 +408,12 @@ void reasset_sequences_repack(void) {
     // Set new files
     reasset_fst_set_internal(ANIMCURVES_BIN, animCurvesBin, animCurvesBinSize, /*ownedByReAsset=*/TRUE);
     reasset_fst_set_internal(ANIMCURVES_TAB, animCurvesTab, animCurvesTabSize, /*ownedByReAsset=*/TRUE);
-    reasset_log("[reasset] Rebuilt ANIMCURVES.tab & ANIMCURVES.bin (count: %d, bin size: 0x%X).\n", newCurveCount + newSeqCurveCount, animCurvesBinSize);
+    reasset_log_info("[reasset] Rebuilt ANIMCURVES.tab & ANIMCURVES.bin (count: %d, bin size: 0x%X).\n", newCurveCount + newSeqCurveCount, animCurvesBinSize);
     reasset_fst_set_internal(OBJSEQ_BIN, objSeqBin, objSeqBinSize, /*ownedByReAsset=*/TRUE);
     reasset_fst_set_internal(OBJSEQ_TAB, objSeqTab, objSeqTabSize, /*ownedByReAsset=*/TRUE);
-    reasset_log("[reasset] Rebuilt OBJSEQ.tab & OBJSEQ.bin (count: %d, bin size: 0x%X).\n", newSeqCount, objSeqBinSize);
+    reasset_log_info("[reasset] Rebuilt OBJSEQ.tab & OBJSEQ.bin (count: %d, bin size: 0x%X).\n", newSeqCount, objSeqBinSize);
     reasset_fst_set_internal(OBJSEQ2CURVE_TAB, objSeq2CurveTab, objSeq2CurveTabSize, /*ownedByReAsset=*/TRUE);
-    reasset_log("[reasset] Rebuilt OBJSEQ2CURVE.tab (count: %d).\n", newSeqCount);
+    reasset_log_info("[reasset] Rebuilt OBJSEQ2CURVE.tab (count: %d).\n", newSeqCount);
 }
 
 void reasset_sequences_patch(void) {
@@ -511,7 +511,7 @@ RECOMP_EXPORT void reasset_anim_curves_set(ReAssetID id, ReAssetNamespace owner,
     ReAssetIDData *idData = reasset_id_lookup_data(id);
     const char *namespaceName;
     reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log("[reasset] Anim curve set: %s:%d\n", namespaceName, idData->identifier);
+    reasset_log_debug("[reasset] Anim curve set: %s:%d\n", namespaceName, idData->identifier);
 }
 
 RECOMP_EXPORT void* reasset_anim_curves_get(ReAssetID id, s32 *outEventCount, u32 *outSizeBytes) {
@@ -573,7 +573,7 @@ static void set_seq(ReAssetID id, ReAssetNamespace owner, ReAssetID map, _Bool h
     ReAssetIDData *idData = reasset_id_lookup_data(id);
     const char *namespaceName;
     reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log("[reasset] Object sequence set: %s:%d\n", namespaceName, idData->identifier);
+    reasset_log_debug("[reasset] Object sequence set: %s:%d\n", namespaceName, idData->identifier);
 }
 
 RECOMP_EXPORT void reasset_object_sequences_set(ReAssetID id, ReAssetNamespace owner, const void *data, u32 sizeBytes) {
@@ -618,7 +618,7 @@ RECOMP_EXPORT void reasset_object_sequences_set_curve(ReAssetID id, s32 actor, s
     ReAssetIDData *idData = reasset_id_lookup_data(id);
     const char *namespaceName;
     reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log("[reasset] Object sequence curve set: %s:%d[%d]\n", 
+    reasset_log_debug("[reasset] Object sequence curve set: %s:%d[%d]\n", 
         namespaceName, idData->identifier, actor);
 }
 

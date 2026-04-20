@@ -174,6 +174,8 @@ static void reasset_run_cleanup(void) {
 }
 
 void reasset_run(void) {
+    u32 startTimeUs = recomp_time_us();
+
     reasset_namespace_init();
     reasset_id_init();
     reasset_iterator_init();
@@ -182,24 +184,24 @@ void reasset_run(void) {
     reasset_fst_init();
     reasset_on_init();
 
-    reasset_log("[reasset] == FST Set ==\n");
+    reasset_log_debug("[reasset] == FST Set ==\n");
     reassetStage = REASSET_STAGE_FST_SET;
     reasset_on_fst_set_low_priority();
     reasset_on_fst_set();
 
     reasset_run_init();
 
-    reasset_log("[reasset] == Set ==\n");
+    reasset_log_debug("[reasset] == Set ==\n");
     reassetStage = REASSET_STAGE_SET;
     reasset_on_set_low_priority();
     reasset_on_set();
 
-    reasset_log("[reasset] == Modify ==\n");
+    reasset_log_debug("[reasset] == Modify ==\n");
     reassetStage = REASSET_STAGE_MODIFY;
     reasset_on_modify_low_priority();
     reasset_on_modify();
 
-    reasset_log("[reasset] == Resolve ==\n");
+    reasset_log_debug("[reasset] == Resolve ==\n");
     reassetStage = REASSET_STAGE_RESOLVE;
     reasset_iterator_clear_all(); // Previous iterators are no longer valid
     reasset_run_repack();
@@ -208,11 +210,15 @@ void reasset_run(void) {
 
     reasset_fst_rebuild();
 
-    reasset_log("[reasset] == Committed ==\n");
+    reasset_log_debug("[reasset] == Committed ==\n");
     reassetStage = REASSET_STAGE_COMMITTED;
     reasset_on_committed();
 
     reasset_run_cleanup();
+
+    u32 endTimeUs = recomp_time_us();
+    u32 elapsedMs = (endTimeUs - startTimeUs) / 1000;
+    reasset_log_info("[reasset] Completed in %u milliseconds.\n", elapsedMs);
 }
 
 void reasset_assert_stage_set_call(const char *functionName) {
@@ -267,15 +273,28 @@ void reasset_assert_no_exit(_Bool condition, const char *fmt, ...) {
     va_end(args);
 }
 
-void reasset_log(const char *fmt, ...) {
+_Bool reasset_is_debug_logging_enabled(void) {
+    return recomp_get_debug_reasset_loglevel() >= REASSET_LOGLEVEL_DEBUG;
+}
+
+void reasset_log_debug(const char *fmt, ...) {
     va_list args;
 	va_start(args, fmt);
 
-    //TODO: debug logging option
-    //s32 enableDebugLogging = recomp_get_config_u32("logging") == DEBUG_LOGGING_ON;
-    //if (enableDebugLogging) {
+    if (recomp_get_debug_reasset_loglevel() >= REASSET_LOGLEVEL_DEBUG) {
         recomp_vprintf(fmt, args);
-    //}
+    }
+
+    va_end(args);
+}
+
+void reasset_log_info(const char *fmt, ...) {
+    va_list args;
+	va_start(args, fmt);
+
+    if (recomp_get_debug_reasset_loglevel() >= REASSET_LOGLEVEL_INFO) {
+        recomp_vprintf(fmt, args);
+    }
 
     va_end(args);
 }

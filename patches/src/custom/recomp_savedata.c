@@ -292,7 +292,7 @@ void recomp_savedata_save(RecompFlashData *flash, s32 slotno) {
     extension_set_free(&extensions);
     list_free(&packedBitNamespaces);
 
-    recomp_printf("Wrote recomp savedata (slot %d).\n", slotno);
+    //recomp_printf("Wrote recomp savedata (slot %d).\n", slotno);
     recomp_savedata_on_saved(slotno);
 }
 
@@ -311,7 +311,7 @@ void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
     RecompSaveDataHeader *header = &flash->recomp;
     if (header->magic[0] != 'R' || header->magic[1] != 'C') {
         // Missing or invalid recomp savedata
-        recomp_printf("Recomp savedata not found in slot %d (this is OK).\n", slotno);
+        //recomp_printf("Recomp savedata not found in slot %d (this is OK).\n", slotno);
         recomp_savedata_on_loaded(slotno);
         return;
     }
@@ -458,7 +458,7 @@ void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
         recomp_free(extNamespaces);
     }
 
-    recomp_printf("Loaded recomp savedata from slot %d.\n", slotno);
+    //recomp_printf("Loaded recomp savedata from slot %d.\n", slotno);
     recomp_savedata_on_loaded(slotno);
 }
 

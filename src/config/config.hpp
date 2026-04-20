@@ -101,15 +101,12 @@ namespace dino::config {
 
     void open_quit_game_prompt();
 
-    bool get_debug_ui_enabled();
-    void set_debug_ui_enabled(bool enabled);
-
-    bool get_debug_stdout_enabled();
-    void set_debug_stdout_enabled(bool enabled);
-
     bool get_debug_dll_logging_enabled();
     void set_debug_dll_logging_enabled(bool enabled);
 
     bool get_debug_diprintf_enabled();
     void set_debug_diprintf_enabled(bool enabled);
+
+    int get_debug_reasset_loglevel();
+    void set_debug_reasset_loglevel(int level);
 }

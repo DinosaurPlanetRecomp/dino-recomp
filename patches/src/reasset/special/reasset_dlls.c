@@ -60,7 +60,7 @@ void reasset_dlls_repack(void) {
     // Finalize resolve map
     reasset_resolve_map_finalize(dllResolveMap);
 
-    reasset_log("[reasset] Registered %d new DLLs.\n", newCount);
+    reasset_log_info("[reasset] Registered %d new DLLs.\n", newCount);
 }
 
 void reasset_dlls_cleanup(void) {
@@ -98,7 +98,7 @@ RECOMP_EXPORT void reasset_dlls_set(ReAssetID id, RecompDLLBank bank, u16 export
 
     const char *namespaceName;
     reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log("[reasset] DLL set: %s:%d\n", namespaceName, idData->identifier);
+    reasset_log_debug("[reasset] DLL set: %s:%d\n", namespaceName, idData->identifier);
 }
 
 RECOMP_EXPORT void reasset_dlls_link(ReAssetID id, ReAssetID externID) {

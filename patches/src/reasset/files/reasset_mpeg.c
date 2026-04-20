@@ -117,7 +117,7 @@ void reasset_mpeg_repack(void) {
         if (idData->namespace != REASSET_BASE_NAMESPACE) {
             const char *namespaceName;
             reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-            reasset_log("[reasset] New MPEG: %s:%d\n", 
+            reasset_log_debug("[reasset] New MPEG: %s:%d\n", 
                 namespaceName, idData->identifier);
         }
 
@@ -140,7 +140,7 @@ void reasset_mpeg_repack(void) {
     // Set new files
     reasset_fst_set_internal(MPEG_TAB, newTab, newTabSize, /*ownedByReAsset=*/TRUE);
     reasset_fst_set_internal(MPEG_BIN, newBin, newBinSize, /*ownedByReAsset=*/TRUE);
-    reasset_log("[reasset] Rebuilt MPEG.tab & MPEG.bin (count: %d, bin size: 0x%X).\n", newCount, newBinSize);
+    reasset_log_info("[reasset] Rebuilt MPEG.tab & MPEG.bin (count: %d, bin size: 0x%X).\n", newCount, newBinSize);
 }
 
 void reasset_mpeg_cleanup(void) {
@@ -158,7 +158,7 @@ RECOMP_EXPORT void reasset_mpeg_set(ReAssetID id, const void *data, u32 sizeByte
     ReAssetIDData *idData = reasset_id_lookup_data(id);
     const char *namespaceName;
     reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log("[reasset] MPEG set: %s:%d\n", namespaceName, idData->identifier);
+    reasset_log_debug("[reasset] MPEG set: %s:%d\n", namespaceName, idData->identifier);
 }
 
 RECOMP_EXPORT void* reasset_mpeg_get(ReAssetID id, u32 *outSizeBytes) {

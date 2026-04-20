@@ -3,149 +3,123 @@
     </head>
     <body>
         <form class="config__form">
+            <p class="config__tip">
+                Tip: The ImGui debug UI can be toggled in-game with the <b>F9</b> or <b>`</b>/<b>~</b> (backquote/tilde) key.
+            </p>
             <div class="config__hz-wrapper">
                 <!-- Options -->
                 <div class="config__wrapper" data-event-mouseout="set_cur_config_index(-1)">
-                    <!-- debug ui -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(0)" id="conf-general__Debug-UI">
-                        <label class="config-option__title">Debug UI</label>
-                        <div class="config-option__list">
-                            <input
-                                type="radio"
-                                data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(0)"
-                                name="debug_ui_enabled"
-                                data-checked="debug_ui_enabled"
-                                value="1"
-                                id="debug_ui_enabled_on"
-                                style="nav-up: #tab_debug; nav-down: #debug_stdout_enabled_on"
-                            />
-                            <label class="config-option__tab-label" for="debug_ui_enabled_on">On</label>
-
-                            <input
-                                type="radio"
-                                data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(0)"
-                                name="debug_ui_enabled"
-                                data-checked="debug_ui_enabled"
-                                value="0"
-                                id="debug_ui_enabled_off"
-                                style="nav-up: #tab_debug; nav-down: #debug_stdout_enabled_off"
-                            />
-                            <label class="config-option__tab-label" for="debug_ui_enabled_off">Off</label>
-                        </div>
-                    </div>
-
-                    <!-- debug stdout -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(1)" id="conf-general__Debug-Stdout">
-                        <label class="config-option__title">Standard Out Messages</label>
-                        <div class="config-option__list">
-                            <input
-                                type="radio"
-                                data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(1)"
-                                name="debug_stdout_enabled"
-                                data-checked="debug_stdout_enabled"
-                                value="1"
-                                id="debug_stdout_enabled_on"
-                                style="nav-up: #debug_ui_enabled_on; nav-down: #debug_dll_logging_enabled_on"
-                            />
-                            <label class="config-option__tab-label" for="debug_stdout_enabled_on">On</label>
-
-                            <input
-                                type="radio"
-                                data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(1)"
-                                name="debug_stdout_enabled"
-                                data-checked="debug_stdout_enabled"
-                                value="0"
-                                id="debug_stdout_enabled_off"
-                                style="nav-up: #debug_ui_enabled_off; nav-down: #debug_dll_logging_enabled_off"
-                            />
-                            <label class="config-option__tab-label" for="debug_stdout_enabled_off">Off</label>
-                        </div>
-                    </div>
-
                     <!-- debug dll logging -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(2)" id="conf-general__Debug-DllLogging">
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(0)" id="conf-general__Debug-DllLogging">
                         <label class="config-option__title">DLL Loader Logging</label>
                         <div class="config-option__list">
                             <input
                                 type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(2)"
+                                data-event-focus="set_cur_config_index(0)"
                                 name="debug_dll_logging_enabled"
                                 data-checked="debug_dll_logging_enabled"
                                 value="1"
                                 id="debug_dll_logging_enabled_on"
-                                style="nav-up: #debug_stdout_enabled_on; nav-down: #debug_diprintf_enabled_on"
-                                data-attrif-disabled="!debug_stdout_enabled"
+                                style="nav-up: #tab_debug; nav-down: #debug_reasset_loglevel_warning"
                             />
                             <label class="config-option__tab-label" for="debug_dll_logging_enabled_on">On</label>
 
                             <input
                                 type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(2)"
+                                data-event-focus="set_cur_config_index(0)"
                                 name="debug_dll_logging_enabled"
                                 data-checked="debug_dll_logging_enabled"
                                 value="0"
                                 id="debug_dll_logging_enabled_off"
-                                style="nav-up: #debug_stdout_enabled_off; nav-down: #debug_diprintf_enabled_off"
-                                data-attrif-disabled="!debug_stdout_enabled"
+                                style="nav-up: #tab_debug; nav-down: #debug_reasset_loglevel_info"
                             />
                             <label class="config-option__tab-label" for="debug_dll_logging_enabled_off">Off</label>
-                            <div class="config-option__details" data-if="!debug_stdout_enabled">Not available when stdout logging is disabled.</div>
                         </div>
                     </div>
 
-                    <!-- debug diprintf -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(3)" id="conf-general__Debug-Diprintf">
-                        <label class="config-option__title">In-Game Debug Interface</label>
+                    <!-- ReAsset logging -->
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(1)" id="conf-general__Debug-ReAssetLogging">
+                        <label class="config-option__title">ReAsset Logging</label>
                         <div class="config-option__list">
                             <input
                                 type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(3)"
-                                name="debug_diprintf_enabled"
-                                data-checked="debug_diprintf_enabled"
-                                value="1"
-                                id="debug_diprintf_enabled_on"
-                                style="nav-up: #debug_dll_logging_enabled_on;"
+                                data-event-focus="set_cur_config_index(1)"
+                                name="debug_reasset_loglevel"
+                                data-checked="debug_reasset_loglevel"
+                                value="0"
+                                id="debug_reasset_loglevel_warning"
+                                style="nav-up: #debug_dll_logging_enabled_on; nav-down: #debug_diprintf_enabled_on"
                             />
-                            <label class="config-option__tab-label" for="debug_diprintf_enabled_on">On</label>
+                            <label class="config-option__tab-label" for="debug_reasset_loglevel_warning">Errors/Warnings</label>
 
                             <input
                                 type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(3)"
+                                data-event-focus="set_cur_config_index(1)"
+                                name="debug_reasset_loglevel"
+                                data-checked="debug_reasset_loglevel"
+                                value="1"
+                                id="debug_reasset_loglevel_info"
+                                style="nav-up: #debug_dll_logging_enabled_off; nav-down: #debug_diprintf_enabled_off"
+                            />
+                            <label class="config-option__tab-label" for="debug_reasset_loglevel_info">Info</label>
+
+                            <input
+                                type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(1)"
+                                name="debug_reasset_loglevel"
+                                data-checked="debug_reasset_loglevel"
+                                value="2"
+                                id="debug_reasset_loglevel_debug"
+                                style="nav-up: #debug_dll_logging_enabled_off; nav-down: #debug_diprintf_enabled_off"
+                            />
+                            <label class="config-option__tab-label" for="debug_reasset_loglevel_debug">Debug</label>
+                        </div>
+                    </div>
+
+                    <!-- debug diprintf -->
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(2)" id="conf-general__Debug-Diprintf">
+                        <label class="config-option__title">diPrintf</label>
+                        <div class="config-option__list">
+                            <input
+                                type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(2)"
+                                name="debug_diprintf_enabled"
+                                data-checked="debug_diprintf_enabled"
+                                value="1"
+                                id="debug_diprintf_enabled_on"
+                                style="nav-up: #debug_reasset_loglevel_warning;"
+                            />
+                            <label class="config-option__tab-label" for="debug_diprintf_enabled_on">Enabled</label>
+
+                            <input
+                                type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(2)"
                                 name="debug_diprintf_enabled"
                                 data-checked="debug_diprintf_enabled"
                                 value="0"
                                 id="debug_diprintf_enabled_off"
-                                style="nav-up: #debug_dll_logging_enabled_off;"
+                                style="nav-up: #debug_reasset_loglevel_info;"
                             />
-                            <label class="config-option__tab-label" for="debug_diprintf_enabled_off">Off</label>
+                            <label class="config-option__tab-label" for="debug_diprintf_enabled_off">Disabled</label>
                         </div>
                     </div>
                 </div>
                 <!-- Descriptions -->
                 <div class="config__wrapper">
                     <p data-if="cur_config_index == 0">
-                        Enables use of the ImGui debug UI. When enabled, this UI can be toggled in-game with the <b>F9</b> or <b>`</b>/<b>~</b> (backquote/tilde) key.
+                        Whether debug messages from the game's DLL loader should be printed to stdout.
                     </p>
                     <p data-if="cur_config_index == 1">
-                        Whether debug messages from the game should be printed to stdout. 
-                        <i>May degrade performance when enabled.</i>
-                        <br/>
-                        <br/>
-                        Note: If disabled, <b>recomp_printf</b> will be turned off for mods.
+                        Determines which log messages from the ReAsset API should be printed to stdout.
                     </p>
                     <p data-if="cur_config_index == 2">
-                        Whether debug messages from the game's DLL loader should be printed to stdout.
-                        Implicitly disabled if stdout logging is disabled.
-                    </p>
-                    <p data-if="cur_config_index == 3">
                         Whether the game's own debug overlay (<b>diPrintf</b>) is enabled. The game uses this to display information onscreen in realtime in a handful of places.
                         Mods may also use this functionality.
                     </p>
