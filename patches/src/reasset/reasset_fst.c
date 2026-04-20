@@ -113,6 +113,8 @@ RECOMP_EXPORT void reasset_fst_read_from_file(s32 fileID, void *dst, u32 offset,
         fileSize += 0x14;
     } else if (fileID == ANIM_TAB) {
         fileSize += 0x4; // :(
+    } else if (fileID == MODANIM_TAB) {
+        fileSize += 0xC; // :(
     }
     if (!(*((s32*)&offset) >= 0 && offset < fileSize && (*((s32*)&offset) + size) >= 0 && (offset + size) <= fileSize)) {
         reasset_log_error(
