@@ -6,12 +6,13 @@ static s32 dllsOpen = FALSE;
 static s32 audioOpen = FALSE;
 static s32 graphicsOpen = FALSE;
 static s32 memoryOpen = FALSE;
-static s32 warpCheatOpen = FALSE;
+static s32 warpOpen = FALSE;
 static s32 charCheatOpen = FALSE;
 
 void builtin_dbgui() {
     if (dbgui_begin_main_menu_bar()) {
         if (dbgui_begin_menu("Debug")) {
+            dbgui_menu_item("Warp", &warpOpen);
             dbgui_menu_item("DLLs", &dllsOpen);
             dbgui_menu_item("Audio", &audioOpen);
             dbgui_menu_item("Graphics", &graphicsOpen);
@@ -19,7 +20,6 @@ void builtin_dbgui() {
             dbgui_end_menu();
         }
         if (dbgui_begin_menu("Cheats")) {
-            dbgui_menu_item("Warp", &warpCheatOpen);
             dbgui_menu_item("Character", &charCheatOpen);
             dbgui_end_menu();
         }
@@ -32,8 +32,8 @@ void builtin_dbgui() {
     if (audioOpen) {
         dbgui_audio_window(&audioOpen);
     }
-    if (warpCheatOpen) {
-        dbgui_warp_cheat_window(&warpCheatOpen);
+    if (warpOpen) {
+        dbgui_warp_window(&warpOpen);
     }
     if (charCheatOpen) {
         dbgui_character_cheat_window(&charCheatOpen);

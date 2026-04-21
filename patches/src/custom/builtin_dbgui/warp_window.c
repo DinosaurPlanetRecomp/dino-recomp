@@ -1,7 +1,10 @@
+#include "patches.h"
 #include "dbgui.h"
 
-// TODO: use decomp def
-extern void warpPlayer(s32 warpIndex, s32 param2);
+#include "sys/fs.h"
+#include "sys/main.h"
+#include "sys/map.h"
+#include "sys/memory.h"
 
 struct WarpEntry {
     s32 idx;
@@ -67,8 +70,46 @@ static struct WarpEntry warpEntries[] = {
 const u32 WARP_ENTRIES_COUNT = sizeof(warpEntries) / sizeof(struct WarpEntry);
 struct WarpEntry *selectedWarpEntry = &warpEntries[0];
 
-void dbgui_warp_cheat_window(s32 *open) {
-    if (dbgui_begin("Warp Cheat", open)) {
+static const char* playerNames[] = {"Sabre", "Krystal"};
+
+static const char **mapNames;
+static s32 *mapNumSetups;
+static s32 numMaps;
+static s32 loadedMaps = FALSE;
+
+static void load_maps(void) {
+    if (!loadedMaps) {
+        numMaps = get_file_size(MAPINFO_BIN) / 0x20;
+        void *mapInfo = read_alloc_file(MAPINFO_BIN, 0);
+        mapNames = recomp_alloc(numMaps * sizeof(const char*));
+        for (s32 i = 0; i < numMaps; i++) {
+            char *name = recomp_alloc(29 * sizeof(char));
+            bcopy((void*)((u32)mapInfo + (0x20 * i)), name, 28);
+            name[28] = '\0';
+
+            mapNames[i] = name;
+        }
+        mmFree(mapInfo);
+
+        s16 *mapSetups = read_alloc_file(MAPSETUP_IND, 0);
+        mapNumSetups = recomp_alloc(numMaps * sizeof(s32));
+        for (s32 i = 0; i < numMaps; i++) {
+            mapNumSetups[i] = mapSetups[i + 1] - mapSetups[i];
+        }
+        mmFree(mapSetups);
+
+        loadedMaps = TRUE;
+    }
+}
+
+static const char* get_map_name(s32 mapID) {
+    return mapID >= 0 && mapID < numMaps ? mapNames[mapID] : "<null>";
+}
+
+void dbgui_warp_window(s32 *open) {
+    if (dbgui_begin("Warp", open)) {
+        load_maps();
+        
         if (dbgui_begin_combo("Warp Location", selectedWarpEntry->name)) {
             for (u32 i = 0; i < WARP_ENTRIES_COUNT; i++) {
                 struct WarpEntry *entry = &warpEntries[i];
@@ -81,6 +122,43 @@ void dbgui_warp_cheat_window(s32 *open) {
 
         if (dbgui_button("Warp")) {
             warpPlayer(selectedWarpEntry->idx, /*fade*/FALSE);
+        }
+
+        dbgui_separator();
+
+        static s32 mapID = 0;
+        static s32 setupID = 0;
+        static s32 playerNo = 0;
+        if (dbgui_begin_combo("Map", get_map_name(mapID))) {
+            for (s32 i = 0; i < numMaps; i++) {
+                if (dbgui_selectable(recomp_sprintf_helper("%d: %s", i, get_map_name(i)), i == mapID)) {
+                    mapID = i;
+                    setupID = 0;
+                }
+            }
+            dbgui_end_combo();
+        }
+        if (dbgui_input_int("Setup ID", &setupID)) {
+            if (setupID < 0) setupID = 0;
+            if (setupID >= mapNumSetups[mapID]) {
+                if (mapNumSetups[mapID] == 0) {
+                    setupID = 0;
+                } else {
+                    setupID = mapNumSetups[mapID] - 1;
+                }
+            }
+        }
+        if (dbgui_begin_combo("Player", playerNames[playerNo])) {
+            for (s32 i = 0; i < 2; i++) {
+                if (dbgui_selectable(playerNames[i], i == playerNo)) {
+                    playerNo = i;
+                }
+            }
+            dbgui_end_combo();
+        }
+
+        if (dbgui_button("Change Map")) {
+            func_800141A4(mapID, setupID, playerNo, 0);
         }
     }
     dbgui_end();
