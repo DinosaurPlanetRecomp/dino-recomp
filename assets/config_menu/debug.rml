@@ -3,9 +3,11 @@
     </head>
     <body>
         <form class="config__form">
-            <p class="config__tip">
-                Tip: The ImGui debug UI can be toggled in-game with the <b>F9</b> or <b>`</b>/<b>~</b> (backquote/tilde) key.
-            </p>
+            <div class="config__tip">
+                <p class="config__tip__text">
+                    Tip: The ImGui debug UI can be toggled in-game with the <b>F9</b> or <b>`</b>/<b>~</b> (backquote/tilde) key.
+                </p>
+            </div>
             <div class="config__hz-wrapper">
                 <!-- Options -->
                 <div class="config__wrapper" data-event-mouseout="set_cur_config_index(-1)">
