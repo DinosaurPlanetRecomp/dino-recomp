@@ -465,10 +465,9 @@ void dino::config::set_subtitles_enabled(bool enabled) {
 
 struct DebugContext {
     Rml::DataModelHandle model_handle;
-	std::atomic<int> debug_ui_enabled = 1;
-	std::atomic<int> debug_stdout_enabled = 0;
 	std::atomic<int> debug_dll_logging_enabled = 0;
 	std::atomic<int> debug_diprintf_enabled = 0;
+	std::atomic<int> debug_reasset_loglevel = 0;
 };
 
 DebugContext debug_context;
@@ -949,10 +948,9 @@ public:
 
 		bind_config_list_events(constructor);
 
-		bind_atomic(constructor, debug_context.model_handle, "debug_ui_enabled", &debug_context.debug_ui_enabled);
-		bind_atomic(constructor, debug_context.model_handle, "debug_stdout_enabled", &debug_context.debug_stdout_enabled);
 		bind_atomic(constructor, debug_context.model_handle, "debug_dll_logging_enabled", &debug_context.debug_dll_logging_enabled);
 		bind_atomic(constructor, debug_context.model_handle, "debug_diprintf_enabled", &debug_context.debug_diprintf_enabled);
+		bind_atomic(constructor, debug_context.model_handle, "debug_reasset_loglevel", &debug_context.debug_reasset_loglevel);
 		
 		// Register the array type for string vectors.
 		constructor.RegisterArray<std::vector<std::string>>();
@@ -974,28 +972,6 @@ std::unique_ptr<recompui::MenuController> recompui::create_config_menu() {
     return std::make_unique<ConfigMenu>();
 }
 
-bool dino::config::get_debug_ui_enabled() {
-	return (bool)debug_context.debug_ui_enabled.load();
-}
-
-void dino::config::set_debug_ui_enabled(bool enabled) {
-	debug_context.debug_ui_enabled.store((int)enabled);
-	if (debug_context.model_handle) {
-		debug_context.model_handle.DirtyVariable("debug_ui_enabled");
-	}
-}
-
-bool dino::config::get_debug_stdout_enabled() {
-	return (bool)debug_context.debug_stdout_enabled.load();
-}
-
-void dino::config::set_debug_stdout_enabled(bool enabled) {
-	debug_context.debug_stdout_enabled.store((int)enabled);
-	if (debug_context.model_handle) {
-		debug_context.model_handle.DirtyVariable("debug_stdout_enabled");
-	}
-}
-
 bool dino::config::get_debug_dll_logging_enabled() {
 	return (bool)debug_context.debug_dll_logging_enabled.load();
 }
@@ -1015,6 +991,17 @@ void dino::config::set_debug_diprintf_enabled(bool enabled) {
 	debug_context.debug_diprintf_enabled.store((int)enabled);
 	if (debug_context.model_handle) {
 		debug_context.model_handle.DirtyVariable("debug_diprintf_enabled");
+	}
+}
+
+int dino::config::get_debug_reasset_loglevel() {
+	return debug_context.debug_reasset_loglevel.load();
+}
+
+void dino::config::set_debug_reasset_loglevel(int level) {
+	debug_context.debug_reasset_loglevel.store(level);
+	if (debug_context.model_handle) {
+		debug_context.model_handle.DirtyVariable("debug_reasset_loglevel");
 	}
 }
 

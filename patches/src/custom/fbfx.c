@@ -5,9 +5,9 @@
 #include "PR/ultratypes.h"
 #include "PR/gbi.h"
 #include "PR/mbi.h"
-#include "sys/gfx/gx.h"
 #include "sys/main.h"
 #include "sys/rsp_segment.h"
+#include "sys/vi.h"
 
 extern Gfx *gCurGfx;
 

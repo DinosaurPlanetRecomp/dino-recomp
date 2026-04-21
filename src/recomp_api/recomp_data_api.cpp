@@ -655,10 +655,12 @@ extern "C" void recomputil_memory_slotmap_get(uint8_t* rdram, recomp_context* ct
     }
 
     PTR(void)* ret;
-    if (!map->first.get(key, &ret)) {
-        SLOTMAP_KEY_INVALID_ERROR();
+    bool has_value = map->first.get(key, &ret);
+    if (has_value) {
+        MEM_W(0, val_out) = *ret;
     }
-    MEM_W(0, val_out) = *ret;
+    
+    _return(ctx, has_value ? 1 : 0);
 }
 
 extern "C" void recomputil_memory_slotmap_erase(uint8_t* rdram, recomp_context* ctx) {
@@ -674,7 +676,7 @@ extern "C" void recomputil_memory_slotmap_erase(uint8_t* rdram, recomp_context* 
     PTR(void)* addr;
     bool has_value = map->first.get(key, &addr);
     if (has_value) {
-        void* mem = TO_PTR(void, addr);
+        void* mem = TO_PTR(void, *addr);
         recomp::free(rdram, mem);
     }
 

@@ -5,11 +5,20 @@
 #include "recomp_funcs.h"
 
 #include "sys/camera.h"
-#include "sys/gfx/gx.h"
 #include "sys/main.h"
 #include "sys/math.h"
+#include "sys/map.h"
+#include "sys/vi.h"
 #include "types.h"
-#include "variables.h"
+
+extern OSViMode gTvViMode;
+extern f32 gViHeightRatio;
+extern s32 gVideoMode;
+extern u32 gViBlackTimer;
+extern s8 gHStartMod;
+extern s8 gVScaleMod;
+extern u8 gViUpdateRateTarget;
+extern u8 gViUpdateRate;
 
 extern f32 gFovY;
 extern f32 gAspect;

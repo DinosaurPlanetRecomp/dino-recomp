@@ -2,9 +2,17 @@
 #include "patches/vi.h"
 #include "recomp_funcs.h"
 
-#include "sys/gfx/gx.h"
 #include "sys/main.h"
 #include "sys/joypad.h"
+#include "sys/vi.h"
+
+#define FRAMEBUFFER_ADDRESS_NO_EXP_PAK 0x802d4000
+#define FRAMEBUFFER_ADDRESS_EXP_PAK 0x80119000
+
+typedef struct VideoResolution {
+    u32 h;
+    u32 v;
+} VideoResolution;
 
 extern OSIoMesg D_800BCC90;
 extern OSDevMgr __osViDevMgr;
@@ -12,10 +20,23 @@ extern s8 D_80093060;
 extern s8 D_80093064;
 extern OSMesgQueue gVideoMesgQueue;
 
+extern u16 *gDepthBuffer;
+extern VideoResolution gResolutionArray[8];
+extern OSViMode gTvViMode;
+extern u32 gCurrentResolutionH[2];
+extern u32 gCurrentResolutionV[2];
+extern u16 *gFramebufferPointers[2];
+extern u16 *gFramebufferEnd;
+extern u32 gCurrFramebufferIdx;
+extern s32 gVideoMode;
+extern u32 gViBlackTimer;
+extern u8 gViUpdateRateTarget;
+extern u8 gViUpdateRate;
+
 extern void vi_swap_buffers(void);
 extern void vi_set_mode(s32 mode);
 extern void vi_update_fb_size_from_current_mode(int framebufferIndex);
-extern void vi_func_8005DEE8(void);
+extern void vi_calc_obj_depths(void);
 
 s32 recomp_snowbike30FPS = FALSE;
 
@@ -166,7 +187,7 @@ RECOMP_PATCH s32 vi_frame_sync(s32 param1) {
     }
 
     joy_read_nonblocking();
-    vi_func_8005DEE8();
+    vi_calc_obj_depths();
     osRecvMesg(&gVideoMesgQueue, NULL, OS_MESG_BLOCK);
 
     return updateRate;

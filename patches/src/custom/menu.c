@@ -11,13 +11,25 @@ static U32ValueHashmapHandle recompMenuDLLMap;
 static _Bool recompMenuDLLMapInitialized = FALSE;
 static s32 recompNextCustomMenuID = ARRAYCOUNT(gMenuDLLIDs);
 
-RECOMP_EXPORT s32 recomp_register_menu(u16 dllID) {
+static void lazy_init_custom_dll_map(void) {
     if (!recompMenuDLLMapInitialized) {
         recompMenuDLLMap = recomputil_create_u32_value_hashmap();
         recompMenuDLLMapInitialized = TRUE;
     }
+}
+
+s32 recomp_add_new_menu(void) {
+    lazy_init_custom_dll_map();
 
     s32 menuID = recompNextCustomMenuID++;
+    recomputil_u32_value_hashmap_insert(recompMenuDLLMap, menuID, -1);
+
+    return menuID;
+}
+
+s32 recomp_set_menu_dll_id(s32 menuID, u16 dllID) {
+    lazy_init_custom_dll_map();
+
     recomputil_u32_value_hashmap_insert(recompMenuDLLMap, menuID, dllID);
 
     if (recomp_get_debug_dll_logging_enabled()) {

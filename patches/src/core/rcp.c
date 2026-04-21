@@ -2,32 +2,34 @@
 #include "patches/rcp.h"
 
 #include "PR/gbi.h"
-#include "sys/gfx/gx.h"
-#include "sys/gfx/map.h"
 #include "sys/camera.h"
+#include "sys/rcp.h"
 #include "sys/rsp_segment.h"
-#include "functions.h"
+#include "sys/vi.h"
+#include "sys/map.h"
 
 extern u8 sBGPrimColourR;
 extern u8 sBGPrimColourG;
 extern u8 sBGPrimColourB;
 
-RECOMP_PATCH void func_80037A14(Gfx **gdl, Mtx **mtx, s32 param3) {
-    s32 resolution;
-    s32 resWidth, resHeight;
+extern u16 *gFramebufferEnd;
+
+RECOMP_PATCH void rcp_clear_screen(Gfx **gdl, Mtx **mtx, s32 flags) {
+    s32 viSize;
+    s32 viWidth, viHeight;
     s32 ulx, uly, lrx, lry;
-    s32 var1;
+    s32 letterbox;
 
     viewport_get_full_rect(&ulx, &uly, &lrx, &lry);
 
-    var1 = camera_get_letterbox();
+    letterbox = camera_get_letterbox();
 
-    resolution = vi_get_current_size();
-    resWidth = GET_VIDEO_WIDTH(resolution);
-    resHeight = GET_VIDEO_HEIGHT(resolution);
+    viSize = vi_get_current_size();
+    viWidth = GET_VIDEO_WIDTH(viSize);
+    viHeight = GET_VIDEO_HEIGHT(viSize);
 
     // @recomp: remove hardcoded -1 width/height scissor offset
-    gDPSetScissor((*gdl)++, G_SC_NON_INTERLACE, 0, 0, resWidth, resHeight);
+    gDPSetScissor((*gdl)++, G_SC_NON_INTERLACE, 0, 0, viWidth, viHeight);
 
     gDPSetCombineMode((*gdl), G_CC_PRIMITIVE, G_CC_PRIMITIVE);
     dl_apply_combine(gdl);
@@ -42,9 +44,9 @@ RECOMP_PATCH void func_80037A14(Gfx **gdl, Mtx **mtx, s32 param3) {
         gDPPipeSync((*gdl)++);
     }
 
-    gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, resWidth, SEGMENT_ADDR(SEGMENT_ZBUFFER, 0x0));
+    gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, viWidth, SEGMENT_ADDR(SEGMENT_ZBUFFER, 0x0));
 
-    if ((param3 & 2) != 0) {
+    if ((flags & CLEAR_ZBUFFER) != 0) {
         dl_set_fill_color(gdl, (GPACK_ZDZ(G_MAXFBZ, 0) << 16) | GPACK_ZDZ(G_MAXFBZ, 0));
 
         gDPFillRectangle((*gdl)++, ulx, uly, lrx, lry);
@@ -57,22 +59,22 @@ RECOMP_PATCH void func_80037A14(Gfx **gdl, Mtx **mtx, s32 param3) {
         gDPPipeSync((*gdl)++);
     }
 
-    gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, resWidth, SEGMENT_ADDR(SEGMENT_FRAMEBUFFER, 0x0));
+    gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, viWidth, SEGMENT_ADDR(SEGMENT_FRAMEBUFFER, 0x0));
 
-    if ((param3 & 1) != 0 || var1 != 0) {
+    if ((flags & CLEAR_COLOR) != 0 || letterbox != 0) {
         dl_set_fill_color(gdl, 
             (GPACK_RGBA5551(sBGPrimColourR, sBGPrimColourG, sBGPrimColourB, 1) << 16) 
                 | GPACK_RGBA5551(sBGPrimColourR, sBGPrimColourG, sBGPrimColourB, 1));
 
         // @recomp: remove hardcoded -1 width/height offset
-        if ((param3 & 1) != 0) {
-            gDPFillRectangle((*gdl)++, 0, 0, resWidth, resHeight);
+        if ((flags & CLEAR_COLOR) != 0) {
+            gDPFillRectangle((*gdl)++, 0, 0, viWidth, viHeight);
             gDLBuilder->needsPipeSync = TRUE;
-        } else if (var1 != 0) {
-            gDPFillRectangle((*gdl)++, 0, 0, resWidth, uly);
+        } else if (letterbox != 0) {
+            gDPFillRectangle((*gdl)++, 0, 0, viWidth, uly);
             gDLBuilder->needsPipeSync = TRUE;
 
-            gDPFillRectangle((*gdl)++, 0, lry, resWidth, resHeight);
+            gDPFillRectangle((*gdl)++, 0, lry, viWidth, viHeight);
             gDLBuilder->needsPipeSync = TRUE;
         }
     }

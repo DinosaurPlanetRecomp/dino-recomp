@@ -19,6 +19,17 @@ typedef enum {
     DLL_BANK_OBJECTS = 4
 } RecompDLLBank;
 
+struct RecompCustomDLL;
+
+typedef void (*RecompDLLFunc)(struct RecompCustomDLL *self);
+
+typedef struct RecompCustomDLL {
+    RecompDLLFunc ctor;
+    RecompDLLFunc dtor;
+    u16 exportCount;
+    void *vtblPtr;
+} RecompCustomDLL;
+
 typedef struct RecompCustomDLLState {
     s32 id;
     s32 refCount;
@@ -37,6 +48,7 @@ typedef struct RecompCustomDLLState {
 #define DLLBANK2_LAST_VANILLA_ID 0x2017
 #define DLLBANK4_LAST_VANILLA_ID 0x824B
 
+u16 recomp_register_dll(RecompDLLBank bank, u16 exportCount, RecompDLLFunc ctor, RecompDLLFunc dtor, void *vtblPtr);
 void recomp_dll_init_system(void);
 RecompCustomDLLState *recomp_get_loaded_custom_dlls(s32 *outLoadedDLLCount);
 void *recomp_dll_load_deferred_custom(RecompDLLBank bank, u16 id, u16 exportCount);

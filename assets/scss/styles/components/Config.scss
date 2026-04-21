@@ -139,3 +139,12 @@
     flex-direction: row;
 }
 
+.config__tip {
+    background-color: $color-bg-shadow;
+    padding: space(32) space(28) 0 space(28);
+}
+
+.config__tip__text {
+    @extend %label-xs;
+    color: $color-primary;
+}

@@ -25,6 +25,8 @@ mips
 -DMIPS
 -DAVOID_UB
 -I
+src
+-I
 include
 -I
 dummy_headers

@@ -96,17 +96,13 @@ void begin() {
         // Still process the event queue but don't send any to ImGui
         SDL_Event event{};
         while (event_queue.try_dequeue(event)) {
-            if (dino::config::get_debug_ui_enabled()) {
-                if (event.type == SDL_KEYDOWN && 
-                        (event.key.keysym.scancode == SDL_Scancode::SDL_SCANCODE_GRAVE || 
-                            event.key.keysym.scancode == SDL_Scancode::SDL_SCANCODE_F9) &&
-                        !event.key.repeat) {
-                    b_is_open = !b_is_open;
-                }
+            if (event.type == SDL_KEYDOWN && 
+                    (event.key.keysym.scancode == SDL_Scancode::SDL_SCANCODE_GRAVE || 
+                        event.key.keysym.scancode == SDL_Scancode::SDL_SCANCODE_F9) &&
+                    !event.key.repeat) {
+                b_is_open = !b_is_open;
             }
         }
-    } else if (!dino::config::get_debug_ui_enabled()) {
-        b_is_open = false;
     }
 
     if (!b_is_open) {

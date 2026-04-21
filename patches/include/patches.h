@@ -25,6 +25,9 @@
 #define osGetTime osGetTime_recomp
 #define osViBlack osViBlack_recomp
 #define osViSwapBuffer osViSwapBuffer_recomp
+#define osCreatePiManager osCreatePiManager_recomp
+#define osPiStartDma osPiStartDma_recomp
+#define osVirtualToPhysical osVirtualToPhysical_recomp
 
 #define osContStartReadData osContStartReadData_recomp
 #define osContGetReadData osContGetReadData_recomp
@@ -37,6 +40,7 @@
 #define bcopy bcopy_recomp
 #define sprintf sprintf_recomp
 #define vsprintf vsprintf_recomp
+#define strlen strlen_recomp
 #define gRandFloat sRandFloat
 #include "rt64_extended_gbi.h"
 
@@ -75,6 +79,13 @@
         "\t.balign 8\n"                       \
         "\t.popsection\n");                   \
     extern u8 identifier[]
+
+#ifndef MAX
+#define MAX(a, b)				((a) > (b) ? (a) : (b))
+#endif
+#ifndef MIN
+#define MIN(a, b)				((a) < (b) ? (a) : (b))
+#endif
 
 void *recomp_alloc(unsigned long size);
 void recomp_free(void *ptr);
