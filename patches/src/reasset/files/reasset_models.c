@@ -494,10 +494,12 @@ RECOMP_EXPORT void reasset_models_set(ReAssetID id, ReAssetNamespace owner, cons
     buffer_set(&entry->model, data, sizeBytes);
     entry->owner = owner;
 
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    const char *namespaceName;
-    reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log_debug("[reasset] Model set: %s:%d\n", namespaceName, idData->identifier);
+    if (reasset_is_debug_logging_enabled()) {
+        ReAssetIDData *idData = reasset_id_lookup_data(id);
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        reasset_log_debug("[reasset] Model set: %s:%d\n", namespaceName, idData->identifier);
+    }
 }
 
 RECOMP_EXPORT void reasset_models_set_modanims(ReAssetID id, const void *data, u32 sizeBytes) {
@@ -506,10 +508,12 @@ RECOMP_EXPORT void reasset_models_set_modanims(ReAssetID id, const void *data, u
     ModelEntry *entry = get_or_create_model(id);
     buffer_set(&entry->modanims, data, sizeBytes);
 
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    const char *namespaceName;
-    reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log_debug("[reasset] Model anims set: %s:%d\n", namespaceName, idData->identifier);
+    if (reasset_is_debug_logging_enabled()) {
+        ReAssetIDData *idData = reasset_id_lookup_data(id);
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        reasset_log_debug("[reasset] Model anims set: %s:%d\n", namespaceName, idData->identifier);
+    }
 }
 
 RECOMP_EXPORT void reasset_models_set_amap(ReAssetID id, const void *data, u32 sizeBytes) {
@@ -518,10 +522,12 @@ RECOMP_EXPORT void reasset_models_set_amap(ReAssetID id, const void *data, u32 s
     ModelEntry *entry = get_or_create_model(id);
     buffer_set(&entry->amap, data, sizeBytes);
 
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    const char *namespaceName;
-    reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log_debug("[reasset] Model amap set: %s:%d\n", namespaceName, idData->identifier);
+    if (reasset_is_debug_logging_enabled()) {
+        ReAssetIDData *idData = reasset_id_lookup_data(id);
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        reasset_log_debug("[reasset] Model amap set: %s:%d\n", namespaceName, idData->identifier);
+    }
 }
 
 RECOMP_EXPORT void* reasset_models_get(ReAssetID id, u32 *outSizeBytes) {
@@ -622,10 +628,12 @@ RECOMP_EXPORT void reasset_model_indices_set(ReAssetID id, ReAssetID modelID) {
     ModelIndexEntry *entry = get_or_create_model_index(id);
     entry->modelID = modelID;
 
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    const char *namespaceName;
-    reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log_debug("[reasset] Model index set: %s:%d\n", namespaceName, idData->identifier);
+    if (reasset_is_debug_logging_enabled()) {
+        ReAssetIDData *idData = reasset_id_lookup_data(id);
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        reasset_log_debug("[reasset] Model index set: %s:%d\n", namespaceName, idData->identifier);
+    }
 }
 
 RECOMP_EXPORT ReAssetBool reasset_model_indices_get(ReAssetID id, ReAssetID *outModelID) {

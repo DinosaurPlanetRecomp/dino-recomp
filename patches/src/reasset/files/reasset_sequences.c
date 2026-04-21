@@ -508,10 +508,12 @@ RECOMP_EXPORT void reasset_anim_curves_set(ReAssetID id, ReAssetNamespace owner,
     entry->owner = owner;
     entry->eventCount = eventCount;
 
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    const char *namespaceName;
-    reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log_debug("[reasset] Anim curve set: %s:%d\n", namespaceName, idData->identifier);
+    if (reasset_is_debug_logging_enabled()) {
+        ReAssetIDData *idData = reasset_id_lookup_data(id);
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        reasset_log_debug("[reasset] Anim curve set: %s:%d\n", namespaceName, idData->identifier);
+    }
 }
 
 RECOMP_EXPORT void* reasset_anim_curves_get(ReAssetID id, s32 *outEventCount, u32 *outSizeBytes) {
@@ -570,10 +572,12 @@ static void set_seq(ReAssetID id, ReAssetNamespace owner, ReAssetID map, _Bool h
     entry->mapID = map;
     entry->hasMap = hasMap;
 
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    const char *namespaceName;
-    reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log_debug("[reasset] Object sequence set: %s:%d\n", namespaceName, idData->identifier);
+    if (reasset_is_debug_logging_enabled()) {
+        ReAssetIDData *idData = reasset_id_lookup_data(id);
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        reasset_log_debug("[reasset] Object sequence set: %s:%d\n", namespaceName, idData->identifier);
+    }
 }
 
 RECOMP_EXPORT void reasset_object_sequences_set(ReAssetID id, ReAssetNamespace owner, const void *data, u32 sizeBytes) {
@@ -615,11 +619,13 @@ RECOMP_EXPORT void reasset_object_sequences_set_curve(ReAssetID id, s32 actor, s
     buffer_set(&curve->curve, data, sizeBytes);
     curve->eventCount = eventCount;
 
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    const char *namespaceName;
-    reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log_debug("[reasset] Object sequence curve set: %s:%d[%d]\n", 
-        namespaceName, idData->identifier, actor);
+    if (reasset_is_debug_logging_enabled()) {
+        ReAssetIDData *idData = reasset_id_lookup_data(id);
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        reasset_log_debug("[reasset] Object sequence curve set: %s:%d[%d]\n", 
+            namespaceName, idData->identifier, actor);
+    }
 }
 
 RECOMP_EXPORT void* reasset_object_sequences_get_curve(ReAssetID id, s32 actor, s32 *outEventCount, u32 *outSizeBytes) {

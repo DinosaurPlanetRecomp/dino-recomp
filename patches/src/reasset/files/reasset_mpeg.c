@@ -155,10 +155,12 @@ RECOMP_EXPORT void reasset_mpeg_set(ReAssetID id, const void *data, u32 sizeByte
     MPEGEntry *entry = get_or_create_mpeg(id);
     buffer_set(&entry->mpeg, data, sizeBytes);
 
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    const char *namespaceName;
-    reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log_debug("[reasset] MPEG set: %s:%d\n", namespaceName, idData->identifier);
+    if (reasset_is_debug_logging_enabled()) {
+        ReAssetIDData *idData = reasset_id_lookup_data(id);
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        reasset_log_debug("[reasset] MPEG set: %s:%d\n", namespaceName, idData->identifier);
+    }
 }
 
 RECOMP_EXPORT void* reasset_mpeg_get(ReAssetID id, u32 *outSizeBytes) {

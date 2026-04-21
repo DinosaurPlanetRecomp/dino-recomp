@@ -125,10 +125,12 @@ RECOMP_EXPORT void reasset_music_actions_set(ReAssetID id, ReAssetNamespace owne
     buffer_set(&entry->action, data, sizeof(MusicAction));
     entry->owner = owner;
 
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    const char *namespaceName;
-    reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log_debug("[reasset] Music action set: %s:%d\n", namespaceName, idData->identifier);
+    if (reasset_is_debug_logging_enabled()) {
+        ReAssetIDData *idData = reasset_id_lookup_data(id);
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        reasset_log_debug("[reasset] Music action set: %s:%d\n", namespaceName, idData->identifier);
+    }
 }
 
 RECOMP_EXPORT void* reasset_music_actions_get(ReAssetID id) {

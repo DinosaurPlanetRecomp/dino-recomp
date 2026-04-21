@@ -151,10 +151,12 @@ void reasset_bits_repack(void) {
         for (s32 j = 0; j < listCount; j++) {
             BitEntry *entry = list_get(&list->list, j);
 
-            s32 identifier;
-            const char *namespaceName;
-            reasset_id_lookup_name(entry->id, &namespaceName, &identifier);
-            reasset_log_debug("[reasset] New bit: %s:%d\n", namespaceName, identifier);
+            if (reasset_is_debug_logging_enabled()) {
+                s32 identifier;
+                const char *namespaceName;
+                reasset_id_lookup_name(entry->id, &namespaceName, &identifier);
+                reasset_log_debug("[reasset] New bit: %s:%d\n", namespaceName, identifier);
+            }
 
             reasset_resolve_map_resolve_id(bitsResolveMap, entry->id, list->namespace, bittableIndex);
 

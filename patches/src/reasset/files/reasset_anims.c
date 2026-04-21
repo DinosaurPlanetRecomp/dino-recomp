@@ -158,10 +158,12 @@ RECOMP_EXPORT void reasset_anims_set(ReAssetID id, ReAssetNamespace owner, const
     buffer_set(&entry->anim, data, sizeBytes);
     entry->owner = owner;
 
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    const char *namespaceName;
-    reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log_debug("[reasset] Anim set: %s:%d\n", namespaceName, idData->identifier);
+    if (reasset_is_debug_logging_enabled()) {
+        ReAssetIDData *idData = reasset_id_lookup_data(id);
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        reasset_log_debug("[reasset] Anim set: %s:%d\n", namespaceName, idData->identifier);
+    }
 }
 
 RECOMP_EXPORT void* reasset_anims_get(ReAssetID id, u32 *outSizeBytes) {

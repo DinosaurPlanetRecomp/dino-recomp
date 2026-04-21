@@ -185,16 +185,18 @@ static void reasset_objects_repack_internal(void) {
         ReAssetIDData *idData = reasset_id_lookup_data(entry->id);
 
         if (idData->namespace != REASSET_BASE_NAMESPACE) {
-            // Make copy and null-terminate ourselves just to be safe
-            char name[16] = {0};
-            ObjDef *obj = buffer_get(&entry->object, NULL);
-            bcopy(obj->name, name, 15);
-            name[15] = '\0';
+            if (reasset_is_debug_logging_enabled()) {
+                // Make copy and null-terminate ourselves just to be safe
+                char name[16] = {0};
+                ObjDef *obj = buffer_get(&entry->object, NULL);
+                bcopy(obj->name, name, 15);
+                name[15] = '\0';
 
-            const char *namespaceName;
-            reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-            reasset_log_debug("[reasset] New object: %s:%d \"%s\"\n", 
-                namespaceName, idData->identifier, name);
+                const char *namespaceName;
+                reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+                reasset_log_debug("[reasset] New object: %s:%d \"%s\"\n", 
+                    namespaceName, idData->identifier, name);
+            }
         }
 
         reasset_resolve_map_resolve_id(objectResolveMap, entry->id, entry->owner, i);
@@ -402,10 +404,12 @@ RECOMP_EXPORT void reasset_objects_set(ReAssetID id, ReAssetNamespace owner, con
     buffer_set(&entry->object, data, sizeBytes);
     entry->owner = owner;
 
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    const char *namespaceName;
-    reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log_debug("[reasset] Object set: %s:%d\n", namespaceName, idData->identifier);
+    if (reasset_is_debug_logging_enabled()) {
+        ReAssetIDData *idData = reasset_id_lookup_data(id);
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        reasset_log_debug("[reasset] Object set: %s:%d\n", namespaceName, idData->identifier);
+    }
 }
 
 RECOMP_EXPORT void* reasset_objects_get(ReAssetID id, u32 *outSizeBytes) {
@@ -456,10 +460,12 @@ RECOMP_EXPORT void reasset_object_indices_set(ReAssetID id, ReAssetID objID) {
     ObjectIndexEntry *entry = get_or_create_object_index(id);
     entry->objID = objID;
 
-    ReAssetIDData *idData = reasset_id_lookup_data(id);
-    const char *namespaceName;
-    reasset_namespace_lookup_name(idData->namespace, &namespaceName);
-    reasset_log_debug("[reasset] Object index set: %s:%d\n", namespaceName, idData->identifier);
+    if (reasset_is_debug_logging_enabled()) {
+        ReAssetIDData *idData = reasset_id_lookup_data(id);
+        const char *namespaceName;
+        reasset_namespace_lookup_name(idData->namespace, &namespaceName);
+        reasset_log_debug("[reasset] Object index set: %s:%d\n", namespaceName, idData->identifier);
+    }
 }
 
 RECOMP_EXPORT ReAssetBool reasset_object_indices_get(ReAssetID id, ReAssetID *outObjID) {

@@ -331,11 +331,13 @@ void reasset_maps_repack(void) {
             MapObjectEntry *objEntry = list_get(&entry->objects.list, k);
 
             if (objEntry->delete) {
-                ReAssetIDData *objIDData = reasset_id_lookup_data(objEntry->id);
-                const char *namespaceName;
-                reasset_namespace_lookup_name(objIDData->namespace, &namespaceName);
-                reasset_log_debug("[reasset] Deleted map object %s:%d\n", 
-                    namespaceName, objIDData->identifier);
+                if (reasset_is_debug_logging_enabled()) {
+                    ReAssetIDData *objIDData = reasset_id_lookup_data(objEntry->id);
+                    const char *namespaceName;
+                    reasset_namespace_lookup_name(objIDData->namespace, &namespaceName);
+                    reasset_log_debug("[reasset] Deleted map object %s:%d\n", 
+                        namespaceName, objIDData->identifier);
+                }
                 continue;
             }
 
@@ -603,6 +605,10 @@ void reasset_maps_cleanup(void) {
 // MARK: Maps
 
 static void log_map_set(ReAssetID id, const char *msg) {
+    if (!reasset_is_debug_logging_enabled()) {
+        return;
+    }
+    
     ReAssetIDData *idData = reasset_id_lookup_data(id);
     const char *namespaceName;
     reasset_namespace_lookup_name(idData->namespace, &namespaceName);
