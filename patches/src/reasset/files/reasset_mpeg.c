@@ -2,6 +2,7 @@
 
 #include "patches.h"
 #include "recompdata.h"
+#include "recomp_funcs.h"
 #include "reasset.h"
 #include "reasset/reasset_id.h"
 #include "reasset/reasset_resolve_map.h"
@@ -91,6 +92,8 @@ void reasset_mpeg_init(void) {
 }
 
 void reasset_mpeg_repack(void) {
+    u32 startTimeUs = recomp_time_us();
+
     s32 newCount = list_get_length(&mpegList);
 
     // Calculate new bin size
@@ -141,6 +144,8 @@ void reasset_mpeg_repack(void) {
     reasset_fst_set_internal(MPEG_TAB, newTab, newTabSize, /*ownedByReAsset=*/TRUE);
     reasset_fst_set_internal(MPEG_BIN, newBin, newBinSize, /*ownedByReAsset=*/TRUE);
     reasset_log_info("[reasset] Rebuilt MPEG.tab & MPEG.bin (count: %d, bin size: 0x%X).\n", newCount, newBinSize);
+
+    reasset_log_info("[reasset] MPEG repack completed in %u ms.\n", (recomp_time_us() - startTimeUs) / 1000);
 }
 
 void reasset_mpeg_cleanup(void) {

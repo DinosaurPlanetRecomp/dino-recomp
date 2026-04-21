@@ -2,6 +2,7 @@
 
 #include "patches.h"
 #include "recompdata.h"
+#include "recomp_funcs.h"
 #include "reasset.h"
 #include "reasset/reasset_id.h"
 #include "reasset/reasset_resolve_map.h"
@@ -263,6 +264,8 @@ void reasset_sequences_init(void) {
 }
 
 void reasset_sequences_repack(void) {
+    u32 startTimeUs = recomp_time_us();
+
     // Calculate sizes
     s32 newCurveCount = list_get_length(&curvesList);
     u32 animCurvesBinSize = 0;
@@ -414,6 +417,8 @@ void reasset_sequences_repack(void) {
     reasset_log_info("[reasset] Rebuilt OBJSEQ.tab & OBJSEQ.bin (count: %d, bin size: 0x%X).\n", newSeqCount, objSeqBinSize);
     reasset_fst_set_internal(OBJSEQ2CURVE_TAB, objSeq2CurveTab, objSeq2CurveTabSize, /*ownedByReAsset=*/TRUE);
     reasset_log_info("[reasset] Rebuilt OBJSEQ2CURVE.tab (count: %d).\n", newSeqCount);
+
+    reasset_log_info("[reasset] Sequences repack completed in %u ms.\n", (recomp_time_us() - startTimeUs) / 1000);
 }
 
 void reasset_sequences_patch(void) {

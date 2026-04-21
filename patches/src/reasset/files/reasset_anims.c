@@ -2,6 +2,7 @@
 
 #include "patches.h"
 #include "recompdata.h"
+#include "recomp_funcs.h"
 #include "reasset.h"
 #include "reasset/reasset_id.h"
 #include "reasset/reasset_resolve_map.h"
@@ -93,6 +94,8 @@ void reasset_anims_init(void) {
 }
 
 void reasset_anims_repack(void) {
+    u32 startTimeUs = recomp_time_us();
+
     s32 newCount = list_get_length(&animList);
 
     // Calculate new ANIM.bin size
@@ -143,6 +146,8 @@ void reasset_anims_repack(void) {
     reasset_fst_set_internal(ANIM_TAB, newTab, newTabSize, /*ownedByReAsset=*/TRUE);
     reasset_fst_set_internal(ANIM_BIN, newBin, newBinSize, /*ownedByReAsset=*/TRUE);
     reasset_log_info("[reasset] Rebuilt ANIM.tab & ANIM.bin (count: %d, bin size: 0x%X).\n", newCount, newBinSize);
+
+    reasset_log_info("[reasset] Anim repack completed in %u ms.\n", (recomp_time_us() - startTimeUs) / 1000);
 }
 
 void reasset_anims_cleanup(void) {

@@ -2,6 +2,7 @@
 
 #include "patches.h"
 #include "recompdata.h"
+#include "recomp_funcs.h"
 #include "reasset.h"
 #include "reasset/reasset_id.h"
 #include "reasset/reasset_resolve_map.h"
@@ -331,6 +332,8 @@ static void block_decompress(Buffer *buffer) {
 }
 
 void reasset_blocks_repack(void) {
+    u32 startTimeUs = recomp_time_us();
+
     s32 newTrkblkCount = list_get_length(&trkblkList);
 
     s32 abs = 0;
@@ -524,6 +527,8 @@ void reasset_blocks_repack(void) {
     reasset_fst_set_internal(HITS_TAB, hitsTab, hitsTabSize, /*ownedByReAsset=*/TRUE);
     reasset_fst_set_internal(HITS_BIN, hitsBin, hitsBinSize, /*ownedByReAsset=*/TRUE);
     reasset_log_info("[reasset] Rebuilt HITS.tab & HITS.bin (count: %d, bin size: 0x%X).\n", totalNewBlocks, hitsBinSize);
+
+    reasset_log_info("[reasset] Blocks repack completed in %u ms.\n", (recomp_time_us() - startTimeUs) / 1000);
 }
 
 void reasset_blocks_patch(void) {

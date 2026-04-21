@@ -2,6 +2,7 @@
 
 #include "patches.h"
 #include "recompdata.h"
+#include "recomp_funcs.h"
 #include "reasset.h"
 #include "reasset/reasset_id.h"
 #include "reasset/reasset_resolve_map.h"
@@ -259,8 +260,12 @@ static void reasset_objects_indices_repack_internal(void) {
 }
 
 void reasset_objects_repack(void) {
+    u32 startTimeUs = recomp_time_us();
+
     reasset_objects_repack_internal();
     reasset_objects_indices_repack_internal();
+
+    reasset_log_info("[reasset] Objects repack completed in %u ms.\n", (recomp_time_us() - startTimeUs) / 1000);
 }
 
 void reasset_objects_patch(void) {

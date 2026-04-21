@@ -2,6 +2,7 @@
 
 #include "patches.h"
 #include "recompdata.h"
+#include "recomp_funcs.h"
 #include "reasset.h"
 #include "reasset/reasset_id.h"
 #include "reasset/reasset_resolve_map.h"
@@ -101,6 +102,8 @@ void reasset_bits_init(void) {
 }
 
 void reasset_bits_repack(void) {
+    u32 startTimeUs = recomp_time_us();
+
     // Load original bittable
     s32 bittableOriginalCount = reasset_fst_get_file_size(BITTABLE_BIN) / sizeof(BitTableEntry);
     BitTableEntry *bittableOriginal = reasset_fst_alloc_load_file(BITTABLE_BIN, NULL);
@@ -207,6 +210,8 @@ void reasset_bits_repack(void) {
 
     // Clean up
     recomp_free(bittableOriginal);
+
+    reasset_log_info("[reasset] Bits repack completed in %u ms.\n", (recomp_time_us() - startTimeUs) / 1000);
 }
 
 void reasset_bits_cleanup(void) {

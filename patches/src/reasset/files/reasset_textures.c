@@ -2,6 +2,7 @@
 
 #include "patches.h"
 #include "recompdata.h"
+#include "recomp_funcs.h"
 #include "reasset.h"
 #include "reasset/reasset_id.h"
 #include "reasset/reasset_resolve_map.h"
@@ -272,8 +273,12 @@ static void repack_texture_table_internal(void) {
 }
 
 void reasset_textures_repack(void) {
+    u32 startTimeUs = recomp_time_us();
+
     repack_textures_internal();
     repack_texture_table_internal();
+
+    reasset_log_info("[reasset] Textures repack completed in %u ms.\n", (recomp_time_us() - startTimeUs) / 1000);
 }
 
 void reasset_textures_patch(void) {

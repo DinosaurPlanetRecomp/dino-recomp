@@ -2,6 +2,7 @@
 
 #include "patches.h"
 #include "recompdata.h"
+#include "recomp_funcs.h"
 #include "reasset.h"
 #include "reasset/reasset_id.h"
 #include "reasset/reasset_resolve_map.h"
@@ -86,6 +87,8 @@ void reasset_music_actions_init(void) {
 }
 
 void reasset_music_actions_repack(void) {
+    u32 startTimeUs = recomp_time_us();
+
     // Alloc new MUSICACTIONS.bin
     s32 newCount = list_get_length(&mActionList);
     void *newActions = recomp_alloc(newCount * sizeof(MusicAction));
@@ -106,6 +109,8 @@ void reasset_music_actions_repack(void) {
     // Set new file
     reasset_fst_set_internal(MUSICACTIONS_BIN, newActions, newCount * sizeof(MusicAction), /*ownedByReAsset=*/TRUE);
     reasset_log_info("[reasset] Rebuilt MUSICACTIONS.bin (count: %d).\n", newCount);
+
+    reasset_log_info("[reasset] Music actions repack completed in %u ms.\n", (recomp_time_us() - startTimeUs) / 1000);
 }
 
 void reasset_music_actions_cleanup(void) {

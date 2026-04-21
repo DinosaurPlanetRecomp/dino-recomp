@@ -218,7 +218,7 @@ void reasset_run(void) {
 
     u32 endTimeUs = recomp_time_us();
     u32 elapsedMs = (endTimeUs - startTimeUs) / 1000;
-    reasset_log_info("[reasset] Completed in %u milliseconds.\n", elapsedMs);
+    reasset_log_info("[reasset] Completed in %u ms.\n", elapsedMs);
 }
 
 void reasset_assert_stage_set_call(const char *functionName) {

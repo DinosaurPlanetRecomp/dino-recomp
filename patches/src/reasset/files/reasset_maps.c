@@ -2,6 +2,7 @@
 
 #include "patches.h"
 #include "recompdata.h"
+#include "recomp_funcs.h"
 #include "reasset.h"
 #include "reasset/reasset_id.h"
 #include "reasset/reasset_resolve_map.h"
@@ -277,6 +278,8 @@ void reasset_maps_init(void) {
 }
 
 void reasset_maps_repack(void) {
+    u32 startTimeUs = recomp_time_us();
+
     s32 newCount = list_get_length(&mapList);
 
     // Calculate new bin size
@@ -493,6 +496,8 @@ void reasset_maps_repack(void) {
     for (u32 i = 0; i < ARRAYCOUNT(objSetupLists); i++) {
         u32list_free(&objSetupLists[i]);
     }
+
+    reasset_log_info("[reasset] Maps repack completed in %u ms.\n", (recomp_time_us() - startTimeUs) / 1000);
 }
 
 void reasset_maps_patch(void) {
