@@ -6,6 +6,12 @@
 #include "sys/fs.h"
 #include "sys/memory.h"
 
+RECOMP_DECLARE_EVENT(recomp_on_model_load(s32 *id));
+RECOMP_DECLARE_EVENT(recomp_on_model_loaded_rom(s32 id, Model *model));
+RECOMP_DECLARE_EVENT(recomp_on_model_loaded(s32 id, Model *model));
+
+RECOMP_DECLARE_EVENT(recomp_on_model_instance_loaded(s32 id, ModelInstance *modelInst));
+
 #define MODEL_SLOT_ID(modelRef, idx) ((((s32*)modelRef) + (idx << 1)))[0]
 #define MODEL_SLOT_MODEL(modelRef, idx) ((((s32*)modelRef) + (idx << 1)))[1]
 
@@ -42,7 +48,8 @@ RECOMP_PATCH ModelInstance* model_load_create_instance(s32 id, u32 flags) {
         read_file_region(MODELIND_BIN, gAuxBuffer, id * 2, 8);
         id = gAuxBuffer[0];
     }
-
+    // @recomp: Invoke event (let mods change the ID)
+    recomp_on_model_load(&id);
     for (i = 0; i < gNumLoadedModels; i++) {
         if (id != MODEL_SLOT_ID(gLoadedModels, i)) {
             continue;
@@ -57,6 +64,8 @@ RECOMP_PATCH ModelInstance* model_load_create_instance(s32 id, u32 flags) {
                 model_setup_anim_playback(modelInst, modelInst->animState1);
             }
         }
+        // @recomp: Invoke event
+        recomp_on_model_instance_loaded(id, modelInst);
         return modelInst;
     }
     if (id >= gNumModelsTabEntries) {
@@ -107,6 +116,8 @@ RECOMP_PATCH ModelInstance* model_load_create_instance(s32 id, u32 flags) {
         read_file_region(MODELS_BIN, (void*) modelInst, sp4C, sp48);
         rarezip_uncompress((u8*)modelInst + 8, (u8*)model, sp28);
     }
+    // @recomp: Invoke event
+    recomp_on_model_loaded_rom(id, model);
     model->materials = (ModelTexture*) ((u32)model->materials + (u32)model);
     model->vertices = (Vtx*) ((u32)model->vertices + (u32)model);
     model->faces = (ModelFacebatch*) ((u32)model->faces + (u32)model);
@@ -170,6 +181,8 @@ RECOMP_PATCH ModelInstance* model_load_create_instance(s32 id, u32 flags) {
         uncompressedSize += (u32)model;
         uncompressedSize = mmAlign8(uncompressedSize);
         if (modanim_load(model, id, (u8*)uncompressedSize) == 0) {
+            // @recomp: Invoke event
+            recomp_on_model_loaded(id, model);
             modelInst = createModelInstance(model, flags, 1);
             if (modelInst != NULL) {
                 model_setup_anim_playback(modelInst, modelInst->animState0);
@@ -179,6 +192,8 @@ RECOMP_PATCH ModelInstance* model_load_create_instance(s32 id, u32 flags) {
                 MODEL_SLOT_ID(gLoadedModels, sp50) = id;
                 MODEL_SLOT_MODEL(gLoadedModels, sp50) = (s32)model;
                 if (gNumLoadedModels < 70) {
+                    // @recomp: Invoke event
+                    recomp_on_model_instance_loaded(id, modelInst);
                     return modelInst;
                 }
             }

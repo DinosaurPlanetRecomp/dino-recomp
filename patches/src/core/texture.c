@@ -8,6 +8,11 @@
 #include "sys/rarezip.h"
 #include "macros.h"
 
+RECOMP_DECLARE_EVENT(recomp_on_tex_load(s32 *id));
+RECOMP_DECLARE_EVENT(recomp_on_tex_loaded_frame_rom(s32 id, s32 frame, Texture *tex));
+RECOMP_DECLARE_EVENT(recomp_on_tex_loaded_frame(s32 id, s32 frame, Texture *tex));
+RECOMP_DECLARE_EVENT(recomp_on_tex_loaded(s32 id, Texture *tex));
+
 extern s32 gTexAllocTag;
 
 extern s32* gFile_TEX_TAB[2]; // TEX0/TEX1 tab
@@ -50,6 +55,8 @@ RECOMP_PATCH Texture* tex_load(s32 id, u8 param2) {
     } else {
         id = gFile_TEXTABLE[id];
     }
+    // @recomp: Invoke event (let mods change the ID)
+    recomp_on_tex_load(&id);
     tabEntry = id & 0xFFFF;
     if (tabEntry & 0x8000) {
         tab = 1; // TEX1
@@ -98,6 +105,8 @@ RECOMP_PATCH Texture* tex_load(s32 id, u8 param2) {
                 read_file_region(binFileID, temp_s3, gTexLoadBuffer[frame << 1] + offset, compressedSize);
                 rarezip_uncompress(temp_s3, (u8*)tex, uncompressedSize);
             }
+            // @recomp: Invoke event
+            recomp_on_tex_loaded_frame_rom(id, frame, tex);
             tex->next = NULL;
             if (prevTex != NULL) {
                 prevTex->next = tex;
@@ -113,6 +122,8 @@ RECOMP_PATCH Texture* tex_load(s32 id, u8 param2) {
             mmRealloc(tex, 
                 ((u8*)tex_setup_display_lists(tex, (Gfx*)mmAlign16((u32)tex + uncompressedSize)) - (u8*)tex) + 8, 
                 NULL);
+            // @recomp: Invoke event
+            recomp_on_tex_loaded_frame(id, frame, tex);
         }
     }
 
@@ -131,5 +142,7 @@ RECOMP_PATCH Texture* tex_load(s32 id, u8 param2) {
     if (gNumCachedTextures > 700) {
         return NULL;
     }
+    // @recomp: Invoke event
+    recomp_on_tex_loaded(id, tex);
     return firstTex;
 }

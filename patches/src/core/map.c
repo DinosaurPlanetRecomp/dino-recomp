@@ -8,6 +8,9 @@
 #include "sys/rarezip.h"
 #include "sys/asset_thread.h"
 
+RECOMP_DECLARE_EVENT(recomp_on_block_loaded_rom(s32 id, Block *block));
+RECOMP_DECLARE_EVENT(recomp_on_block_loaded(s32 id, Block *block));
+
 extern s32* gFile_BLOCKS_TAB;
 extern u8 *gMapReadBuffer;
 
@@ -57,6 +60,8 @@ RECOMP_PATCH void block_load(s32 id, s32 param_2, s32 globalMapIdx, u8 queue) {
         read_file_region(BLOCKS_BIN, (void*)tempLoadAddr, binOffset, binSize);
         rarezip_uncompress(((u8*)tempLoadAddr) + 4, (u8*)block, size);
     }
+    // @recomp: Invoke event
+    recomp_on_block_loaded_rom(id, block);
     block->vertices = (BlockVertex*)((u32)block->vertices + (u32)block);
     block->encodedTris = (EncodedTri*)((u32)block->encodedTris + (u32)block);
     block->shapes = (BlockShape*)((u32)block->shapes + (u32)block);
@@ -134,6 +139,9 @@ RECOMP_PATCH void block_load(s32 id, s32 param_2, s32 globalMapIdx, u8 queue) {
     // if (actualSize != allocSize) {
     //     recomp_eprintf("Blocksize error(1): %d should be %d\n", actualSize, allocSize);
     // }
+
+    // @recomp: Invoke event
+    recomp_on_block_loaded(id, block);
 
     if (queue != 0) {
         queue_block_emplace(1, (u32* ) block, (u8*)id, param_2, globalMapIdx);
