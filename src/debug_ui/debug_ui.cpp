@@ -55,6 +55,11 @@ void text(const char *text) {
     ImGui::Text("%s", text);
 }
 
+void text_wrapped(const char *text) {
+    assert_is_open();
+    ImGui::TextWrapped("%s", text);
+}
+
 void label_text(const char *label, const char *text) {
     assert_is_open();
     ImGui::LabelText(label, "%s", text);
@@ -75,6 +80,26 @@ void separator() {
     ImGui::Separator();
 }
 
+void separator_text(const char *label) {
+    assert_is_open();
+    ImGui::SeparatorText(label);
+}
+
+void indent(float width) {
+    assert_is_open();
+    ImGui::Indent(width);
+}
+
+void unindent(float width) {
+    assert_is_open();
+    ImGui::Unindent(width);
+}
+
+void bullet() {
+    assert_is_open();
+    ImGui::Bullet();
+}
+
 bool begin_combo(const char *label, const char *preview) {
     assert_is_open();
     return ImGui::BeginCombo(label, preview);
@@ -88,6 +113,11 @@ void end_combo() {
 bool selectable(const char *label, bool *selected) {
     assert_is_open();
     return ImGui::Selectable(label, selected);
+}
+
+bool radio_button(const char *label, bool active) {
+    assert_is_open();
+    return ImGui::RadioButton(label, active);
 }
 
 bool button(const char *label) {
@@ -228,6 +258,21 @@ void pop_id() {
 bool is_item_hovered() {
     assert_is_open();
     return ImGui::IsItemHovered();
+}
+
+void set_item_tooltip(const char *text) {
+    assert_is_open();
+    ImGui::SetItemTooltip("%s", text);
+}
+
+void begin_disabled(bool disabled) {
+    assert_is_open();
+    ImGui::BeginDisabled(disabled);
+}
+
+void end_disabled() {
+    assert_is_open();
+    ImGui::EndDisabled();
 }
 
 ImVec2 get_display_size() {

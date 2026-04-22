@@ -15,15 +15,21 @@ bool begin(const char *name, bool *open);
 void end();
 
 void text(const char *text);
+void text_wrapped(const char *text);
 void label_text(const char *label, const char *text);
 
 void same_line();
 void new_line();
 void separator();
+void separator_text(const char *label);
+void indent(float width);
+void unindent(float width);
+void bullet();
 
 bool begin_combo(const char *label, const char *preview);
 void end_combo();
 bool selectable(const char *label, bool *selected);
+bool radio_button(const char *label, bool active);
 
 bool button(const char *label);
 
@@ -63,6 +69,11 @@ void push_str_id(const char *id);
 void pop_id();
 
 bool is_item_hovered();
+
+void set_item_tooltip(const char *text);
+
+void begin_disabled(bool disabled);
+void end_disabled();
 
 ImVec2 get_display_size();
 

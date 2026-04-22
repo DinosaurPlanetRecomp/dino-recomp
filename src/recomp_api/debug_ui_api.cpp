@@ -59,6 +59,16 @@ extern "C" void dbgui_text(uint8_t* rdram, recomp_context* ctx) {
     free(text);
 }
 
+extern "C" void dbgui_text_wrapped(uint8_t* rdram, recomp_context* ctx) {
+    PTR(char) text_ptr = _arg<0, PTR(char)>(rdram, ctx);
+
+    char *text = dino::recomp_api::copy_rdram_str(text_ptr, rdram, ctx);
+
+    dino::debug_ui::text_wrapped(text);
+
+    free(text);
+}
+
 extern "C" void dbgui_label_text(uint8_t* rdram, recomp_context* ctx) {
     PTR(char) label_ptr = _arg<0, PTR(char)>(rdram, ctx);
     PTR(char) text_ptr = _arg<1, PTR(char)>(rdram, ctx);
@@ -82,6 +92,32 @@ extern "C" void dbgui_new_line(uint8_t* rdram, recomp_context* ctx) {
 
 extern "C" void dbgui_separator(uint8_t* rdram, recomp_context* ctx) {
     dino::debug_ui::separator();
+}
+
+extern "C" void dbgui_separator_text(uint8_t* rdram, recomp_context* ctx) {
+    PTR(char) text_ptr = _arg<0, PTR(char)>(rdram, ctx);
+
+    char *text = dino::recomp_api::copy_rdram_str(text_ptr, rdram, ctx);
+
+    dino::debug_ui::separator_text(text);
+
+    free(text);
+}
+
+extern "C" void dbgui_indent(uint8_t* rdram, recomp_context* ctx) {
+    float width = _arg<0, float>(rdram, ctx);
+
+    dino::debug_ui::indent(width);
+}
+
+extern "C" void dbgui_unindent(uint8_t* rdram, recomp_context* ctx) {
+    float width = _arg<0, float>(rdram, ctx);
+
+    dino::debug_ui::unindent(width);
+}
+
+extern "C" void dbgui_bullet(uint8_t* rdram, recomp_context* ctx) {
+    dino::debug_ui::bullet();
 }
 
 extern "C" void dbgui_begin_combo(uint8_t* rdram, recomp_context* ctx) {
@@ -110,6 +146,19 @@ extern "C" void dbgui_selectable(uint8_t* rdram, recomp_context* ctx) {
     char *label = dino::recomp_api::copy_rdram_str(label_ptr, rdram, ctx);
 
     bool pressed = dino::debug_ui::selectable(label, &selected);
+
+    free(label);
+
+    _return<s32>(ctx, pressed);
+}
+
+extern "C" void dbgui_radio_button(uint8_t* rdram, recomp_context* ctx) {
+    PTR(char) label_ptr = _arg<0, PTR(char)>(rdram, ctx);
+    bool active = _arg<1, s32>(rdram, ctx) != 0;
+
+    char *label = dino::recomp_api::copy_rdram_str(label_ptr, rdram, ctx);
+
+    bool pressed = dino::debug_ui::radio_button(label, active);
 
     free(label);
 
@@ -442,6 +491,26 @@ extern "C" void dbgui_is_item_hovered(uint8_t* rdram, recomp_context* ctx) {
     _return<s32>(ctx, hovered);
 }
 
+extern "C" void dbgui_set_item_tooltip(uint8_t* rdram, recomp_context* ctx) {
+    PTR(char) text_ptr = _arg<0, PTR(char)>(rdram, ctx);
+
+    char *text = dino::recomp_api::copy_rdram_str(text_ptr, rdram, ctx);
+
+    dino::debug_ui::set_item_tooltip(text);
+
+    free(text);
+}
+
+extern "C" void dbgui_begin_disabled(uint8_t* rdram, recomp_context* ctx) {
+    s32 disabled = _arg<0, s32>(rdram, ctx);
+
+    dino::debug_ui::begin_disabled(disabled);
+}
+
+extern "C" void dbgui_end_disabled(uint8_t* rdram, recomp_context* ctx) {
+    dino::debug_ui::end_disabled();
+}
+
 extern "C" void dbgui_get_display_size(uint8_t* rdram, recomp_context* ctx) {
     PTR(float) width_ptr = _arg<0, PTR(float)>(rdram, ctx);
     PTR(float) height_ptr = _arg<1, PTR(float)>(rdram, ctx);
@@ -602,13 +671,19 @@ namespace dino::recomp_api {
         REGISTER_EXPORT(dbgui_begin);
         REGISTER_EXPORT(dbgui_end);
         REGISTER_EXPORT(dbgui_text);
+        REGISTER_EXPORT(dbgui_text_wrapped);
         REGISTER_EXPORT(dbgui_label_text);
         REGISTER_EXPORT(dbgui_same_line);
         REGISTER_EXPORT(dbgui_new_line);
         REGISTER_EXPORT(dbgui_separator);
+        REGISTER_EXPORT(dbgui_separator_text);
+        REGISTER_EXPORT(dbgui_indent);
+        REGISTER_EXPORT(dbgui_unindent);
+        REGISTER_EXPORT(dbgui_bullet);
         REGISTER_EXPORT(dbgui_begin_combo);
         REGISTER_EXPORT(dbgui_end_combo);
         REGISTER_EXPORT(dbgui_selectable);
+        REGISTER_EXPORT(dbgui_radio_button);
         REGISTER_EXPORT(dbgui_button);
         REGISTER_EXPORT(dbgui_begin_main_menu_bar);
         REGISTER_EXPORT(dbgui_end_main_menu_bar);
@@ -637,6 +712,9 @@ namespace dino::recomp_api {
         REGISTER_EXPORT(dbgui_push_str_id);
         REGISTER_EXPORT(dbgui_pop_id);
         REGISTER_EXPORT(dbgui_is_item_hovered);
+        REGISTER_EXPORT(dbgui_set_item_tooltip);
+        REGISTER_EXPORT(dbgui_begin_disabled);
+        REGISTER_EXPORT(dbgui_end_disabled);
         REGISTER_EXPORT(dbgui_get_display_size);
         REGISTER_EXPORT(dbgui_color_float4_to_u32);
         REGISTER_EXPORT(dbgui_foreground_text);
