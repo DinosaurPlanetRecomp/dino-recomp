@@ -5,6 +5,8 @@
 DECLARE_FUNC(void, recomp_on_dll_load, u32 dllno, void *ramAddr);
 DECLARE_FUNC(void, recomp_on_dll_unload, u32 dllno);
 
+DECLARE_FUNC(void, recomp_bcopy, const void *src, void *dst, int length);
+DECLARE_FUNC(void, recomp_bzero, void *dst, int length);
 DECLARE_FUNC(void, recomp_puts, const char* data, u32 size);
 DECLARE_FUNC(void, recomp_eputs, const char* data, u32 size);
 DECLARE_FUNC(s32, recomp_get_diprintf_enabled, void);

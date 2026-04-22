@@ -3,7 +3,7 @@
 #include "librecomp/helpers.hpp"
 #include "recomp.h"
 
-extern "C" void bcopy_recomp(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomp_bcopy(uint8_t* rdram, recomp_context* ctx) {
     PTR(void) srcAddr = _arg<0, PTR(void)>(rdram, ctx);
     PTR(void) dstAddr = _arg<1, PTR(void)>(rdram, ctx);
     int length = _arg<2, int>(rdram, ctx);
@@ -41,7 +41,7 @@ extern "C" void bcopy_recomp(uint8_t* rdram, recomp_context* ctx) {
     }
 }
 
-extern "C" void bcopy_zero(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomp_bzero(uint8_t* rdram, recomp_context* ctx) {
     PTR(void) dstAddr = _arg<0, PTR(void)>(rdram, ctx);
     int length = _arg<1, int>(rdram, ctx);
 

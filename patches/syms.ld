@@ -131,3 +131,5 @@ dbgui_end_disabled = 0x8F000258;
 dbgui_text_wrapped = 0x8F00025C;
 dbgui_separator_text = 0x8F000260;
 dbgui_new_line = 0x8F000264;
+recomp_bcopy = 0x8F000268;
+recomp_bzero = 0x8F00026C;
