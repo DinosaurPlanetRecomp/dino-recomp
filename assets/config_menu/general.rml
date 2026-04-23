@@ -106,7 +106,7 @@
                                 data-checked="sixty_fps"
                                 value="1"
                                 id="sixty_fps_enabled"
-                                style="nav-up: #bg_input_enabled;"
+                                style="nav-up: #bg_input_enabled; nav-down: #dinomod_check_enabled"
                             />
                             <label class="config-option__tab-label" for="sixty_fps_enabled">On</label>
 
@@ -118,9 +118,40 @@
                                 data-checked="sixty_fps"
                                 value="0"
                                 id="sixty_fps_disabled"
-                                style="nav-up: #bg_input_disabled;"
+                                style="nav-up: #bg_input_disabled; nav-down: #dinomod_check_disabled"
                             />
                             <label class="config-option__tab-label" for="sixty_fps_disabled">Off</label>
+                            <div class="config-option__details" data-if="sixty_fps">Some gameplay may run faster than intended!</div>
+                        </div>
+                    </div>
+
+                    <!-- Dinomod check -->
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(5)" id="conf-general__sixty-fps">
+                        <label class="config-option__title">Dinomod Enhanced Check</label>
+                        <div class="config-option__list">
+                            <input
+                                type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(5)"
+                                name="dinomod_check"
+                                data-checked="dinomod_check"
+                                value="1"
+                                id="dinomod_check_enabled"
+                                style="nav-up: #sixty_fps_enabled;"
+                            />
+                            <label class="config-option__tab-label" for="dinomod_check_enabled">On</label>
+
+                            <input
+                                type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(5)"
+                                name="dinomod_check"
+                                data-checked="dinomod_check"
+                                value="0"
+                                id="dinomod_check_disabled"
+                                style="nav-up: #sixty_fps_disabled;"
+                            />
+                            <label class="config-option__tab-label" for="dinomod_check_disabled">Off</label>
                         </div>
                     </div>
                 </div>
@@ -156,6 +187,12 @@
                         <br/>
                         <br/>
                         <i>Warning:</i> Running at 60 Hz will cause certain gameplay elements to run faster than normal. This option may need to be disabled to complete some parts of the game. These problems may be patched out over time.
+                    </p>
+                    <p data-if="cur_config_index == 5">
+                        Whether recomp should check if the 'Dinomod Enhanced' mod is installed and enabled before starting the game.
+                        <br/>
+                        <br/>
+                        If you are developing/playing alternative mods or intentionally trying to experience the vanilla ROM, this check can be disabled here.
                     </p>
                 </div>
             </div>

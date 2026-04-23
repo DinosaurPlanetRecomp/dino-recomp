@@ -20,6 +20,8 @@ struct {
 } prompt_state;
 
 void run_confirm_callback() {
+    recompui::hide_context(prompt_state.ui_context);
+
     std::function<void()> confirm_action;
     {
         std::lock_guard lock{ prompt_state.mutex };
@@ -28,13 +30,14 @@ void run_confirm_callback() {
     if (confirm_action) {
         confirm_action();
     }
-    recompui::hide_context(prompt_state.ui_context);
 
     // TODO nav: focus on return_element_id
     // or just remove it as the usage of the prompt can change now
 }
 
 void run_cancel_callback() {
+    recompui::hide_context(prompt_state.ui_context);
+    
     std::function<void()> cancel_action;
     {
         std::lock_guard lock{ prompt_state.mutex };
@@ -43,7 +46,6 @@ void run_cancel_callback() {
     if (cancel_action) {
         cancel_action();
     }
-    recompui::hide_context(prompt_state.ui_context);
 
     // TODO nav: focus on return_element_id
     // or just remove it as the usage of the prompt can change now

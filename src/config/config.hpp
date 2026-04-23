@@ -87,6 +87,9 @@ namespace dino::config {
     bool get_sixty_fps_enabled();
     void set_sixty_fps_enabled(bool enabled);
 
+    bool get_dinomod_check();
+    void set_dinomod_check(bool enabled);
+
     void reset_sound_settings();
     void set_main_volume(int volume);
     int get_main_volume();

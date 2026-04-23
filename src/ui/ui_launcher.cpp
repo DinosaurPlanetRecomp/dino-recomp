@@ -1,7 +1,9 @@
+#include "config/config.hpp"
 #include "runtime/support.hpp"
 
 #include "ui/recomp_ui.h"
 #include "librecomp/game.hpp"
+#include "librecomp/mods.hpp"
 #include "ultramodern/ultramodern.hpp"
 #include "RmlUi/Core.h"
 #include <filesystem>
@@ -13,7 +15,7 @@ bool rom_valid = false;
 
 extern std::vector<recomp::GameEntry> supported_games;
 
-void select_rom() {
+void open_rom_select_dialog() {
     dino::runtime::open_file_dialog([](bool success, const std::filesystem::path& path) {
         if (success) {
             recomp::RomValidationError rom_error = recomp::select_rom(path, supported_games[0].game_id);
@@ -36,7 +38,7 @@ void select_rom() {
                     break;
                 case recomp::RomValidationError::IncorrectVersion:
                     recompui::message_box(
-                            "This ROM is the correct game, but the wrong version.\nThis project requires the unmodified beta ROM.\nPlease make sure that you are *not* selecting rom_crack.z64.");
+                            "This ROM is the correct game, but the wrong version.\nThis project requires an unmodified 2000 prototype ROM.\nPlease make sure that you are *not* selecting rom_crack.z64.");
                     break;
                 case recomp::RomValidationError::OtherError:
                     recompui::message_box("An unknown error has occurred.");
@@ -44,6 +46,58 @@ void select_rom() {
             }
         }
     });
+}
+
+void select_rom() {
+    recompui::open_info_prompt("Recomp Setup", 
+        "Welcome to Dinosaur Planet: Recompiled!\n\nThis application requires an *unmodified* Dinosaur Planet 2000 prototype ROM.\n\n"
+            "Please note that the vanilla prototype ROM is not very playable on its own. It is strongly recommended to install the Dinomod Enhanced mod before playing.", 
+        "Select ROM", 
+        open_rom_select_dialog,
+        recompui::ButtonVariant::Primary);
+}
+
+void start_game() {
+    recomp::start_game(supported_games[0].game_id);
+    recompui::hide_all_contexts();
+}
+
+void start_game_check_asset_repacker() {
+    if (recomp::mods::is_mod_enabled("asset_repacker")) {
+        recompui::open_choice_prompt("Incompatible Mod", 
+            "Warning: The mod 'Asset Repacker' is not compatible with recomp versions 0.3.0 and newer. "
+                "This mod has been superseded by built-in recomp functionality and is no longer required.\n\n"
+                "Please remove or disable 'Asset Repacker' and update Dinomod Enhanced to the latest version.", 
+            "Continue Anyway",
+            "Cancel", 
+            start_game,
+            []() {},
+            recompui::ButtonVariant::Error,
+            recompui::ButtonVariant::Success);
+    } else {
+        start_game();
+    }
+}
+
+void start_game_check_dinomod() {
+    if (dino::config::get_dinomod_check() && !recomp::mods::is_mod_enabled("dinomod_enhanced")) {
+        recompui::open_choice_prompt("Missing Dinomod Enhanced", 
+            "Warning: The 'Dinomod Enhanced' recomp mod is not installed and enabled!\n\n"
+                "The vanilla prototype ROM is not very playable on its own and you will not be able to progress past the early game.\n\n"
+                "If this is intentional, you can disable this check in the 'General' settings menu.", 
+            "Continue Anyway",
+            "Cancel", 
+            start_game_check_asset_repacker,
+            []() {},
+            recompui::ButtonVariant::Error,
+            recompui::ButtonVariant::Success);
+    } else {
+        start_game_check_asset_repacker();
+    }
+}
+
+void start_game_preflight() {
+    start_game_check_dinomod();
 }
 
 recompui::ContextId launcher_context;
@@ -84,8 +138,7 @@ public:
         );
         recompui::register_event(listener, "start_game",
             [](const std::string& param, Rml::Event& event) {
-                recomp::start_game(supported_games[0].game_id);
-                recompui::hide_all_contexts();
+                start_game_preflight();
             }
         );
         recompui::register_event(listener, "open_controls",

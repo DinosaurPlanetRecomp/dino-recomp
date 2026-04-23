@@ -238,6 +238,7 @@ struct ControlOptionsContext {
     dino::config::AnalogCamMode analog_cam_mode;
     dino::config::CameraInvertMode analog_camera_invert_mode;
 	std::atomic<int> sixty_fps_enabled = 0;
+	std::atomic<int> dinomod_check = 0;
 };
 
 ControlOptionsContext control_options_context;
@@ -377,6 +378,17 @@ void dino::config::set_sixty_fps_enabled(bool enabled) {
 	control_options_context.sixty_fps_enabled.store((int)enabled);
 	if (general_model_handle) {
 		general_model_handle.DirtyVariable("sixty_fps");
+	}
+}
+
+bool dino::config::get_dinomod_check() {
+	return (bool)control_options_context.dinomod_check.load();
+}
+
+void dino::config::set_dinomod_check(bool enabled) {
+	control_options_context.dinomod_check.store((int)enabled);
+	if (general_model_handle) {
+		general_model_handle.DirtyVariable("dinomod_check");
 	}
 }
 
@@ -919,6 +931,7 @@ public:
         bind_option(constructor, "analog_cam_mode", &control_options_context.analog_cam_mode);
         bind_option(constructor, "analog_camera_invert_mode", &control_options_context.analog_camera_invert_mode);
         bind_atomic(constructor, general_model_handle, "sixty_fps", &control_options_context.sixty_fps_enabled);
+        bind_atomic(constructor, general_model_handle, "dinomod_check", &control_options_context.dinomod_check);
     }
     
     void make_sound_options_bindings(Rml::Context* context) {

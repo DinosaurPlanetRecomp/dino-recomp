@@ -308,7 +308,7 @@
                     </p>
                     <p data-if="cur_config_index == 6">
                         <b>EXPERIMENTAL</b>
-                        <br/>Causes many graphical issues including <i>the camera jumping around/flickering</i>, various entities and effects <i>disappearing or teleporting</i> for a few frames, <i>intense lag in certain areas</i>, and more.
+                        <br/>Causes many graphical issues including <i>flashing</i>, various entities and effects <i>disappearing or teleporting</i> for a few frames, <i>intense lag in certain areas</i>, and more.
                         <br />
                         <br /><i>NOT RECOMMENDED</i>
                         <br />
