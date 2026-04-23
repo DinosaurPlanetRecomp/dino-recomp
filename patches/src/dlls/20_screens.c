@@ -7,6 +7,9 @@
 
 #include "recomp/dlls/engine/20_screens_recomp.h"
 
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 240
+
 extern s32 sLoadedScreenNo;
 extern s32 sRenderScreen;
 extern s32 sLoadedScreenByteLength;
@@ -36,6 +39,11 @@ RECOMP_PATCH void screens_draw(Gfx **gdl) {
 
         ptr = sLoadedScreen;
         ptr += 8;
+
+        // @recomp: Fullscreen scissor
+        gEXPushScissor((*gdl)++);
+        gEXSetScissorAlign((*gdl)++, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_RIGHT, 0, 0, -SCREEN_WIDTH, 0, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        gDPSetScissor((*gdl)++, G_SC_NON_INTERLACE, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
         // @recomp start
         // Fill behind screen with black since the screen texture won't fill widescreen (it's a 4:3 image)
@@ -98,5 +106,9 @@ RECOMP_PATCH void screens_draw(Gfx **gdl) {
             ptr += width * chunkSize;
             yPos += chunkSize;
         } while (yPos < height);
+
+        // @recomp: Reset scissor align
+        gEXSetScissorAlign((*gdl)++, G_EX_ORIGIN_NONE, G_EX_ORIGIN_NONE, 0, 0, 0, 0, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        gEXPopScissor((*gdl)++);
     }
 }
