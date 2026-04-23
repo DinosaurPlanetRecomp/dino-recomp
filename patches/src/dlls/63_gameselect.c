@@ -1,4 +1,5 @@
 #include "patches.h"
+#include "rt64_extended_gbi.h"
 
 #include "PR/ultratypes.h"
 #include "PR/gbi.h"
@@ -76,7 +77,12 @@ RECOMP_PATCH void dll_63_draw(Gfx **gdl, Mtx **mtxs, Vertex **vtxs) {
         font_window_flush_strings(3);
 
         if (sRedrawFrames != 0) {
+            // @recomp: Center background
+            // TODO: the clear screen is only necessary because coming from the rolling demo, some 3d stuff still draws??
+            rcp_clear_screen(gdl, mtxs, CLEAR_COLOR);
+            gEXSetRectAlign((*gdl)++, G_EX_ORIGIN_CENTER, G_EX_ORIGIN_CENTER, (-640 / 2) * 4, 0, (640 / 2) * 4, 0);
             rcp_screen_full_write(gdl, sBackgroundTexture, 0, 0, 0, 0, 0xFF, 2);
+            gEXSetRectAlign((*gdl)++, G_EX_ORIGIN_NONE, G_EX_ORIGIN_NONE, 0, 0, 0, 0);
 
             if (sSubmenuIdx == SUBMENU_GAME_RECAP) {
                 rcp_screen_full_write(gdl, sLogoShadowTexture, 119, 92, 0, 0, 0xFF, 0);

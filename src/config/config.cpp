@@ -25,10 +25,10 @@ constexpr std::u8string_view controls_filename = u8"controls.json";
 constexpr std::u8string_view sound_filename = u8"sound.json";
 
 constexpr auto res_default            = ultramodern::renderer::Resolution::Auto;
-constexpr auto hr_default             = ultramodern::renderer::HUDRatioMode::Original;
+constexpr auto hr_default             = ultramodern::renderer::HUDRatioMode::Clamp16x9;
 constexpr auto api_default            = ultramodern::renderer::GraphicsApi::Auto;
-constexpr auto ar_default             = ultramodern::renderer::AspectRatio::Original;
-constexpr auto msaa_default           = ultramodern::renderer::Antialiasing::None;
+constexpr auto ar_default             = ultramodern::renderer::AspectRatio::Expand;
+constexpr auto msaa_default           = ultramodern::renderer::Antialiasing::MSAA2X;
 constexpr auto rr_default             = ultramodern::renderer::RefreshRate::Original;
 constexpr auto hpfb_default           = ultramodern::renderer::HighPrecisionFramebuffer::On;
 constexpr int ds_default              = 1;

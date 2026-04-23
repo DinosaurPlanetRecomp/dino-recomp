@@ -154,11 +154,6 @@
                         </div>
                     </div>
 
-                    <p data-event-mouseover="set_cur_config_index(-1)" class="experimental-warning">
-                        <b style="padding-bottom: 4px; display: block">⚠ EXPERIMENTAL ⚠</b>
-                        The options below <i>will cause issues</i> if changed from their defaults.
-                    </p>
-
                     <!-- Aspect Ratio -->
                     <div class="config-option" data-event-mouseover="set_cur_config_index(4)">
                         <label class="config-option__title">Aspect Ratio</label>
@@ -224,6 +219,11 @@
                             <label class="config-option__tab-label" for="hr_full">Expand</label>
                         </div>
                     </div>
+
+                    <p data-event-mouseover="set_cur_config_index(-1)" class="experimental-warning">
+                        <b style="padding-bottom: 4px; display: block">⚠ EXPERIMENTAL ⚠</b>
+                        The options below <i>will cause issues</i> if changed from their defaults.
+                    </p>
 
                     <!-- Framerate -->
                     <div class="config-option" data-event-mouseover="set_cur_config_index(6)">
@@ -301,15 +301,9 @@
                         Note: <b>4x</b> downsampling quality at <b>Original 2x</b> resolution may cause performance issues on low end devices, as it will cause the game to render <i>at almost 4k internal resolution</i>.
                     </p>
                     <p data-if="cur_config_index == 4">
-                        <b>EXPERIMENTAL</b><br />Certain UI elements <i>may become stretched</i>.
-                        <br />
-                        <br />
                         Sets the horizontal aspect ratio. <b>Original</b> uses the game's original 4:3 aspect ratio. <b>Expand</b> will adjust to match the game window's aspect ratio.
                     </p>
                     <p data-if="cur_config_index == 5">
-                        <b>EXPERIMENTAL</b><br/><i>Not fully implemented.</i>
-                        <br />
-                        <br />
                         Adjusts the placement of HUD elements to fit the selected aspect ratio. <b>Expand</b> will use the aspect ratio of the game's output window.
                     </p>
                     <p data-if="cur_config_index == 6">
