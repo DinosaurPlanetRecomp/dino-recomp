@@ -109,6 +109,9 @@ static const char* get_map_name(s32 mapID) {
 void dbgui_warp_window(s32 *open) {
     if (dbgui_begin("Warp", open)) {
         load_maps();
+
+        dbgui_text_wrapped("Danger: Warping is a debug feature and will mess up your savefile if misused!");
+        dbgui_separator();
         
         if (dbgui_begin_combo("Warp Location", selectedWarpEntry->name)) {
             for (u32 i = 0; i < WARP_ENTRIES_COUNT; i++) {
@@ -129,7 +132,7 @@ void dbgui_warp_window(s32 *open) {
         static s32 mapID = 0;
         static s32 setupID = 0;
         static s32 playerNo = 0;
-        if (dbgui_begin_combo("Map", get_map_name(mapID))) {
+        if (dbgui_begin_combo("Map", recomp_sprintf_helper("%d: %s", mapID, get_map_name(mapID)))) {
             for (s32 i = 0; i < numMaps; i++) {
                 if (dbgui_selectable(recomp_sprintf_helper("%d: %s", i, get_map_name(i)), i == mapID)) {
                     mapID = i;

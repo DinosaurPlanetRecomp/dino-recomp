@@ -30,6 +30,8 @@ extern f32 gNearPlane;
 extern f32 gFarPlane;
 extern Viewport gViewports[4];
 extern Vp gRSPViewports[20];
+extern s16 gLetterboxSize;
+extern s16 gLetterboxTarget;
 
 extern Gfx *gMainGfx[2];
 extern Gfx *gCurGfx;
@@ -93,6 +95,9 @@ static void general_tab(void) {
 }
 
 static void camera_tab(void) {
+    dbgui_textf("gLetterboxSize: %d", gLetterboxSize);
+    dbgui_textf("gLetterboxTarget: %d", gLetterboxTarget);
+    
     dbgui_textf("gFovY: %f", gFovY);
     dbgui_textf("gAspect: %f", gAspect);
     dbgui_textf("gNearPlane: %f", gNearPlane);
