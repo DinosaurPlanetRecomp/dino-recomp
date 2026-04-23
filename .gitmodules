@@ -6,7 +6,7 @@
 	url = https://github.com/DinosaurPlanetRecomp/N64ModernRuntime.git
 [submodule "lib/rt64"]
 	path = lib/rt64
-	url = https://github.com/rt64/rt64.git
+	url = https://github.com/DinosaurPlanetRecomp/rt64.git
 [submodule "lib/freetype-windows-binaries"]
 	path = lib/freetype-windows-binaries
 	url = https://github.com/ubawurinna/freetype-windows-binaries.git
