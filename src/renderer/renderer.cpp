@@ -270,6 +270,9 @@ RT64Context::RT64Context(uint8_t* rdram, ultramodern::renderer::WindowHandle win
     app->enhancementConfig.f3dex.forceBranch = true;
     // Scale LODs based on the output resolution.
     app->enhancementConfig.textureLOD.scale = true;
+    // Don't try to fix rectangle lower-right coords. This causes Dino Planet's font window scissors
+    // to stretch glyph rects down by a pixel when they are drawn right on the edge of the scissor.
+    app->enhancementConfig.rect.fixRectLR = false;
     // Pick an API if the user has set an override.
     switch (cur_config.api_option) {
         case ultramodern::renderer::GraphicsApi::D3D12:
