@@ -18,7 +18,7 @@ cp ../../recompcontrollerdb.txt AppDir/usr/bin/
 NO_STRIP=true linuxdeploy.AppImage --appdir AppDir \
     --executable ../../build/DinosaurPlanetRecompiled \
     --desktop-file ../io.github.dinosaurplanetrecomp.dino_recomp.desktop \
-    --icon-file ../../icons/64.png \
+    --icon-file ../../icons/512.png \
     --icon-filename io.github.dinosaurplanetrecomp.dino_recomp \
     --output appimage
 mv Dinosaur_Planet:_Recompiled-x86_64.AppImage DinosaurPlanetRecompiled-x86_64.AppImage

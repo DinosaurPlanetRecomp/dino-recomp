@@ -273,8 +273,8 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
 
     # Generate icon_bytes.c from the app icon PNG.
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/icon_bytes.c ${CMAKE_CURRENT_BINARY_DIR}/icon_bytes.h
-       COMMAND file_to_c ${CMAKE_SOURCE_DIR}/icons/32.png icon_bytes ${CMAKE_CURRENT_BINARY_DIR}/icon_bytes.c ${CMAKE_CURRENT_BINARY_DIR}/icon_bytes.h 
-       DEPENDS ${CMAKE_SOURCE_DIR}/icons/32.png
+       COMMAND file_to_c ${CMAKE_SOURCE_DIR}/icons/512.png icon_bytes ${CMAKE_CURRENT_BINARY_DIR}/icon_bytes.c ${CMAKE_CURRENT_BINARY_DIR}/icon_bytes.h 
+       DEPENDS ${CMAKE_SOURCE_DIR}/icons/512.png
     )
     target_sources(DinosaurPlanetRecompiled PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/icon_bytes.c)
 
