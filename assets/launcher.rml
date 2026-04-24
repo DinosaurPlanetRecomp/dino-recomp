@@ -23,7 +23,7 @@
 				<svg src="images/star-red.svg" class="launcher-star launcher-star--far" style="left: 93%; top: 50%" />
 				<svg src="images/star-red.svg" class="launcher-star launcher-star--far" style="left: 98%; top: 64%" />
 				<svg src="images/star-red.svg" class="launcher-star launcher-star--far" style="left: 72%; top: 89%" />
-				<svg src="images/star-blu.svg" class="launcher-star launcher-star--small" style="left: 79%; top: 20%" />
+				<svg src="images/star-blu.svg" class="launcher-star launcher-star--small launcher-star--delay1" style="left: 79%; top: 20%" />
 				<svg src="images/star-red.svg" class="launcher-star launcher-star--medium" style="left: 55%; top: 94%" />
 				<svg src="images/star-red.svg" class="launcher-star launcher-star--tiny" style="left: 41%; top: 87%" />
 				<svg src="images/star-red.svg" class="launcher-star launcher-star--far" style="left: 32%; top: 90%" />
@@ -36,7 +36,7 @@
 				<svg src="images/star-red.svg" class="launcher-star launcher-star--far" style="left: 9%; top: 59%" />
 				<svg src="images/star-red.svg" class="launcher-star launcher-star--far" style="left: 0.5%; top: 51%" />
 				<svg src="images/star-blu.svg" class="launcher-star launcher-star--small" style="left: 17%; top: 48%" />
-				<svg src="images/star-blu.svg" class="launcher-star launcher-star--small" style="left: 13%; top: 48.5%" />
+				<svg src="images/star-blu.svg" class="launcher-star launcher-star--small launcher-star--delay1" style="left: 13%; top: 48.5%" />
 				<svg src="images/star-red.svg" class="launcher-star launcher-star--far" style="left: 18%; top: 36%" />
 				<svg src="images/star-blu.svg" class="launcher-star launcher-star--far" style="left: 3%; top: 37%" />
 

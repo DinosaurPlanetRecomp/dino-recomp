@@ -37,6 +37,21 @@
     }
 }
 
+@keyframes background-anim {
+    0% {
+        left: -25%;
+        right: 25%;
+        width: 150%;
+        height: 150%;
+    }
+	100% {
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+	}
+}
+
 .launcher-background {
     position: fixed;
     top: 0;
@@ -45,26 +60,27 @@
     right: 0;
     width: 100%;
     height: 100%;
+    animation: 2s sine-out background-anim;
 }
 
 @keyframes pulse-anim {
 	100% {
-        transform: scale(1.2);
+        transform: scale(1.25);
 	}
 }
 
 .launcher-star {
     position: fixed;
 
-    &--medium, &--big {
-        animation: 2s cubic-in-out infinite alternate pulse-anim;
+    &--small, &--medium, &--big {
+        animation: 4s back-in-out infinite alternate pulse-anim;
 
         &.launcher-star--delay1 {
-            animation: 2s 1.2s cubic-in-out infinite alternate pulse-anim;
+            animation: 4s 2.2s back-in-out infinite alternate pulse-anim;
         }
 
         &.launcher-star--delay2 {
-            animation: 2s 0.6s cubic-in-out infinite alternate pulse-anim;
+            animation: 4s 1.6s back-in-out infinite alternate pulse-anim;
         }
     }
 
@@ -137,7 +153,7 @@
 }
 
 .game-logo {
-    width: 68%;
+    width: 60%;
     max-width: 800px;
 
     animation: 2.75s cubic-in fade-logo-in;
