@@ -171,7 +171,8 @@ RECOMP_PATCH s32 minimap_print(Gfx **gdl, s32 arg1) {
         }
 
         //Fade minimap in/out
-        if (loadTextureID == sLoadedTexTableID) {
+        // @recomp: Fix opacity rising back to 255 while loadTextureID is 0 (causes the next fade in to be delayed)
+        if (loadTextureID == sLoadedTexTableID && loadTextureID != 0) {
             // @recomp: Make framerate independent
             sOpacity += (32/2) * gUpdateRate;
             if (sOpacity > 0xFF) {

@@ -119,6 +119,14 @@ extern "C" void recomp_get_60fps_enabled(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, dino::config::get_sixty_fps_enabled() ? 1 : 0);
 }
 
+extern "C" void recomp_get_hud_mode(uint8_t* rdram, recomp_context* ctx) {
+    _return(ctx, static_cast<int>(dino::config::get_hud_mode()));
+}
+
+extern "C" void recomp_get_minimap_mode(uint8_t* rdram, recomp_context* ctx) {
+    _return(ctx, static_cast<int>(dino::config::get_minimap_mode()));
+}
+
 extern "C" void recomp_get_bgm_volume(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, dino::config::get_bgm_volume());
 }
@@ -148,6 +156,8 @@ namespace dino::recomp_api {
         REGISTER_EXPORT(recomp_powf);
         REGISTER_EXPORT(recomp_time_us);
         REGISTER_EXPORT(recomp_get_60fps_enabled);
+        REGISTER_EXPORT(recomp_get_hud_mode);
+        REGISTER_EXPORT(recomp_get_minimap_mode);
         REGISTER_EXPORT(recomp_get_bgm_volume);
         REGISTER_EXPORT(recomp_get_sfx_volume);
         REGISTER_EXPORT(recomp_get_dialog_volume);

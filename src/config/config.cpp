@@ -222,6 +222,8 @@ bool save_general_config(const std::filesystem::path& path) {
     config_json["analog_camera_invert_mode"] = get_analog_camera_invert_mode();
     config_json["sixty_fps"] = get_sixty_fps_enabled();
     config_json["dinomod_check"] = get_dinomod_check();
+    config_json["hud_mode"] = get_hud_mode();
+    config_json["minimap_mode"] = get_minimap_mode();
     config_json["debug_dll_logging"] = get_debug_dll_logging_enabled();
     config_json["debug_diprintf"] = get_debug_diprintf_enabled();
     config_json["debug_reasset_loglevel"] = get_debug_reasset_loglevel();
@@ -243,6 +245,8 @@ void set_general_settings_from_json(const nlohmann::json& config_json) {
     set_analog_camera_invert_mode(from_or_default(config_json, "analog_camera_invert_mode", CameraInvertMode::InvertNone));
     set_sixty_fps_enabled(from_or_default(config_json, "sixty_fps", false));
     set_dinomod_check(from_or_default(config_json, "dinomod_check", true));
+    set_hud_mode(from_or_default(config_json, "hud_mode", HUDMode::Default));
+    set_minimap_mode(from_or_default(config_json, "minimap_mode", MinimapMode::Default));
     set_debug_dll_logging_enabled(from_or_default(config_json, "debug_dll_logging", false));
     set_debug_diprintf_enabled(from_or_default(config_json, "debug_diprintf", false));
     set_debug_reasset_loglevel(from_or_default(config_json, "debug_reasset_loglevel", 0));

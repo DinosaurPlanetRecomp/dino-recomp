@@ -239,6 +239,8 @@ struct ControlOptionsContext {
     dino::config::CameraInvertMode analog_camera_invert_mode;
 	std::atomic<int> sixty_fps_enabled = 0;
 	std::atomic<int> dinomod_check = 0;
+	dino::config::HUDMode hud_mode;
+	dino::config::MinimapMode minimap_mode;
 };
 
 ControlOptionsContext control_options_context;
@@ -389,6 +391,28 @@ void dino::config::set_dinomod_check(bool enabled) {
 	control_options_context.dinomod_check.store((int)enabled);
 	if (general_model_handle) {
 		general_model_handle.DirtyVariable("dinomod_check");
+	}
+}
+
+dino::config::HUDMode dino::config::get_hud_mode() {
+	return control_options_context.hud_mode;
+}
+
+void dino::config::set_hud_mode(dino::config::HUDMode mode) {
+	control_options_context.hud_mode = mode;
+	if (general_model_handle) {
+		general_model_handle.DirtyVariable("hud_mode");
+	}
+}
+
+dino::config::MinimapMode dino::config::get_minimap_mode() {
+	return control_options_context.minimap_mode;
+}
+
+void dino::config::set_minimap_mode(dino::config::MinimapMode mode) {
+	control_options_context.minimap_mode = mode;
+	if (general_model_handle) {
+		general_model_handle.DirtyVariable("minimap_mode");
 	}
 }
 
@@ -931,6 +955,8 @@ public:
         bind_option(constructor, "analog_cam_mode", &control_options_context.analog_cam_mode);
         bind_option(constructor, "analog_camera_invert_mode", &control_options_context.analog_camera_invert_mode);
         bind_atomic(constructor, general_model_handle, "sixty_fps", &control_options_context.sixty_fps_enabled);
+        bind_option(constructor, "hud_mode", &control_options_context.hud_mode);
+        bind_option(constructor, "minimap_mode", &control_options_context.minimap_mode);
         bind_atomic(constructor, general_model_handle, "dinomod_check", &control_options_context.dinomod_check);
     }
     

@@ -1,5 +1,6 @@
 #include "patches.h"
 #include "rt64_extended_gbi.h"
+#include "patches/1_cmdmenu.h"
 
 #include "PR/gbi.h"
 #include "PR/ultratypes.h"
@@ -333,6 +334,7 @@ enum CmdMenuTextures {
 /*0xC3E*/ extern s8 sInventoryPageID;     //The pageID currently open (see `CmdMenuPages`)
 /*0xC40*/ extern s16 sMenuSelectedItemIdx; //Display index of the item currently selected in the menu page 
 /*0xC44*/ extern s32 sDisplayedItemCount;  //The number of items displayed on the current page (while drawing the inventory icons, this number is updated to be at least the number of slots in the tile strip)
+/*0xC58*/ extern s32 sJoyHeldButtons;               //Joypad button bitfield
 /*0xC60*/ extern TextureTile sTempIcon[2];
 /*0xC88*/ extern CmdmenuInfoPopup sInfoPopup;   //Item info pop-up that appears after collecting certain items (e.g. Kyte's grubs)
 
@@ -355,6 +357,10 @@ extern void cmdmenu_draw_c_buttons_and_sidekick_meter(Gfx** gdl, Mtx** mtxs, Ver
 extern void cmdmenu_draw_info_scroll(Gfx** gdl, Mtx** mtxs, Vertex** vtxs);
 extern void cmdmenu_draw_tutorial_textbox(Gfx** gdl, Mtx** mtxs, Vertex** vtxs);
 extern void cmdmenu_draw_main(Gfx** gdl, Mtx** mtxs, Vertex** vtxs);
+
+_Bool recomp_cmdmenu_is_r_held(void) {
+    return (sJoyHeldButtons & R_TRIG) ? 1 : 0;
+}
 
 RECOMP_PATCH void cmdmenu_print(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
     Object* player;

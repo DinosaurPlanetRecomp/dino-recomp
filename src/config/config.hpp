@@ -78,6 +78,30 @@ namespace dino::config {
         {dino::config::AnalogCamMode::Off, "Off"}
     });
 
+    enum class HUDMode {
+        Default,
+        AlwaysVisible,
+        OptionCount
+    };
+
+    NLOHMANN_JSON_SERIALIZE_ENUM(dino::config::HUDMode, {
+        {dino::config::HUDMode::Default, "Default"},
+        {dino::config::HUDMode::AlwaysVisible, "AlwaysVisible"}
+    });
+
+    enum class MinimapMode {
+        Default,
+        Hold,
+        Hidden,
+        OptionCount
+    };
+
+    NLOHMANN_JSON_SERIALIZE_ENUM(dino::config::MinimapMode, {
+        {dino::config::MinimapMode::Default, "Default"},
+        {dino::config::MinimapMode::Hold, "Hold"},
+        {dino::config::MinimapMode::Hidden, "Hidden"}
+    });
+
     AutosaveMode get_autosave_mode();
     void set_autosave_mode(AutosaveMode mode);
 
@@ -89,6 +113,11 @@ namespace dino::config {
 
     bool get_dinomod_check();
     void set_dinomod_check(bool enabled);
+
+    HUDMode get_hud_mode();
+    void set_hud_mode(HUDMode mode);
+    MinimapMode get_minimap_mode();
+    void set_minimap_mode(MinimapMode mode);
 
     void reset_sound_settings();
     void set_main_volume(int volume);

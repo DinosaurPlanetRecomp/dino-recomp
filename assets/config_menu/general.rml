@@ -76,7 +76,7 @@
                                 data-checked="background_input_mode"
                                 value="On"
                                 id="bg_input_enabled"
-                                style="nav-up: #rumble_strength_input; nav-down: #sixty_fps_enabled"
+                                style="nav-up: #rumble_strength_input; nav-down: #hud_mode_always"
                             />
                             <label class="config-option__tab-label" for="bg_input_enabled">On</label>
 
@@ -88,37 +88,109 @@
                                 data-checked="background_input_mode"
                                 value="Off"
                                 id="bg_input_disabled"
-                                style="nav-up: #rumble_strength_input; nav-down: #sixty_fps_disabled"
+                                style="nav-up: #rumble_strength_input; nav-down: #hud_mode_default"
                             />
                             <label class="config-option__tab-label" for="bg_input_disabled">Off</label>
                         </div>
                     </div>
 
-                    <!-- 60 fps -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(4)" id="conf-general__sixty-fps">
-                        <label class="config-option__title">60 Hz Gameplay</label>
+                    <!-- HUD visibility -->
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(4)" id="conf-general__hud-mode">
+                        <label class="config-option__title">HUD Visibility</label>
                         <div class="config-option__list">
                             <input
                                 type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
                                 data-event-focus="set_cur_config_index(4)"
+                                name="hud_mode"
+                                data-checked="hud_mode"
+                                value="AlwaysVisible"
+                                id="hud_mode_always"
+                                style="nav-up: #bg_input_enabled; nav-down: #dinomod_check_enabled"
+                            />
+                            <label class="config-option__tab-label" for="hud_mode_always">Always</label>
+
+                            <input
+                                type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(4)"
+                                name="hud_mode"
+                                data-checked="hud_mode"
+                                value="Default"
+                                id="hud_mode_default"
+                                style="nav-up: #bg_input_disabled; nav-down: #dinomod_check_disabled"
+                            />
+                            <label class="config-option__tab-label" for="hud_mode_default">Default</label>
+                        </div>
+                    </div>
+
+                    <!-- Minimap visibility -->
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(5)" id="conf-general__minimap-mode">
+                        <label class="config-option__title">Minimap Visibility</label>
+                        <div class="config-option__list">
+                            <input
+                                type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(5)"
+                                name="minimap_mode"
+                                data-checked="minimap_mode"
+                                value="Default"
+                                id="minimap_mode_always"
+                                style="nav-up: #hud_mode_always; nav-down: #sixty_fps_enabled"
+                            />
+                            <label class="config-option__tab-label" for="minimap_mode_always">Always</label>
+
+                            <input
+                                type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(5)"
+                                name="minimap_mode"
+                                data-checked="minimap_mode"
+                                value="Hold"
+                                id="minimap_mode_hold"
+                                style="nav-up: #hud_mode_default; nav-down: #sixty_fps_disabled"
+                            />
+                            <label class="config-option__tab-label" for="minimap_mode_hold">Hold</label>
+
+                            <input
+                                type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(5)"
+                                name="minimap_mode"
+                                data-checked="minimap_mode"
+                                value="Hidden"
+                                id="minimap_mode_hidden"
+                                style="nav-up: #hud_mode_default; nav-down: #sixty_fps_disabled"
+                            />
+                            <label class="config-option__tab-label" for="minimap_mode_hidden">Hidden</label>
+                        </div>
+                    </div>
+
+                    <!-- 60 fps -->
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(6)" id="conf-general__sixty-fps">
+                        <label class="config-option__title">60 Hz Gameplay</label>
+                        <div class="config-option__list">
+                            <input
+                                type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(6)"
                                 name="sixty_fps"
                                 data-checked="sixty_fps"
                                 value="1"
                                 id="sixty_fps_enabled"
-                                style="nav-up: #bg_input_enabled; nav-down: #dinomod_check_enabled"
+                                style="nav-up: #minimap_mode_always; nav-down: #dinomod_check_enabled"
                             />
                             <label class="config-option__tab-label" for="sixty_fps_enabled">On</label>
 
                             <input
                                 type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(4)"
+                                data-event-focus="set_cur_config_index(6)"
                                 name="sixty_fps"
                                 data-checked="sixty_fps"
                                 value="0"
                                 id="sixty_fps_disabled"
-                                style="nav-up: #bg_input_disabled; nav-down: #dinomod_check_disabled"
+                                style="nav-up: #minimap_mode_hold; nav-down: #dinomod_check_disabled"
                             />
                             <label class="config-option__tab-label" for="sixty_fps_disabled">Off</label>
                             <div class="config-option__details" data-if="sixty_fps">Some gameplay may run faster than intended!</div>
@@ -126,13 +198,13 @@
                     </div>
 
                     <!-- Dinomod check -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(5)" id="conf-general__sixty-fps">
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(7)" id="conf-general__dinomod-check">
                         <label class="config-option__title">Dinomod Enhanced Check</label>
                         <div class="config-option__list">
                             <input
                                 type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(5)"
+                                data-event-focus="set_cur_config_index(7)"
                                 name="dinomod_check"
                                 data-checked="dinomod_check"
                                 value="1"
@@ -144,7 +216,7 @@
                             <input
                                 type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(5)"
+                                data-event-focus="set_cur_config_index(7)"
                                 name="dinomod_check"
                                 data-checked="dinomod_check"
                                 value="0"
@@ -180,6 +252,27 @@
                         <b>This setting does not affect keyboard input.</b>
                     </p>
                     <p data-if="cur_config_index == 4">
+                        Determines when the HUD is visible (not including the minimap). This is the equivalent of the game's own "instruments" option.
+                        <br/>
+                        <br/>
+                        <b>Always</b>: Always shown during normal gameplay.
+                        <br/>
+                        <br/>
+                        <b>Default</b>: Only shown when relevant and when R is held.
+                    </p>
+                    <p data-if="cur_config_index == 5">
+                        Determines when the minimap is visible.
+                        <br/>
+                        <br/>
+                        <b>Always</b>: Always shown outside of cutscenes (default).
+                        <br/>
+                        <br/>
+                        <b>Hold</b>: Only shown while R is held to show the HUD.
+                        <br/>
+                        <br/>
+                        <b>Hidden</b>: Never shown.
+                    </p>
+                    <p data-if="cur_config_index == 6">
                         Enables gameplay code to run at its full speed (60 Hz) instead of the normal speed (30 Hz). Running at 60 Hz will reduce input lag at the cost of increased CPU load.
                         <br/>
                         <br/>
@@ -188,7 +281,7 @@
                         <br/>
                         <i>Warning:</i> Running at 60 Hz will cause certain gameplay elements to run faster than normal. This option may need to be disabled to complete some parts of the game. These problems may be patched out over time.
                     </p>
-                    <p data-if="cur_config_index == 5">
+                    <p data-if="cur_config_index == 7">
                         Whether recomp should check if the 'Dinomod Enhanced' mod is installed and enabled before starting the game.
                         <br/>
                         <br/>

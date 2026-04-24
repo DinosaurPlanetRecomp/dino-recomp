@@ -133,3 +133,5 @@ dbgui_separator_text = 0x8F000260;
 dbgui_new_line = 0x8F000264;
 recomp_bcopy = 0x8F000268;
 recomp_bzero = 0x8F00026C;
+recomp_get_hud_mode = 0x8F000270;
+recomp_get_minimap_mode = 0x8F000274;

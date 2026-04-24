@@ -33,6 +33,8 @@ DECLARE_FUNC(int, recomp_get_refresh_rate, void);
 DECLARE_FUNC(f32, recomp_powf, f32, f32);
 DECLARE_FUNC(u32, recomp_time_us, void);
 DECLARE_FUNC(s32, recomp_get_60fps_enabled, void);
+DECLARE_FUNC(s32, recomp_get_hud_mode, void);
+DECLARE_FUNC(s32, recomp_get_minimap_mode, void);
 DECLARE_FUNC(s32, recomp_get_bgm_volume, void);
 DECLARE_FUNC(s32, recomp_get_sfx_volume, void);
 DECLARE_FUNC(s32, recomp_get_dialog_volume, void);
