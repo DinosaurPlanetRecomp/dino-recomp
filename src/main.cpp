@@ -183,7 +183,7 @@ int main(int argc, char** argv) {
         .get_connected_device_info = dino::input::get_connected_device_info,
     };
 
-    ultramodern::events::callbacks_t thread_callbacks{
+    ultramodern::events::callbacks_t events_callbacks{
         .vi_callback = dino::input::update_rumble,
         .gfx_init_callback = recompui::update_supported_options,
     };
@@ -212,6 +212,7 @@ int main(int argc, char** argv) {
         .audio_callbacks = audio_callbacks,
         .input_callbacks = input_callbacks,
         .gfx_callbacks = gfx_callbacks,
+        .events_callbacks = events_callbacks,
         .error_handling_callbacks = error_handling_callbacks,
         .threads_callbacks = threads_callbacks
     };
