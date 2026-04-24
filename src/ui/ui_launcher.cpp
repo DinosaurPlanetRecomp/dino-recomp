@@ -108,19 +108,19 @@ recompui::ContextId recompui::get_launcher_context_id() {
 
 class LauncherMenu : public recompui::MenuController {
 public:
-    std::filesystem::path background_filepath = dino::runtime::get_asset_path("images/background.png");
     std::filesystem::path logo_filepath = dino::runtime::get_asset_path("images/DPLogo.png");
+    std::filesystem::path krazoa_filepath = dino::runtime::get_asset_path("images/krazoa.png");
 
     LauncherMenu() {
         rom_valid = recomp::is_rom_valid(supported_games[0].game_id);
     }
     ~LauncherMenu() override {
-        recompui::release_image(background_filepath.string());
         recompui::release_image(logo_filepath.string());
+        recompui::release_image(krazoa_filepath.string());
     }
     void load_document() override {
-        recompui::queue_image_from_file(background_filepath);
         recompui::queue_image_from_file(logo_filepath);
+        recompui::queue_image_from_file(krazoa_filepath);
 
 		launcher_context = recompui::create_context(dino::runtime::get_asset_path("launcher.rml"));
     }

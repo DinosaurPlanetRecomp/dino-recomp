@@ -1,0 +1,27 @@
+<?xml version="1.0" standalone="no"?>
+<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="star">
+      <stop offset="0%" stop-color="#ECC2C3" stop-opacity="1" />
+      <!-- <stop offset="30%" stop-color="#ECC2C3" stop-opacity="0.95" /> -->
+      <stop offset="55%" stop-color="#ECC2C3" stop-opacity="0.93" />
+      <!-- <stop offset="64%" stop-color="#ECC2C3" stop-opacity="0.86" /> -->
+      <stop offset="72%" stop-color="#ECC2C3" stop-opacity="0.76" />
+      <!-- <stop offset="78%" stop-color="#ECC2C3" stop-opacity="0.65" /> -->
+      <stop offset="80%" stop-color="#ECC2C3" stop-opacity="0.55" />
+      <stop offset="87%" stop-color="#ECC2C3" stop-opacity="0.30" />
+      <stop offset="90%" stop-color="#ECC2C3" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#ECC2C3" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="glow">
+      <stop offset="0%" stop-color="#ECC2C3" stop-opacity="0.15" />
+      <stop offset="40%" stop-color="#ECC2C3" stop-opacity="0.15" />
+      <stop offset="60%" stop-color="#ECC2C3" stop-opacity="0.1" />
+      <stop offset="70%" stop-color="#ECC2C3" stop-opacity="0.05" />
+      <stop offset="100%" stop-color="#ECC2C3" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <circle cx="20" cy="20" r="22" fill="url('#glow')" />
+  <circle cx="20" cy="20" r="7" fill="url('#star')" />
+</svg>

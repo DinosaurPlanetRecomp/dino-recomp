@@ -75,6 +75,7 @@ If you would like to create your own mods, please see the following resources:
 For developers, please see [BUILDING.md](./BUILDING.md) for build and development environment setup instructions.
 
 ## Credits
+* [@rustyspottedcats](https://github.com/rustyspottedcats) for the launcher background design.
 * [Zelda64Recomp](https://github.com/Zelda64Recomp/Zelda64Recomp) for the base project. Much of this project is a direct fork of the Majora's Mask recomp.
 * [N64Recomp](https://github.com/N64Recomp/N64Recomp) for static recompilation.
 * [N64ModernRuntime](https://github.com/N64Recomp/N64ModernRuntime) for a reimplementation of libultra and general handling of common recomp tasks.
