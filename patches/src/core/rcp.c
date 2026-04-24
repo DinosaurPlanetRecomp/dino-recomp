@@ -142,4 +142,7 @@ RECOMP_PATCH void draw_pause_screen_freeze_frame(Gfx** gdl) {
     gSPTextureRectangle((*gdl)++, 0, 0, (width + 1) * 4, (height + 1) * 4, 0, 0, 0, 1 << 12, 1 << 10);
 
     gDLBuilder->needsPipeSync = 1;
+
+    // @recomp: Reset texture DL cache since we're changing the texture outside the tex code
+    tex_render_reset();
 }
