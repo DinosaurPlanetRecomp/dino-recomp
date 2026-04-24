@@ -58,12 +58,11 @@ jobs:
       - name: Prepare Native Archive
         run: |
           cp cmake-build/DinosaurPlanetRecompiled DinosaurPlanetRecompiled
-          tar -czf DinosaurPlanetRecompiled.tar.gz DinosaurPlanetRecompiled assets/ recompcontrollerdb.txt
+          tar -czf DinosaurPlanetRecompiled-${{ runner.os }}-x64.tar.gz DinosaurPlanetRecompiled assets/ recompcontrollerdb.txt
       - name: Archive DinoRecomp (Native)
         uses: actions/upload-artifact@v7
         with:
-          name: DinosaurPlanetRecompiled-${{ runner.os }}-x64
-          path: DinosaurPlanetRecompiled.tar.gz
+          path: DinosaurPlanetRecompiled-${{ runner.os }}-x64.tar.gz
           archive: false
       - name: Archive DinoRecomp (Debug)
         uses: actions/upload-artifact@v7
@@ -93,12 +92,11 @@ jobs:
             --icon-file ../../icons/512.png \
             --icon-filename io.github.dinosaurplanetrecomp.dino_recomp \
             --output appimage
-          mv Dinosaur_Planet:_Recompiled-x86_64.AppImage DinosaurPlanetRecompiled-x86_64.AppImage
+          mv Dinosaur_Planet:_Recompiled-x86_64.AppImage DinosaurPlanetRecompiled-${{ runner.os }}-x64.AppImage
       - name: Archive DinoRecomp (AppImage)
         uses: actions/upload-artifact@v7
         with:
-          name: DinosaurPlanetRecompiled-AppImage-x64
-          path: deploy/appimage/DinosaurPlanetRecompiled-x86_64.AppImage
+          path: deploy/appimage/DinosaurPlanetRecompiled-${{ runner.os }}-x64.AppImage
           archive: false
   # Linux (Flatpak)
   build-linux-flatpak:
@@ -141,17 +139,17 @@ jobs:
           flatpak-builder --user --force-clean --install-deps-from=flathub --repo=repo builddir ${{ env.FLATPAK_ID }}.yml
           flatpak build-bundle repo ${{ env.FLATPAK_ID }}.flatpak ${{ env.FLATPAK_ID }} --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
           flatpak build-bundle repo ${{ env.FLATPAK_ID }}.Debug.flatpak ${{ env.FLATPAK_ID }}.Debug --runtime --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+          mv ${{ env.FLATPAK_ID }}.flatpak DinosaurPlanetRecompiled-${{ runner.os }}-x64.flatpak
+          mv ${{ env.FLATPAK_ID }}.Debug.flatpak DinosaurPlanetRecompiled-${{ runner.os }}-x64.Debug.flatpak
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: DinosaurPlanetRecompiled-Flatpak-x64
-          path: ./deploy/flatpak/${{ env.FLATPAK_ID }}.flatpak
+          path: ./deploy/flatpak/DinosaurPlanetRecompiled-${{ runner.os }}-x64.flatpak
           archive: false
       - name: Upload Artifact (Debug)
         uses: actions/upload-artifact@v7
         with:
-          name: DinosaurPlanetRecompiled-Flatpak-x64-Debug
-          path: ./deploy/flatpak/${{ env.FLATPAK_ID }}.Debug.flatpak
+          path: ./deploy/flatpak/DinosaurPlanetRecompiled-${{ runner.os }}-x64.Debug.flatpak
           archive: false
   # Windows
   build-windows:
