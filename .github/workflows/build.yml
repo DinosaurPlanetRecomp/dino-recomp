@@ -13,12 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           submodules: recursive
       - name: Checkout baserom
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
         with:
           repository: DinosaurPlanetRecomp/dino-recomp-private
           token: ${{ secrets.PRIVATE_REPO_PAT }}
@@ -60,12 +60,13 @@ jobs:
           cp cmake-build/DinosaurPlanetRecompiled DinosaurPlanetRecompiled
           tar -czf DinosaurPlanetRecompiled.tar.gz DinosaurPlanetRecompiled assets/ recompcontrollerdb.txt
       - name: Archive DinoRecomp (Native)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: DinosaurPlanetRecompiled-${{ runner.os }}-x64
           path: DinosaurPlanetRecompiled.tar.gz
+          archive: false
       - name: Archive DinoRecomp (Debug)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: DinosaurPlanetRecompiled-${{ runner.os }}-x64-Debug
           path: cmake-build/DinosaurPlanetRecompiled.debug
@@ -94,10 +95,11 @@ jobs:
             --output appimage
           mv Dinosaur_Planet:_Recompiled-x86_64.AppImage DinosaurPlanetRecompiled-x86_64.AppImage
       - name: Archive DinoRecomp (AppImage)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: DinosaurPlanetRecompiled-AppImage-x64
           path: deploy/appimage/DinosaurPlanetRecompiled-x86_64.AppImage
+          archive: false
   # Linux (Flatpak)
   build-linux-flatpak:
     runs-on: ubuntu-latest
@@ -107,12 +109,12 @@ jobs:
       LLVM_VERSION: 19
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           submodules: recursive
       - name: Checkout baserom
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
         with:
           repository: DinosaurPlanetRecomp/dino-recomp-private
           token: ${{ secrets.PRIVATE_REPO_PAT }}
@@ -140,21 +142,23 @@ jobs:
           flatpak build-bundle repo ${{ env.FLATPAK_ID }}.flatpak ${{ env.FLATPAK_ID }} --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
           flatpak build-bundle repo ${{ env.FLATPAK_ID }}.Debug.flatpak ${{ env.FLATPAK_ID }}.Debug --runtime --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: DinosaurPlanetRecompiled-Flatpak-x64
           path: ./deploy/flatpak/${{ env.FLATPAK_ID }}.flatpak
+          archive: false
       - name: Upload Artifact (Debug)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: DinosaurPlanetRecompiled-Flatpak-x64-Debug
           path: ./deploy/flatpak/${{ env.FLATPAK_ID }}.Debug.flatpak
+          archive: false
   # Windows
   build-windows:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           submodules: recursive
@@ -169,9 +173,11 @@ jobs:
           7z x LLVM.tar.xz
           7z x LLVM.tar -oportable-llvm
       - name: Configure Developer Command Prompt
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: TheMrMilchmann/setup-msvc-dev@v4
+        with:
+          arch: x64
       - name: Checkout baserom
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
         with:
           repository: DinosaurPlanetRecomp/dino-recomp-private
           token: ${{ secrets.PRIVATE_REPO_PAT }}
@@ -216,7 +222,7 @@ jobs:
           Move-Item -Path "cmake-build/DinosaurPlanetRecompiled.pdb" -Destination "DinosaurPlanetRecompiled.pdb"
           Remove-Item -Path "assets/scss" -Recurse -Force
       - name: Archive DinoRecomp
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: DinosaurPlanetRecompiled-${{ runner.os }}-x64
           path: |
@@ -227,7 +233,7 @@ jobs:
             assets/
             recompcontrollerdb.txt
       - name: Archive Debug Files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: DinosaurPlanetRecompiled-${{ runner.os }}-x64-PDB
           path: |

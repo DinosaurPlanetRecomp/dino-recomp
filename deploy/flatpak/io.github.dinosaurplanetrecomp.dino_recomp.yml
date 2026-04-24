@@ -1,18 +1,16 @@
 id: io.github.dinosaurplanetrecomp.dino_recomp
 runtime: org.freedesktop.Platform
-runtime-version: "24.08"
+runtime-version: "25.08"
 sdk: org.freedesktop.Sdk
 sdk-extensions:
-  - org.freedesktop.Sdk.Extension.llvm19
+  - org.freedesktop.Sdk.Extension.llvm22
 command: DinosaurPlanetRecompiled
 finish-args:
   - "--socket=wayland"
   - "--socket=fallback-x11"
   - "--socket=pulseaudio"
-  # TODO: switch from all to dri,input when most users are on flatpak >=1.15.6
-  - "--device=all"
-  #- "--device=dri"
-  #- "--device=input"
+  - "--device=dri"
+  - "--device=input"
   - "--filesystem=xdg-config"
 modules:
   - name: DinosaurPlanetRecompiled
@@ -49,7 +47,5 @@ modules:
       - type: dir
         path: "../../"
     build-options:
-      append-path: "/usr/lib/sdk/llvm19/bin"
-      prepend-ld-library-path: "/usr/lib/sdk/llvm19/lib"
-      build-args:
-        - "--share=network"
+      append-path: "/usr/lib/sdk/llvm22/bin"
+      prepend-ld-library-path: "/usr/lib/sdk/llvm22/lib"
