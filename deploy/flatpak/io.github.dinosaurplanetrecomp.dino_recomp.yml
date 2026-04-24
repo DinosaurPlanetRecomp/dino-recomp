@@ -9,8 +9,10 @@ finish-args:
   - "--socket=wayland"
   - "--socket=fallback-x11"
   - "--socket=pulseaudio"
-  - "--device=dri"
-  - "--device=input"
+  # TODO: device=input was made available in flatpak >=1.15.6, but too many distros (ubuntu) are running old flatpak versions
+  - "--device=all"
+  #- "--device=dri"
+  #- "--device=input"
   - "--filesystem=xdg-config"
 modules:
   - name: DinosaurPlanetRecompiled
