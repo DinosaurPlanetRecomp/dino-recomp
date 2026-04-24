@@ -23,6 +23,8 @@ static s32 recomp_lastDialogVolume = 100;
 static s32 recomp_lastHudMode = -1;
 static s32 recomp_lastMinimapMode = -1;
 
+static f32 recomp_holdMinimapTimer = 0;
+
 void recomp_pull_game_options(void) {
     static s32 b_firstCall = TRUE;
 
@@ -65,10 +67,15 @@ void recomp_pull_game_options(void) {
     if (recomp_lastMinimapMode != recompMinimapMode || b_firstCall) {
         recomp_lastMinimapMode = recompMinimapMode;
         main_set_bits(BIT_Hide_Minimap, recompMinimapMode == RECOMP_MINIMAP_Hidden ? 1 : 0);
+        recomp_holdMinimapTimer = 0.0f;
     }
     
     if (recompMinimapMode == RECOMP_MINIMAP_Hold) {
-        main_set_bits(BIT_Hide_Minimap, recomp_cmdmenu_is_r_held() ? 0 : 1);
+        recomp_holdMinimapTimer -= gUpdateRateF;
+        if (recomp_cmdmenu_is_r_held()) {
+            recomp_holdMinimapTimer = 90.0f;
+        }
+        main_set_bits(BIT_Hide_Minimap, recomp_holdMinimapTimer > 0.0f ? 0 : 1);
     }
 
     b_firstCall = FALSE;
