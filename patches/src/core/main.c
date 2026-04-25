@@ -40,8 +40,8 @@ extern Triangle *gCurPol;
 extern u8 gFrameBufIdx;
 extern s8 gPauseState;
 
-extern void func_80013D80();
-extern void func_80014074(void);
+extern void func_80013D80(void);
+extern void main_handle_map_change(void);
 
 // @recomp: Move graphics buffers into patch memory to save vanilla pool memory
 static Gfx recompMainGfx[2][RECOMP_MAIN_GFX_BUF_SIZE / sizeof(Gfx)]; 
@@ -226,6 +226,6 @@ RECOMP_PATCH void game_tick(void) {
     gUpdateRateMirrorF = gUpdateRateF;
     gUpdateRateInverseMirrorF = 1.0f / gUpdateRateMirrorF;
 
-    func_80014074();
+    main_handle_map_change();
     write_c_file_label_pointers("main/main.c", 0x37C);
 }

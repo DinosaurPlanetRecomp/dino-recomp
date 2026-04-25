@@ -5,6 +5,7 @@
 #include "sys/main.h"
 #include "sys/map.h"
 #include "sys/memory.h"
+#include "sys/menu.h"
 
 struct WarpEntry {
     s32 idx;
@@ -161,7 +162,7 @@ void dbgui_warp_window(s32 *open) {
         }
 
         if (dbgui_button("Change Map")) {
-            func_800141A4(mapID, setupID, playerNo, 0);
+            main_change_map(mapID, setupID, playerNo, MENU_GAMEPLAY);
         }
     }
     dbgui_end();

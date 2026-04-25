@@ -199,6 +199,6 @@ void recomp_do_fake_frame_end(void) {
     gUpdateRateMirrorF = gUpdateRateF;
     gUpdateRateInverseMirrorF = 1.0f / gUpdateRateMirrorF;
     
-    // func_80014074();
+    // main_handle_map_change();
     // write_c_file_label_pointers("main/main.c", 0x37C);
 }
