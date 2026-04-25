@@ -1,6 +1,6 @@
 # Building Guide
 
-This guide will help you build the project on your local machine. The process will require you to provide the 2000 prototype ROM released by Forest of Illusion on Feb. 20, 2021.
+This guide will help you build the project on your local machine. The process will require you to provide the December 2000 prototype ROM released by Forest of Illusion on Feb. 20, 2021.
 
 These steps cover: patching the ROM, running the recompiler, and finally building the project.
 

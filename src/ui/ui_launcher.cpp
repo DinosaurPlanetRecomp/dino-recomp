@@ -38,7 +38,7 @@ void open_rom_select_dialog() {
                     break;
                 case recomp::RomValidationError::IncorrectVersion:
                     recompui::message_box(
-                            "This ROM is the correct game, but the wrong version.\nThis project requires an unmodified 2000 prototype ROM.\nPlease make sure that you are *not* selecting rom_crack.z64.");
+                            "This ROM is the correct game, but the wrong version.\nThis project requires an unmodified December 2000 prototype ROM.\nPlease make sure that you are *not* selecting rom_crack.z64.");
                     break;
                 case recomp::RomValidationError::OtherError:
                     recompui::message_box("An unknown error has occurred.");
@@ -50,7 +50,7 @@ void open_rom_select_dialog() {
 
 void select_rom() {
     recompui::open_info_prompt("Recomp Setup", 
-        "Welcome to Dinosaur Planet: Recompiled!\n\nThis application requires an *unmodified* Dinosaur Planet 2000 prototype ROM.\n\n"
+        "Welcome to Dinosaur Planet: Recompiled!\n\nThis application requires an *unmodified* Dinosaur Planet December 2000 prototype ROM.\n\n"
             "Please note that the vanilla prototype is not very playable on its own. It is *strongly recommended* to install the mod 'Dinomod Enhanced' before playing, "
             "which can be found on Thunderstore on the Dinosaur Planet: Recompiled community page.", 
         "Select ROM", 

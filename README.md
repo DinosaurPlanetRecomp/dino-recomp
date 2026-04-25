@@ -41,7 +41,7 @@ If you would like to see this recomp improve, consider contributing to the decom
 - Linux: `~/.config/DinoPlanetRecompiled/saves`
 
 #### How do I choose a different ROM?
-**You don't.** This project is **only** a port of the 2000 prototype ROM released by Forest of Illusion on Feb. 20, 2021. **It is not an emulator and it cannot run any arbitrary ROM.**
+**You don't.** This project is **only** a port of the December 2000 prototype ROM released by Forest of Illusion on Feb. 20, 2021. **It is not an emulator and it cannot run any arbitrary ROM.**
 
 If you are looking for game patches commonly used when playing Dinosaur Planet via an emulator or on console, those are instead provided by recomp mods. **You cannot use a patched ROM with this project**. Recomp mods recreating these patches are developed outside of this project and can be downloaded on their respective project pages. These are [installed like any other recomp mod](#modding). Dinomod Enhanced for recomp can be found [here](https://thunderstore.io/c/dinosaur-planet-recompiled/p/DinomodEnhanced/DinomodEnhanced/).
 
