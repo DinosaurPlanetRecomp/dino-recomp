@@ -21,7 +21,7 @@ ultramodern::gfx_callbacks_t::gfx_data_t create_gfx() {
     SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) > 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC) > 0) {
         exit_error("Failed to initialize SDL2: %s\n", SDL_GetError());
     }
 
@@ -91,13 +91,13 @@ ultramodern::renderer::WindowHandle create_window(ultramodern::gfx_callbacks_t::
 #endif
 
     window = SDL_CreateWindow("Dinosaur Planet: Recompiled", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1600, 960, flags );
-#if defined(__linux__)
-    SetImageAsIcon("icons/512.png",window);
-    if (ultramodern::renderer::get_graphics_config().wm_option == ultramodern::renderer::WindowMode::Fullscreen) { // TODO: Remove once RT64 gets native fullscreen support on Linux
-        SDL_SetWindowFullscreen(window,SDL_WINDOW_FULLSCREEN_DESKTOP);
-    } else {
-        SDL_SetWindowFullscreen(window,0);
+
+    if (window == nullptr) {
+        exit_error("Failed to create window: %s\n", SDL_GetError());
     }
+
+#if defined(__linux__)
+    SetImageAsIcon("icons/512.png", window);
 #endif
 
     if (window == nullptr) {

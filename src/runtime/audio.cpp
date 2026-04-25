@@ -9,6 +9,7 @@
 #include "config/config.hpp"
 #include "common/error.hpp"
 #include "common/sdl.hpp" // IWYU pragma: keep
+#include "ui/recomp_ui.h"
 
 namespace dino::runtime {
 
@@ -137,7 +138,7 @@ void set_frequency(uint32_t freq) {
     update_audio_converter();
 }
 
-void reset_audio(uint32_t output_freq) {
+bool reset_audio(uint32_t output_freq) {
     SDL_AudioSpec spec_desired{
         .freq = (int)output_freq,
         .format = AUDIO_F32,
@@ -150,15 +151,19 @@ void reset_audio(uint32_t output_freq) {
         .userdata = nullptr
     };
 
-
     audio_device = SDL_OpenAudioDevice(nullptr, false, &spec_desired, nullptr, 0);
     if (audio_device == 0) {
-        exit_error("SDL error opening audio device: %s\n", SDL_GetError());
+        std::string audio_error = std::string("No audio device could be found. Please make sure an audio device is available.\nError opening audio device: ") + std::string(SDL_GetError());
+        recompui::message_box(audio_error.c_str());
+        return false;
     }
+
     SDL_PauseAudioDevice(audio_device, 0);
 
     output_sample_rate = output_freq;
     update_audio_converter();
+
+    return true;
 }
 
 }

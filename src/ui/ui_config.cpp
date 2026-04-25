@@ -170,13 +170,6 @@ void close_config_menu_impl() {
 
 void apply_graphics_config(void) {
     ultramodern::renderer::set_graphics_config(new_options);
-#if defined(__linux__) // TODO: Remove once RT64 gets native fullscreen support on Linux
-    if (new_options.wm_option == ultramodern::renderer::WindowMode::Fullscreen) {
-        SDL_SetWindowFullscreen(dino::runtime::get_window(),SDL_WINDOW_FULLSCREEN_DESKTOP);
-    } else {
-        SDL_SetWindowFullscreen(dino::runtime::get_window(),0);
-    }
-#endif
 }
 
 void close_config_menu() {

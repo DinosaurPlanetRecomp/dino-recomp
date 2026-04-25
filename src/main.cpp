@@ -131,7 +131,10 @@ int main(int argc, char** argv) {
 
     // Initialize SDL audio and set the output frequency.
     SDL_InitSubSystem(SDL_INIT_AUDIO);
-    dino::runtime::reset_audio(48000);
+    if (!dino::runtime::reset_audio(48000)) {
+        // It is not possible to initialize without an audio device.
+        return EXIT_FAILURE;
+    }
 
     // Source controller mappings file
     std::string controller_mappings_path = (dino::runtime::get_program_path() / "recompcontrollerdb.txt").string();
