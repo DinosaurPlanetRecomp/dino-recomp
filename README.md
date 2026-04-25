@@ -24,7 +24,7 @@ A CPU supporting the SSE4.1 instruction set is also required (Intel Core 2 Penry
 If you have issues with crashes on startup, make sure your graphics drivers are fully up to date. 
 
 ## Known Issues
-Please see [the GitHub issues](https://github.com/DinosaurPlanetRecomp/dino-recomp/issues) for a list of known issues with the project. Given the early state of Dinosaur Planet reverse engineering and the uniqueness of the game's code, this recomp has some notable issues and missing enhancements compared to other recomp projects.
+Please see [the GitHub issues](https://github.com/DinosaurPlanetRecomp/dino-recomp/issues) for a list of known issues with the project. This recomp is still a work in progress and is missing some enhancements commonly found in other N64 recomps.
 
 ## FAQ
 
@@ -43,7 +43,7 @@ If you would like to see this recomp improve, consider contributing to the decom
 #### How do I choose a different ROM?
 **You don't.** This project is **only** a port of the 2000 prototype ROM released by Forest of Illusion on Feb. 20, 2021. **It is not an emulator and it cannot run any arbitrary ROM.**
 
-If you are looking for game patches commonly used when playing Dinosaur Planet in an emulator or on console, those are instead provided by recomp mods. **You cannot use a patched ROM with this project**. Recomp mods recreating these patches are developed outside of this project and can be downloaded on their respective project pages. These are [installed like any other recomp mod](#modding). Dinomod Enhanced for recomp can be found [here](https://thunderstore.io/c/dinosaur-planet-recompiled/p/DinomodEnhanced/DinomodEnhanced/).
+If you are looking for game patches commonly used when playing Dinosaur Planet via an emulator or on console, those are instead provided by recomp mods. **You cannot use a patched ROM with this project**. Recomp mods recreating these patches are developed outside of this project and can be downloaded on their respective project pages. These are [installed like any other recomp mod](#modding). Dinomod Enhanced for recomp can be found [here](https://thunderstore.io/c/dinosaur-planet-recompiled/p/DinomodEnhanced/DinomodEnhanced/).
 
 #### Can you run this project as a portable application?
 Yes, if you place a file named `portable.txt` in the same folder as the executable then this project will run in portable mode. In portable mode, the save files, config files, and mods are placed in the same folder as the executable.
@@ -78,7 +78,7 @@ For developers, please see [BUILDING.md](./BUILDING.md) for build and developmen
 * [@rustyspottedcats](https://github.com/rustyspottedcats) for the launcher background design.
 * [Zelda64Recomp](https://github.com/Zelda64Recomp/Zelda64Recomp) for the base project. Much of this project is a direct fork of the Majora's Mask recomp.
 * [N64Recomp](https://github.com/N64Recomp/N64Recomp) for static recompilation.
-* [N64ModernRuntime](https://github.com/N64Recomp/N64ModernRuntime) for a reimplementation of libultra and general handling of common recomp tasks.
+* [N64ModernRuntime](https://github.com/N64Recomp/N64ModernRuntime) for a reimplementation of libultra, providing mod support, and handling of common recomp tasks.
 * [RT64](https://github.com/rt64/rt64) for the project's rendering engine.
 * [Dinosaur Planet Decompilation](https://github.com/zestydevy/dinosaur-planet) for symbols, headers, and general knowledge about the game's internals.
 * [RmlUi](https://github.com/mikke89/RmlUi) for building the menus and launcher.
