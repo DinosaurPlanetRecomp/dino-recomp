@@ -51,7 +51,8 @@ void open_rom_select_dialog() {
 void select_rom() {
     recompui::open_info_prompt("Recomp Setup", 
         "Welcome to Dinosaur Planet: Recompiled!\n\nThis application requires an *unmodified* Dinosaur Planet 2000 prototype ROM.\n\n"
-            "Please note that the vanilla prototype ROM is not very playable on its own. It is strongly recommended to install the Dinomod Enhanced mod before playing.", 
+            "Please note that the vanilla prototype is not very playable on its own. It is *strongly recommended* to install the mod 'Dinomod Enhanced' before playing, "
+            "which can be found on Thunderstore on the Dinosaur Planet: Recompiled community page.", 
         "Select ROM", 
         open_rom_select_dialog,
         recompui::ButtonVariant::Primary);
@@ -82,8 +83,9 @@ void start_game_check_asset_repacker() {
 void start_game_check_dinomod() {
     if (dino::config::get_dinomod_check() && !recomp::mods::is_mod_enabled("dinomod_enhanced")) {
         recompui::open_choice_prompt("Missing Dinomod Enhanced", 
-            "Warning: The 'Dinomod Enhanced' recomp mod is not installed and enabled!\n\n"
-                "The vanilla prototype ROM is not very playable on its own and you will not be able to progress past the early game.\n\n"
+            "Warning: The mod 'Dinomod Enhanced' is not installed and enabled! "
+                "Please visit the Dinosaur Planet: Recompiled community page on Thunderstore to download the mod.\n\n"
+                "The vanilla prototype ROM is not very playable on its own and you will not be able to progress past the early game!\n\n"
                 "If this is intentional, you can disable this check in the 'General' settings menu.", 
             "Continue Anyway",
             "Cancel", 
