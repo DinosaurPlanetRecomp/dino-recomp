@@ -2,9 +2,7 @@
 
 #include "sys/math.h"
 #include "sys/camera.h"
-#include "sys/main.h"
 #include "sys/map.h"
-#include "sys/gfx/model_asm.h"
 #include "sys/vi.h"
 
 extern s32 gIsShadowTexActive;
@@ -273,67 +271,4 @@ RECOMP_PATCH void camera_apply_scissor(Gfx **gdl)
     }
 
     gDPSetScissor((*gdl)++, 0, ulx, uly, lrx, lry);
-}
-
-
-RECOMP_PATCH void camera_tick() {
-    s32 pad;
-    f32 lerpFactor;
-    Camera *camera;
-    f32 dampFactor;
-
-    gLetterboxSize = gLetterboxTarget;
-    // @recomp: Add back +6 offset removed from other scissor patches
-    // This is necessary for the cinematic top/bottom black bars during cutscnes to be the correct size
-    // TODO: theres probably a better place for this fix
-    if (gLetterboxTarget != 0) {
-        gLetterboxSize += (s32)(((f32)gLetterboxTarget / 30.0f) * 6);
-    }
-
-    if (gFarPlaneTimer != 0) {
-        gFarPlaneTimer -= gUpdateRate;
-
-        if (gFarPlaneTimer < 0) {
-            gFarPlaneTimer = 0;
-        }
-
-        lerpFactor = ((f32)gFarPlaneTimer / (f32)gFarPlaneDuration);
-        gFarPlane = (gFarPlaneStart - gFarPlaneTarget) * lerpFactor + gFarPlaneTarget;
-    }
-
-    gMatrixPool[gMatrixCount].count = -1;
-
-    convert_mtxf_to_mtx_in_pool(gMatrixPool);
-
-    gMatrixCount = 0;
-    gMatrixIndex = 0;
-
-    if (gUseAlternateCamera) {
-        gCameraSelector += 4;
-    }
-    
-    camera = &gCameras[gCameraSelector];
-
-    if (camera->shakeMode == 0) {
-        camera->shakeCooldown--;
-
-        while (camera->shakeCooldown < 0) {
-            camera->dty = -camera->dty * 0.89999998f;
-
-            camera->shakeCooldown++;
-        }
-    } else if (camera->shakeMode == 1) {
-        dampFactor = fexp(-camera->shakeDamping * camera->shakeTime, 20);
-        lerpFactor = fcos16_precise(camera->shakeFrequency * 65535.0f * camera->shakeTime);
-        lerpFactor *= camera->shakeAmplitude * dampFactor;
-
-        camera->dty = lerpFactor;
-
-        if (camera->dty < 0.1f && -0.1f < camera->dty) {
-            camera->shakeMode = -1;
-            camera->dty = 0.0f;
-        }
-
-        camera->shakeTime += gUpdateRateF / 60.0f;
-    }
 }
