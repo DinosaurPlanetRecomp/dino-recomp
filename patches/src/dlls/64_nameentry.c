@@ -42,7 +42,9 @@ RECOMP_PATCH void dll_64_draw(Gfx **gdl, Mtx **mtxs, Vertex **vtxs) {
     font_window_use_font(1, FONT_DINO_MEDIUM_FONT_IN);
 
     if (sMainRedrawFrames != 0) {
+        gEXSetRectAlign((*gdl)++, G_EX_ORIGIN_CENTER, G_EX_ORIGIN_CENTER, (-640 / 2) * 4, 0, (640 / 2) * 4, 0);
         rcp_screen_full_write(gdl, sBackgroundTexture, 0, 0, 0, 0, 0xFF, 2);
+        gEXSetRectAlign((*gdl)++, G_EX_ORIGIN_NONE, G_EX_ORIGIN_NONE, 0, 0, 0, 0);
         
         font_window_set_text_colour(1, 255, 255, 255, 0, 255);
         font_window_add_string_xy(1, 320, 73, sGameTextChunk->strings[0x1E], 1, ALIGN_TOP_CENTER);
