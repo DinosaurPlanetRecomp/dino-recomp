@@ -106,7 +106,7 @@
                                 data-checked="hud_mode"
                                 value="AlwaysVisible"
                                 id="hud_mode_always"
-                                style="nav-up: #bg_input_enabled; nav-down: #dinomod_check_enabled"
+                                style="nav-up: #bg_input_enabled; nav-down: #minimap_mode_always"
                             />
                             <label class="config-option__tab-label" for="hud_mode_always">Always</label>
 
@@ -118,7 +118,7 @@
                                 data-checked="hud_mode"
                                 value="Default"
                                 id="hud_mode_default"
-                                style="nav-up: #bg_input_disabled; nav-down: #dinomod_check_disabled"
+                                style="nav-up: #bg_input_disabled; nav-down: #minimap_mode_hold"
                             />
                             <label class="config-option__tab-label" for="hud_mode_default">Default</label>
                         </div>
