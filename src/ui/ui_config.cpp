@@ -1052,6 +1052,10 @@ void recompui::toggle_fullscreen() {
     new_options.wm_option = (new_options.wm_option == ultramodern::renderer::WindowMode::Windowed) ? ultramodern::renderer::WindowMode::Fullscreen : ultramodern::renderer::WindowMode::Windowed;
     apply_graphics_config();
     graphics_model_handle.DirtyVariable("wm_option");
+
+    if (!recompui::is_any_context_shown()) {
+        dino::config::save_config();
+    }
 }
 
 void recompui::set_config_tab(ConfigTab tab) {
