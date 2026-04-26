@@ -4,6 +4,7 @@
 #include "PR/gbi.h"
 #include "sys/memory.h"
 #include "sys/map.h"
+#include "sys/rcp.h"
 
 #include "recomp/dlls/engine/20_screens_recomp.h"
 
@@ -47,19 +48,8 @@ RECOMP_PATCH void screens_draw(Gfx **gdl) {
 
         // @recomp start
         // Fill behind screen with black since the screen texture won't fill widescreen (it's a 4:3 image)
-        gDPSetCombineMode(*gdl, G_CC_PRIMITIVE, G_CC_PRIMITIVE);
-        dl_apply_combine(gdl);
-
-        gDPSetOtherMode(*gdl, 
-            G_AD_PATTERN | G_CD_MAGICSQ | G_CK_NONE | G_TC_FILT | G_TF_BILERP | 
-                G_TT_NONE | G_TL_TILE | G_TD_CLAMP | G_TP_NONE | G_CYC_1CYCLE | G_PM_NPRIMITIVE, 
-            G_AC_NONE | G_ZS_PIXEL | G_RM_CLD_SURF | G_RM_CLD_SURF2);
-        dl_apply_other_mode(gdl);
-
-        dl_set_prim_color(gdl, 0, 0, 0, 255);
-        gDPFillRectangle((*gdl)++, 0, 0, 320, 240);
-        
-        gDLBuilder->needsPipeSync = TRUE;
+        rcp_set_screen_color(0, 0, 0);
+        rcp_clear_screen(gdl, NULL, CLEAR_COLOR);
         // @recomp end
 
         gDPSetCombineLERP((*gdl), TEXEL0, 0, SCALE, 0, 0, 0, 0, TEXEL0, TEXEL0, 0, SCALE, 0, 0, 0, 0, TEXEL0);
