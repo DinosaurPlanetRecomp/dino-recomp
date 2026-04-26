@@ -245,6 +245,19 @@ void reasset_maps_init(void) {
             }
 
             ReAssetID setupID = reasset_base_id(setup->uID);
+
+            // Check for duplicate UIDs. This map repacker requires unique UIDs within a map and globally unique 
+            // curve/checkpoint UIDs. If we have a duplicate, use an auto ReAssetID but keep the UID the same.
+            if (recomputil_u32_hashset_contains(originalObjectSet, setupID) ||
+                ((setup->objId == OBJ_curve || setup->objId == OBJ_checkpoint4) && 
+                    recomputil_u32_hashset_contains(curveOriginalSet, setupID))
+            ) {
+                setupID = reasset_auto_base_id();
+
+                reasset_log_warning("[reasset] WARN: Map %d contains a duplicate object UID 0x%X (obj ID: 0x%X)! Map object will be unavailable via the ReAsset API (but kept in the map).\n",
+                    i, setup->uID, setup->objId);
+            }
+
             MapObjectEntry *objectEntry = get_or_create_map_object(entry, setupID);
 
             buffer_set_base(&objectEntry->object, MAPS_BIN, mapOriginalTab[idx] + objoffset, setupSize);

@@ -135,3 +135,13 @@ RECOMP_EXPORT ReAssetID reasset_auto_id(ReAssetNamespace namespace) {
 
     return id;
 }
+
+ReAssetID reasset_auto_base_id(void) {
+    // Auto ID, always create a new one
+    ReAssetIDData *data;
+    ReAssetID id = id_new(&data);
+    data->namespace = REASSET_BASE_NAMESPACE;
+    data->identifier = -1;
+
+    return id;
+}
