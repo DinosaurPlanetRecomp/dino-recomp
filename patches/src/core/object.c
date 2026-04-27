@@ -1,5 +1,6 @@
 #include "patches.h"
 #include "recompdata.h"
+#include "matrix_groups.h"
 
 #include "PR/ultratypes.h"
 #include "sys/camera.h"
@@ -45,20 +46,43 @@ extern void func_80020D90(void);
 extern void copy_obj_position_mirrors(Object *obj, ObjSetup *setup, s32 param3);
 extern void obj_free_objdef(s32 tabIdx);
 
+typedef struct {
+    Object *lastParent;
+} RecompObjMtxTagState;
+
 static Object* recomp_objMatrixGroupList[1000];
+static RecompObjMtxTagState recomp_objMtxTagStates[1000];
 static U32ValueHashmapHandle recomp_objMatrixGroupMap;
 static u32 recomp_objMatrixGroupNext;
 
 // TODO: increase max objects
 
-u32 recomp_obj_get_matrix_group(Object *obj) {
+static _Bool recomp_obj_should_skip_interp(Object *obj, u32 group) {
+    RecompObjMtxTagState *state = &recomp_objMtxTagStates[group];
+    
+    return state->lastParent != obj->parent;
+}
+
+u32 recomp_obj_get_matrix_group(Object *obj, _Bool *skipInterpolation) {
     u32 group;
     if (recomputil_u32_value_hashmap_get(recomp_objMatrixGroupMap, (collection_key_t)obj, &group)) {
+        if (skipInterpolation != NULL) {
+            *skipInterpolation = recomp_obj_should_skip_interp(obj, group);
+        }
         return group;
     }
 
     recomp_eprintf("recomp_obj_get_matrix_group lookup failed!\n");
-    return ARRAYCOUNT(recomp_objMatrixGroupList);
+    group = ARRAYCOUNT(recomp_objMatrixGroupList);
+    if (skipInterpolation != NULL) {
+        *skipInterpolation = FALSE;
+    }
+    return group;
+}
+
+void recomp_obj_update_matrix_group_state(Object *obj, u32 group) {
+    RecompObjMtxTagState *state = &recomp_objMtxTagStates[group];
+    state->lastParent = obj->parent;
 }
 
 static u32 recomp_obj_alloc_matrix_group(Object *obj) {
@@ -79,13 +103,14 @@ static u32 recomp_obj_alloc_matrix_group(Object *obj) {
 
         if (recomp_objMatrixGroupList[group] == NULL) {
             recomp_objMatrixGroupList[group] = obj;
+            bzero(&recomp_objMtxTagStates[group], sizeof(RecompObjMtxTagState));
             recomputil_u32_value_hashmap_insert(recomp_objMatrixGroupMap, (collection_key_t)obj, group);
             return group;
         }
     }
 
     recomp_eprintf("Ran out of object matrix groups!\n");
-    return ARRAYCOUNT(recomp_objMatrixGroupList);
+    return ARRAYCOUNT(recomp_objMatrixGroupList) - 1;
 }
 
 static void recomp_obj_free_matrix_group(Object *obj) {

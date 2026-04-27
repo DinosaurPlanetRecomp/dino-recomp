@@ -67,8 +67,8 @@ void recomp_set_skip_camera_interpolation(_Bool skip) {
     // }
 }
 
-static void recomp_apply_camera_matrix_group(Gfx **gdl, s32 id) {
-    if (recomp_skipCameraInterp) {
+static void recomp_apply_camera_matrix_group(Gfx **gdl, s32 id, _Bool forceSkip) {
+    if (recomp_skipCameraInterp || forceSkip) {
         gEXMatrixGroupSkipAll((*gdl)++, id, G_EX_NOPUSH, G_MTX_PROJECTION, G_EX_EDIT_NONE);
     } else {
         gEXMatrixGroupSimpleNormal((*gdl)++, id, G_EX_NOPUSH, G_MTX_PROJECTION, G_EX_EDIT_NONE);
@@ -139,7 +139,7 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
     gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_PROJECTION | G_MTX_MUL);
     
     // @recomp: Tag camera matrix
-    recomp_apply_camera_matrix_group(gdl, CAMERA_MTX_GROUP_ID_START + gCameraSelector);
+    recomp_apply_camera_matrix_group(gdl, CAMERA_MTX_GROUP_ID_START + gCameraSelector, FALSE);
 
     // @recomp: Submit the world view offset to RT64 so it can reconcile for frame interpolation
     if (!gIsShadowTexActive) {
@@ -255,8 +255,9 @@ RECOMP_PATCH void setup_rsp_matrices_for_object(Gfx **gdl, Mtx **rspMtxs, Object
     gEXSetViewMatrixFloat((*gdl)++, recomp_lastCamViewWorldOffsetMtx);
  
     // @recomp: Tag parent obj camera matrix
-    u32 objMtxGroup = (recomp_obj_get_matrix_group(origObject) * 16) + gCameraSelector + OBJ_CAMERA_MTX_GROUP_ID_START;
-    recomp_apply_camera_matrix_group(gdl, objMtxGroup);
+    _Bool skipInterp;
+    u32 objMtxGroup = (recomp_obj_get_matrix_group(origObject, &skipInterp) * 16) + gCameraSelector + OBJ_CAMERA_MTX_GROUP_ID_START;
+    recomp_apply_camera_matrix_group(gdl, objMtxGroup, skipInterp);
 }
 
 RECOMP_PATCH void camera_load_parent_projection(Gfx **gdl)
@@ -270,7 +271,7 @@ RECOMP_PATCH void camera_load_parent_projection(Gfx **gdl)
     gEXSetViewMatrixFloat((*gdl)++, recomp_lastCamViewWorldOffsetMtx);
 
     // @recomp: Restore camera matrix group
-    recomp_apply_camera_matrix_group(gdl, CAMERA_MTX_GROUP_ID_START + recomp_lastCamSelector);
+    recomp_apply_camera_matrix_group(gdl, CAMERA_MTX_GROUP_ID_START + recomp_lastCamSelector, FALSE);
 }
 
 RECOMP_PATCH void viewport_get_full_rect(s32 *ulx, s32 *uly, s32 *lrx, s32 *lry)

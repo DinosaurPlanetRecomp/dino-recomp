@@ -643,7 +643,8 @@ RECOMP_PATCH void func_800436DC(Object* obj, s32 arg1) {
     u8 someBool;
 
     // @recomp: Get base matrix tagging group
-    u32 objMtxGroup = recomp_obj_get_matrix_group(obj);
+    _Bool skipInterp;
+    u32 objMtxGroup = recomp_obj_get_matrix_group(obj, &skipInterp);
 
     someBool = TRUE;
     if ((obj->id == OBJ_IMSnowBike) || (obj->id == OBJ_CRSnowBike)) {
@@ -658,8 +659,13 @@ RECOMP_PATCH void func_800436DC(Object* obj, s32 arg1) {
         sp37 = gDLL_13_Expgfx->vtbl->func10(obj);
     }
     // @recomp: Tag modgfx matrices
-    gEXMatrixGroupDecomposedVertsOrderAuto(gMainDL++, objMtxGroup + OBJ_MODGFX_MTX_GROUP_ID_START, 
-        G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    if (skipInterp) {
+        gEXMatrixGroupSkipAll(gMainDL++, objMtxGroup + OBJ_MODGFX_MTX_GROUP_ID_START, 
+            G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    } else {
+        gEXMatrixGroupDecomposedVertsOrderAuto(gMainDL++, objMtxGroup + OBJ_MODGFX_MTX_GROUP_ID_START, 
+            G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    }
     gDLL_14_Modgfx->vtbl->func6(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 1, obj);
     if (sp37 >= 2) {
         if ((obj->id != OBJ_IMSnowBike) && (obj->id != OBJ_CRSnowBike)) {
