@@ -168,7 +168,7 @@
 
                     <!-- 60 fps -->
                     <div class="config-option" data-event-mouseover="set_cur_config_index(6)" id="conf-general__sixty-fps">
-                        <label class="config-option__title">60 Hz Gameplay</label>
+                        <label class="config-option__title">60 Hz Gameplay <small class="experimental">(⚠EXPERIMENTAL⚠)</small></label>
                         <div class="config-option__list">
                             <input
                                 type="radio"
@@ -193,7 +193,7 @@
                                 style="nav-up: #minimap_mode_hold; nav-down: #dinomod_check_disabled"
                             />
                             <label class="config-option__tab-label" for="sixty_fps_disabled">Off</label>
-                            <div class="config-option__details" data-if="sixty_fps">Some gameplay may run faster than intended!</div>
+                            <div class="config-option__details" data-if="sixty_fps">Some gameplay will run faster than intended! Consider using the Framerate option in the Graphics menu instead.</div>
                         </div>
                     </div>
 

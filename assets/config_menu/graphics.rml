@@ -3,110 +3,42 @@
     </head>
     <body>
         <form class="config__form config-graphics">
-            <div class="config__hz-wrapper config__hz-wrapper_scroll" style="tab-index: auto; nav: auto">
-                <div class="config__wrapper_scroll" data-event-mouseout="set_cur_config_index(-1)">
-                    <!-- Window Mode -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(0)">
-                        <label class="config-option__title">Window Mode</label>
-                        <div class="config-option__list">
-                            <input type="radio"
-                                data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(0)"
-                                name="windowmode"
-                                data-checked="wm_option"
-                                value="Windowed"
-                                id="wm_windowed"
-                                style="nav-up: #tab_graphics; nav-down: #msaa_none"
-                            />
-                            <label class="config-option__tab-label" for="wm_windowed">Windowed</label>
-                            <input type="radio"
-                                data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(0)"
-                                name="windowmode"
-                                data-checked="wm_option"
-                                value="Fullscreen"
-                                id="wm_fullscreen"
-                                style="nav-up: #tab_graphics; nav-down: #msaa_2x"
-                            />
-                            <label class="config-option__tab-label" for="wm_fullscreen">Fullscreen</label>
-                        </div>
-                    </div>
-
-                    <!-- MSAA -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(1)">
-                        <label class="config-option__title">MS Anti-Aliasing</label>
-                        <div class="config-option__list">
-                            <input type="radio"
-                                data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(1)"
-                                name="antialiasing"
-                                data-checked="msaa_option"
-                                value="None"
-                                id="msaa_none"
-                                style="nav-up: #wm_windowed; nav-down: #res_original"
-                            />
-                            <label class="config-option__tab-label" for="msaa_none">None</label>
-                            <input type="radio"
-                                data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(1)"
-                                name="antialiasing"
-                                data-attrif-disabled="!msaa2x_supported"
-                                data-checked="msaa_option"
-                                value="MSAA2X"
-                                id="msaa_2x"
-                                style="nav-up: #wm_fullscreen; nav-down: #res_2x"
-                                data-style-nav-right="msaa4x_supported ? '#msaa_4x' : 'none'"
-                            />
-                            <label class="config-option__tab-label" for="msaa_2x">2x</label>
-                            <input type="radio"
-                                data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(1)"
-                                name="antialiasing"
-                                data-attrif-disabled="!msaa4x_supported"
-                                data-checked="msaa_option"
-                                value="MSAA4X"
-                                id="msaa_4x"
-                                style="nav-up: #wm_fullscreen; nav-down: #res_auto"
-                            />
-                            <label class="config-option__tab-label" for="msaa_4x">4x</label>
-                            <div class="config-option__details" data-if="!sample_positions_supported">Not available (missing sample positions support)</div>
-                        </div>
-                    </div>
-                    
+            <div class="config__hz-wrapper" style="tab-index: auto; nav: auto">
+                <div class="config__wrapper" data-event-mouseout="set_cur_config_index(-1)">
                     <!-- Resolution -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(2)">
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(0)">
                         <label class="config-option__title">Resolution</label>
                         <div class="config-option__list">
                             <input type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(2)"
+                                data-event-focus="set_cur_config_index(0)"
                                 name="resolution"
                                 data-checked="res_option"
                                 value="Original"
                                 id="res_original"
-                                style="nav-up:#msaa_none"
+                                style="nav-up:#tab_graphics"
                                 data-style-nav-down="res_option == 'Auto' ? '#ar_original' : '#ds_windowed'"
                             />
                             <label class="config-option__tab-label" for="res_original">Original</label>
                             <input type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(2)"
+                                data-event-focus="set_cur_config_index(0)"
                                 name="resolution"
                                 data-checked="res_option"
                                 value="Original2x"
                                 id="res_2x"
-                                data-style-nav-up="msaa2x_supported ? '#msaa_2x' : '#msaa_none'"
+                                style="nav-up:#tab_graphics"
                                 data-style-nav-down="res_option == 'Auto' ? '#ar_expand' : '#ds_2x'"
                             />
                             <label class="config-option__tab-label" for="res_2x">Original 2x</label>
                             <input type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(2)"
+                                data-event-focus="set_cur_config_index(0)"
                                 name="resolution"
                                 data-checked="res_option"
                                 value="Auto"
                                 id="res_auto"
-                                data-style-nav-up="msaa4x_supported ? '#msaa_4x' : (msaa2x_supported ? '#msaa_2x' : '#msaa_none')"
+                                style="nav-up:#tab_graphics"
                                 data-style-nav-down="res_option == 'Auto' ? '#ar_expand' : '#ds_4x'"
                             />
                             <label class="config-option__tab-label" for="res_auto">Auto</label>
@@ -114,12 +46,12 @@
                     </div>
 
                     <!-- Downsampling -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(3)">
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(1)">
                         <label class="config-option__title">Downsampling Quality</label>
                         <div class="config-option__list">
                             <input type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(3)"
+                                data-event-focus="set_cur_config_index(1)"
                                 name="downsampling"
                                 data-attrif-disabled="res_option == 'Auto'"
                                 data-checked="ds_option"
@@ -130,7 +62,7 @@
                             <label class="config-option__tab-label" for="ds_windowed">Off</label>
                             <input type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(3)"
+                                data-event-focus="set_cur_config_index(1)"
                                 name="downsampling"
                                 data-attrif-disabled="res_option == 'Auto'"
                                 data-checked="ds_option"
@@ -141,7 +73,7 @@
                             <label class="config-option__tab-label" for="ds_2x">2x</label>
                             <input type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(3)"
+                                data-event-focus="set_cur_config_index(1)"
                                 name="downsampling"
                                 data-attrif-disabled="res_option == 'Auto'"
                                 data-checked="ds_option"
@@ -155,162 +87,221 @@
                     </div>
 
                     <!-- Aspect Ratio -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(4)">
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(2)">
                         <label class="config-option__title">Aspect Ratio</label>
                         <div class="config-option__list">
                             <input type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(4)"
+                                data-event-focus="set_cur_config_index(2)"
                                 name="aspectratio"
                                 data-checked="ar_option"
                                 value="Original"
                                 id="ar_original"
-                                style="nav-down: #hr_original"
+                                style="nav-down: #wm_windowed"
                                 data-style-nav-up="res_option == 'Auto' ? '#res_original' : '#ds_windowed'"
                             />
                             <label class="config-option__tab-label" for="ar_original">Original</label>
                             <input type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(4)"
+                                data-event-focus="set_cur_config_index(2)"
                                 name="aspectratio"
                                 data-checked="ar_option"
                                 value="Expand"
                                 id="ar_expand"
-                                style="nav-down: #hr_16_9"
+                                style="nav-down: #wm_fullscreen"
                                 data-style-nav-up="res_option == 'Auto' ? '#res_2x' : '#ds_2x'"
                             />
                             <label class="config-option__tab-label" for="ar_expand">Expand</label>
                         </div>
                     </div>
-
-                    <!-- HUD Placement -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(5)">
-                        <label class="config-option__title">HUD Placement</label>
+                    
+                    <!-- Window Mode -->
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(3)">
+                        <label class="config-option__title">Window Mode</label>
                         <div class="config-option__list">
                             <input type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(5)"
-                                name="hr-option"
-                                data-checked="hr_option"
-                                value="Original"
-                                id="hr_original"
+                                data-event-focus="set_cur_config_index(3)"
+                                name="windowmode"
+                                data-checked="wm_option"
+                                value="Windowed"
+                                id="wm_windowed"
                                 style="nav-up: #ar_original; nav-down: #rr_original"
                             />
-                            <label class="config-option__tab-label" for="hr_original">Original</label>
+                            <label class="config-option__tab-label" for="wm_windowed">Windowed</label>
                             <input type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(5)"
-                                name="hr-option"
-                                data-checked="hr_option"
-                                value="Clamp16x9"
-                                id="hr_16_9"
+                                data-event-focus="set_cur_config_index(3)"
+                                name="windowmode"
+                                data-checked="wm_option"
+                                value="Fullscreen"
+                                id="wm_fullscreen"
                                 style="nav-up: #ar_expand; nav-down: #rr_display"
                             />
-                            <label class="config-option__tab-label" for="hr_16_9">16:9</label>
-                            <input type="radio"
-                                data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(5)"
-                                name="hr-option"
-                                data-checked="hr_option"
-                                value="Full"
-                                id="hr_full"
-                                style="nav-up: #ar_expand; nav-down: #rr_manual"
-                            />
-                            <label class="config-option__tab-label" for="hr_full">Expand</label>
+                            <label class="config-option__tab-label" for="wm_fullscreen">Fullscreen</label>
                         </div>
                     </div>
 
-                    <p data-event-mouseover="set_cur_config_index(-1)" class="experimental-warning">
-                        <b style="padding-bottom: 4px; display: block">⚠ EXPERIMENTAL ⚠</b>
-                        The options below <i>will cause issues</i> if changed from their defaults.
-                    </p>
-
                     <!-- Framerate -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(6)">
-                        <label class="config-option__title">Framerate</label>
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(4)">
+                        <label class="config-option__title">Framerate <small class="experimental">(⚠EXPERIMENTAL⚠)</small></label>
                         <div class="config-option__list">
                             <input type="radio"
                                 data-event-blur="set_cur_config_index(-1)" 
-                                data-event-focus="set_cur_config_index(6)"
+                                data-event-focus="set_cur_config_index(4)"
                                 name="refreshrate"
                                 data-checked="rr_option"
                                 value="Original"
                                 id="rr_original"
-                                style="nav-up: #hr_original"
-                                data-style-nav-down="rr_option=='Manual' ? '#rr_manual_input' : '#apply_button'"
+                                style="nav-up: #wm_windowed"
+                                data-style-nav-down="rr_option=='Manual' ? '#rr_manual_input' : '#msaa_none'"
                             />
                             <label class="config-option__tab-label" for="rr_original">Original</label>
                             <input type="radio"
                                 data-event-blur="set_cur_config_index(-1)" 
-                                data-event-focus="set_cur_config_index(6)"
+                                data-event-focus="set_cur_config_index(4)"
                                 name="refreshrate"
                                 data-checked="rr_option"
                                 value="Display"
                                 id="rr_display"
-                                style="nav-up: #hr_16_9"
-                                data-style-nav-down="rr_option=='Manual' ? '#rr_manual_input' : '#apply_button'"
+                                style="nav-up: #wm_fullscreen"
+                                data-style-nav-down="rr_option=='Manual' ? '#rr_manual_input' : '#msaa_2x'"
                             />
                             <label class="config-option__tab-label" for="rr_display">Display</label>
                             <input type="radio"
                                 data-event-blur="set_cur_config_index(-1)" 
-                                data-event-focus="set_cur_config_index(6)"
+                                data-event-focus="set_cur_config_index(4)"
                                 name="refreshrate"
                                 data-checked="rr_option"
                                 value="Manual"
                                 id="rr_manual"
-                                style="nav-up: #hr_full"
-                                data-style-nav-down="rr_option=='Manual' ? '#rr_manual_input' : '#apply_button'"
+                                style="nav-up: #wm_fullscreen"
+                                data-style-nav-down="rr_option=='Manual' ? '#rr_manual_input' : '#msaa_4x'"
                             />
                             <label class="config-option__tab-label" for="rr_manual">Manual</label>
-                            <div class="config-option__details" data-if="rr_option!='Original'">Not recommended!</div>
+                            <div class="config-option__details" data-if="rr_option!='Original'">Minor graphical glitches will occur!</div>
                         </div>
                         <div data-if="rr_option=='Manual'" class="config-option__range-wrapper config-option__list">
                             <label class="config-option__range-label">{{rr_manual_value}}</label>
                             <input
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(6)"
+                                data-event-focus="set_cur_config_index(4)"
                                 id="rr_manual_input"
                                 type="range"
                                 min="20"
                                 max="360"
-                                style="flex:1;margin: 0dp;nav-up:#rr_manual;nav-down:#apply_button;"
+                                style="flex:1;margin: 0dp;nav-up:#rr_manual;nav-down:#msaa_none;"
                                 data-value="rr_manual_value"
                             />
                         </div>
                     </div>
 
+                    <!-- MSAA -->
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(5)">
+                        <label class="config-option__title">MS Anti-Aliasing</label>
+                        <div class="config-option__list">
+                            <input type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(5)"
+                                name="antialiasing"
+                                data-checked="msaa_option"
+                                value="None"
+                                id="msaa_none"
+                                style="nav-up: #rr_original; nav-down: #hr_original"
+                            />
+                            <label class="config-option__tab-label" for="msaa_none">None</label>
+                            <input type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(5)"
+                                name="antialiasing"
+                                data-attrif-disabled="!msaa2x_supported"
+                                data-checked="msaa_option"
+                                value="MSAA2X"
+                                id="msaa_2x"
+                                style="nav-up: #rr_display; nav-down: #hr_16_9"
+                                data-style-nav-right="msaa4x_supported ? '#msaa_4x' : 'none'"
+                            />
+                            <label class="config-option__tab-label" for="msaa_2x">2x</label>
+                            <input type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(5)"
+                                name="antialiasing"
+                                data-attrif-disabled="!msaa4x_supported"
+                                data-checked="msaa_option"
+                                value="MSAA4X"
+                                id="msaa_4x"
+                                style="nav-up: #rr_manual; nav-down: #hr_full"
+                            />
+                            <label class="config-option__tab-label" for="msaa_4x">4x</label>
+                            <div class="config-option__details" data-if="!sample_positions_supported">Not available (missing sample positions support)</div>
+                        </div>
+                    </div>
+
+                    <!-- HUD Placement -->
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(6)">
+                        <label class="config-option__title">HUD Placement</label>
+                        <div class="config-option__list">
+                            <input type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(6)"
+                                name="hr-option"
+                                data-checked="hr_option"
+                                value="Original"
+                                id="hr_original"
+                                style="nav-up: #msaa_none; nav-down: #apply_button"
+                            />
+                            <label class="config-option__tab-label" for="hr_original">Original</label>
+                            <input type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(6)"
+                                name="hr-option"
+                                data-checked="hr_option"
+                                value="Clamp16x9"
+                                id="hr_16_9"
+                                style="nav-down: #apply_button"
+                                data-style-nav-up="msaa2x_supported ? '#msaa_2x' : '#msaa_none'"
+                            />
+                            <label class="config-option__tab-label" for="hr_16_9">16:9</label>
+                            <input type="radio"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-focus="set_cur_config_index(6)"
+                                name="hr-option"
+                                data-checked="hr_option"
+                                value="Full"
+                                id="hr_full"
+                                style="nav-down: #apply_button"
+                                data-style-nav-up="msaa4x_supported ? '#msaa_4x' : (msaa2x_supported ? '#msaa_2x' : '#msaa_none')"
+                            />
+                            <label class="config-option__tab-label" for="hr_full">Expand</label>
+                        </div>
+                    </div>
+
+                    <!-- <p data-event-mouseover="set_cur_config_index(-1)" class="experimental-warning">
+                        <b style="padding-bottom: 4px; display: block">⚠ EXPERIMENTAL ⚠</b>
+                        The options below <i>will cause issues</i> if changed from their defaults.
+                    </p> -->
+
                 </div>
                 <div class="config__wrapper_scroll">
                     <p data-if="cur_config_index == 0">
-                        Sets whether the game should display <b>Windowed</b> or <b>Fullscreen</b>. You can also use <b>F11</b> or <b>Alt + Enter</b> to toggle this option.
-                    </p>
-                    <p data-if="cur_config_index == 1">
-                        Sets the multisample anti-aliasing (MSAA) quality level. This reduces jagged edges in the final image at the expense of rendering performance.
-                        <br />
-                        <br />
-                        <b>Note: This option won't be available if your GPU does not support programmable MSAA sample positions, as it is currently required to avoid rendering glitches.</b>
-                    </p>
-
-                    <p data-if="cur_config_index == 2">
                         Sets the output resolution of the game. <b>Original</b> matches the game's original 240p resolution. <b>Original 2x</b> will render at 480p. <b>Auto</b> will scale based on the game window's resolution.
                     </p>
-                    <p data-if="cur_config_index == 3">
+                    <p data-if="cur_config_index == 1">
                         Renders at a higher resolution and scales it down to the output resolution for increased quality. Only available in <b>Original</b> and <b>Original 2x</b> resolution.
                         <br />
                         <br />
                         Note: <b>4x</b> downsampling quality at <b>Original 2x</b> resolution may cause performance issues on low end devices, as it will cause the game to render <i>at almost 4k internal resolution</i>.
                     </p>
-                    <p data-if="cur_config_index == 4">
+                    <p data-if="cur_config_index == 2">
                         Sets the horizontal aspect ratio. <b>Original</b> uses the game's original 4:3 aspect ratio. <b>Expand</b> will adjust to match the game window's aspect ratio.
                     </p>
-                    <p data-if="cur_config_index == 5">
-                        Adjusts the placement of HUD elements to fit the selected aspect ratio. <b>Expand</b> will use the aspect ratio of the game's output window.
+                    <p data-if="cur_config_index == 3">
+                        Sets whether the game should display <b>Windowed</b> or <b>Fullscreen</b>. You can also use <b>F11</b> or <b>Alt + Enter</b> to toggle this option.
                     </p>
-                    <p data-if="cur_config_index == 6">
+                    <p data-if="cur_config_index == 4">
                         <b>EXPERIMENTAL</b>
-                        <br/>Causes many graphical issues including <i>flashing</i>, various entities and effects <i>disappearing or teleporting</i> for a few frames, <i>intense lag in certain areas</i>, and more.
-                        <br />
-                        <br /><i>NOT RECOMMENDED</i>
+                        <br/>
+                        Causes minor graphical issues.
                         <br />
                         <br />
                         Sets the game's output framerate. This option does not affect gameplay.
@@ -320,6 +311,15 @@
                         <br />
                         <br />
                         <b>Detected display refresh rate: {{display_refresh_rate}}hz</b>
+                    </p>
+                    <p data-if="cur_config_index == 5">
+                        Sets the multisample anti-aliasing (MSAA) quality level. This reduces jagged edges in the final image at the expense of rendering performance.
+                        <br />
+                        <br />
+                        <b>Note: This option won't be available if your GPU does not support programmable MSAA sample positions, as it is currently required to avoid rendering glitches.</b>
+                    </p>
+                    <p data-if="cur_config_index == 6">
+                        Adjusts the placement of HUD elements to fit the selected aspect ratio. <b>Expand</b> will use the aspect ratio of the game's output window.
                     </p>
                 </div>
             </div>
@@ -333,7 +333,7 @@
                         data-attrif-disabled="!options_changed"
                         onclick="apply_options"
                         id="apply_button"
-                        data-style-nav-up="rr_option=='Manual' ? '#rr_manual_input' : '#rr_original'"
+                        style="nav-up: #hr_original"
                     >
                         <div class="button__label">Apply<span class="prompt-font-sm">{{gfx_help__apply}}</span></div>
                     </button>

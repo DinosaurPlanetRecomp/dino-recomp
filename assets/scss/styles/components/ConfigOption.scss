@@ -35,6 +35,14 @@
 .config-option__title {
     @extend %label-md;
     padding: 0 space(12);
+
+    small {
+        @extend %label-sm;
+
+        &.experimental {
+            color: $color-warning;
+        }
+    }
 }
 
 .config-option__radio-tabs,
