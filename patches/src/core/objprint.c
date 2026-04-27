@@ -311,8 +311,6 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
         obj->srt.yaw = spBA;
         camera_load_parent_projection(&tempGdl);
     }
-    // @recomp: Update custom state for obj matrix tagging
-    recomp_obj_update_matrix_group_state(obj, objMtxGroup);
     *gdl = tempGdl;
     *mtxs = tempMtxs;
     *vtxs = tempVtxs;

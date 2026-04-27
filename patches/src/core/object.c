@@ -15,6 +15,7 @@
 #include "sys/objtype.h"
 #include "sys/objhits.h"
 #include "sys/newshadows.h"
+#include "sys/main.h"
 #include "macros.h"
 #include "dll.h"
 
@@ -45,9 +46,12 @@ extern void obj_clear_all(void);
 extern void func_80020D90(void);
 extern void copy_obj_position_mirrors(Object *obj, ObjSetup *setup, s32 param3);
 extern void obj_free_objdef(s32 tabIdx);
+extern void func_8002272C(Object *obj);
 
 typedef struct {
     Object *lastParent;
+    s16 lastYaw;
+    u8 skipInterp;
 } RecompObjMtxTagState;
 
 static Object* recomp_objMatrixGroupList[1000];
@@ -57,17 +61,50 @@ static u32 recomp_objMatrixGroupNext;
 
 // TODO: increase max objects
 
-static _Bool recomp_obj_should_skip_interp(Object *obj, u32 group) {
+static void recomp_obj_update_matrix_group_state(Object *obj) {
+    // Get state
+    u32 group;
+    if (!recomputil_u32_value_hashmap_get(recomp_objMatrixGroupMap, (collection_key_t)obj, &group)) {
+        return;
+    }
+
     RecompObjMtxTagState *state = &recomp_objMtxTagStates[group];
-    
-    return state->lastParent != obj->parent;
+
+    // Determine if interpolation should be skipped for this frame
+    _Bool parentChanged = state->lastParent != obj->parent;
+
+    _Bool snapTurned;
+    if (state->lastYaw != obj->srt.yaw) {
+        // If the object turned very sharply, interpolation will look wrong since the movement was too large.
+        // This is mainly a problem with the player and the ability to instantly do a 180 in a single frame.
+        f32 lastDir[2] = {
+            fcos16_precise(state->lastYaw),
+            fsin16_precise(state->lastYaw)
+        };
+        f32 dir[2] = {
+            fcos16_precise(obj->srt.yaw),
+            fsin16_precise(obj->srt.yaw)
+        };
+
+        f32 dot = (dir[0] * lastDir[0]) + (dir[1] * lastDir[1]);
+        
+        snapTurned = dot < 0;
+    } else {
+        snapTurned = FALSE;
+    }
+
+    state->skipInterp = parentChanged || snapTurned;
+
+    // Update state
+    state->lastParent = obj->parent;
+    state->lastYaw = obj->srt.yaw;
 }
 
 u32 recomp_obj_get_matrix_group(Object *obj, _Bool *skipInterpolation) {
     u32 group;
     if (recomputil_u32_value_hashmap_get(recomp_objMatrixGroupMap, (collection_key_t)obj, &group)) {
         if (skipInterpolation != NULL) {
-            *skipInterpolation = recomp_obj_should_skip_interp(obj, group);
+            *skipInterpolation = recomp_objMtxTagStates[group].skipInterp;
         }
         return group;
     }
@@ -78,11 +115,6 @@ u32 recomp_obj_get_matrix_group(Object *obj, _Bool *skipInterpolation) {
         *skipInterpolation = FALSE;
     }
     return group;
-}
-
-void recomp_obj_update_matrix_group_state(Object *obj, u32 group) {
-    RecompObjMtxTagState *state = &recomp_objMtxTagStates[group];
-    state->lastParent = obj->parent;
 }
 
 static u32 recomp_obj_alloc_matrix_group(Object *obj) {
@@ -387,4 +419,88 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 param2) {
     }
 
     mmFree(obj);
+}
+
+RECOMP_PATCH void update_objects(void) {
+    void *node;
+    Object *obj;
+    Object *player;
+    s32 nextFieldOffset;
+
+    nextFieldOffset = gObjUpdateList.nextFieldOffset; // == 0x38, &obj->next
+
+    func_80058FE8();
+
+    update_obj_models();
+    update_obj_hitboxes(gNumObjs);
+
+    node = gObjUpdateList.head;
+
+    for (obj = (Object*)node; node != NULL && obj->updatePriority == 100; obj = (Object*)node) {
+        update_object(obj);
+        node = *((void**)(nextFieldOffset + (u32)node));
+
+        //if (obj->objhitInfo->unk58){} // fake match
+    }
+
+    for (obj = (Object*)node; node != NULL && obj->def->flags & 0x40; obj = (Object*)node) {
+        update_object(obj);
+        obj->matrixIdx = camera_alloc_object_matrix(obj);
+        node = *((void**)(nextFieldOffset + (u32)node));
+    }
+
+    func_80025E58();
+
+    while (node != NULL) {
+        obj = (Object*)node;
+
+        if (obj->objhitInfo != NULL) {
+            if (obj->objhitInfo->unk5A != 8 || (obj->objhitInfo->unk58 & 1) == 0) {
+                update_object(obj);
+            }
+        } else {
+            update_object(obj);
+        }
+
+        node = *((void**)(nextFieldOffset + (u32)node));
+    }
+
+    player = get_player();
+    if (player != NULL && player->linkedObject != NULL) {
+        player->linkedObject->parent = player->parent;
+        update_object(player->linkedObject);
+    }
+
+    obj_do_hit_detection(gNumObjs);
+
+    node = gObjUpdateList.head;
+    while (node != NULL) {
+        obj = (Object*)node;
+        func_8002272C(obj);
+        node = *((void**)(nextFieldOffset + (u32)node));
+    }
+
+    player = get_player();
+    if (player != NULL && player->linkedObject != NULL) {
+        player->linkedObject->parent = player->parent;
+        func_8002272C(player->linkedObject);
+    }
+
+    gDLL_24_Waterfx->vtbl->func_6E8(gUpdateRate);
+    gDLL_15_Projgfx->vtbl->func2(gUpdateRate, 0);
+    gDLL_14_Modgfx->vtbl->func2(0, 0, 0);
+    gDLL_13_Expgfx->vtbl->func2(0, gUpdateRate, 0, 0);
+
+    func_8002B6EC();
+
+    gDLL_3_Animation->vtbl->func9();
+    gDLL_3_Animation->vtbl->func5();
+    gDLL_2_Camera->vtbl->tick(gUpdateRate);
+
+    write_c_file_label_pointers("objects/objects.c", 0x169);
+
+    // @recomp: Update matrix tagging state
+    for (s32 i = 0; i < gNumObjs; i++) {
+        recomp_obj_update_matrix_group_state(gObjList[i]);
+    }
 }

@@ -39,5 +39,4 @@
 #define EXPGFX_MTX_GROUP_ID_START 0x04000000
 
 u32 recomp_obj_get_matrix_group(Object *obj, _Bool *skipInterpolation);
-void recomp_obj_update_matrix_group_state(Object *obj, u32 group);
 void recomp_set_skip_camera_interpolation(_Bool skip);
