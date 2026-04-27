@@ -1,4 +1,5 @@
 #include "patches.h"
+#include "matrix_groups.h"
 
 #include "sys/math.h"
 #include "sys/camera.h"
@@ -37,6 +38,8 @@ extern MatrixSlot gMatrixPool[100];
 extern u32 gMatrixCount;
 extern s8 gUseAlternateCamera;
 extern s8 gMatrixIndex;
+extern MtxF MtxF_800a6a60;
+extern MtxF gAuxMtx2;
 
 extern f32 fexp(f32 x, u32 iterations);
 
@@ -45,6 +48,7 @@ extern f32 fexp(f32 x, u32 iterations);
 static Mtx *recomp_lastCamViewMtx;
 static Mtx *recomp_lastCamProjMtx;
 static MtxF *recomp_lastCamViewWorldOffsetMtx;
+static s32 recomp_lastCamSelector;
 static MtxF recomp_viewWorldOffsetResetMtx = {
     .m = {
         1.0f, 0.0f, 0.0f, 0.0f,
@@ -53,6 +57,23 @@ static MtxF recomp_viewWorldOffsetResetMtx = {
         0.0f, 0.0f, 0.0f, 1.0f
     }
 };
+static MtxF *recomp_parentViewMtxs[30];
+static _Bool recomp_skipCameraInterp = FALSE;
+
+void recomp_set_skip_camera_interpolation(_Bool skip) {
+    recomp_skipCameraInterp = skip;
+    // if (skip) {
+    //     recomp_printf("skip camera interp\n");
+    // }
+}
+
+static void recomp_apply_camera_matrix_group(Gfx **gdl, s32 id) {
+    if (recomp_skipCameraInterp) {
+        gEXMatrixGroupSkipAll((*gdl)++, id, G_EX_NOPUSH, G_MTX_PROJECTION, G_EX_EDIT_NONE);
+    } else {
+        gEXMatrixGroupSimpleNormal((*gdl)++, id, G_EX_NOPUSH, G_MTX_PROJECTION, G_EX_EDIT_NONE);
+    }
+}
 
 RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
     s32 prevCameraSel;
@@ -97,9 +118,10 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
 
     matrix_from_srt_reversed(&gViewMtx, &gCameraSRT);
     matrix_concat(&gViewMtx, &gProjectionMtx, &gViewProjMtx);
-    matrix_f2l(&gViewProjMtx, *rspMtxs);
+    // @recomp: Not using long version of combined ViewProjMtx
+    //matrix_f2l(&gViewProjMtx, *rspMtxs);
 
-    gRSPMtxList = *rspMtxs;
+    //gRSPMtxList = *rspMtxs;
 
     // @recomp: Submit view and projection matrices separately to avoid a nasty float precision
     // issue with this game's projection matrix. After viewProj is converted from float -> long -> float
@@ -111,10 +133,14 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
 
     recomp_lastCamProjMtx = (*rspMtxs + 0);
     recomp_lastCamViewMtx = (*rspMtxs + 1);
+    recomp_lastCamSelector = gCameraSelector;
 
     gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_PROJECTION | G_MTX_LOAD);
     gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_PROJECTION | G_MTX_MUL);
     
+    // @recomp: Tag camera matrix
+    recomp_apply_camera_matrix_group(gdl, CAMERA_MTX_GROUP_ID_START + gCameraSelector);
+
     // @recomp: Submit the world view offset to RT64 so it can reconcile for frame interpolation
     if (!gIsShadowTexActive) {
         SRT recomp_viewWorldOffsetSRT = {
@@ -150,19 +176,101 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
 
     i = 0;
     while (i < 30) {
-        gRSPMatrices[i++] = 0;
+        // @recomp:
+        gRSPMatrices[i] = 0;
+        recomp_parentViewMtxs[i] = NULL;
+        i++;
     }
+}
+
+RECOMP_PATCH void setup_rsp_matrices_for_object(Gfx **gdl, Mtx **rspMtxs, Object *object)
+{
+    u8 ancestor;
+    MtxF mtxf;
+    Object *origObject;
+    f32 oldScale;
+
+    origObject = object;
+
+    if (gRSPMatrices[object->matrixIdx] == NULL) {
+        ancestor = FALSE;
+        while (object != NULL) {
+            if (object->parent == NULL) {
+                object->srt.transl.x -= gWorldX;
+                object->srt.transl.z -= gWorldZ;
+            }
+
+            oldScale = object->srt.scale;
+            if (!(object->unkB0 & 0x8)) {
+                object->srt.scale = 1.0f;
+            }
+
+            if (!ancestor) {
+                matrix_from_srt(&MtxF_800a6a60, &object->srt);
+            } else {
+                matrix_from_srt(&mtxf, &object->srt);
+                matrix_concat_4x3(&MtxF_800a6a60, &mtxf, &MtxF_800a6a60);
+            }
+
+            object->srt.scale = oldScale;
+
+            if (object->parent == NULL) {
+                object->srt.transl.x += gWorldX;
+                object->srt.transl.z += gWorldZ;
+            }
+
+            object = object->parent;
+            ancestor = TRUE;
+        }
+
+        // @recomp: Don't concat projection matrix, we'll submit that separately
+        matrix_concat(&MtxF_800a6a60, &gViewMtx, &gAuxMtx2);
+        matrix_f2l(&gAuxMtx2, *rspMtxs);
+        gRSPMatrices[origObject->matrixIdx] = *rspMtxs;
+        (*rspMtxs)++;
+
+        // @recomp:
+        // SRT recomp_viewWorldOffsetSRT = {
+        //     .yaw = 0, .pitch = 0, .roll = 0,
+        //     .flags = 0,
+        //     .scale = 1.0f,
+        //     .transl = { 
+        //         .x = MtxF_800a6a60.m[3][0] + gWorldX, 
+        //         .y = MtxF_800a6a60.m[3][1], 
+        //         .z = MtxF_800a6a60.m[3][2] + gWorldZ
+        //     }
+        // };
+        // matrix_from_srt((MtxF*)*rspMtxs, &recomp_viewWorldOffsetSRT);
+        // recomp_parentViewMtxs[origObject->matrixIdx] = (MtxF*)*rspMtxs;
+        // (*rspMtxs)++;
+    }
+
+    // @recomp: Submit projection and view separately to avoid precision issues.
+    // See above notes in setup_rsp_camera_matrices
+    gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(recomp_lastCamProjMtx), G_MTX_PROJECTION | G_MTX_LOAD);
+    gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(gRSPMatrices[origObject->matrixIdx]), G_MTX_PROJECTION | G_MTX_MUL);
+    
+    // TODO: this gets janky when an object switches parent (or parent/no parent)
+    //gEXSetViewMatrixFloat((*gdl)++, recomp_parentViewMtxs[origObject->matrixIdx]);
+    gEXSetViewMatrixFloat((*gdl)++, recomp_lastCamViewWorldOffsetMtx);
+ 
+    // @recomp: Tag parent obj camera matrix
+    u32 objMtxGroup = (recomp_obj_get_matrix_group(origObject) * 16) + gCameraSelector + OBJ_CAMERA_MTX_GROUP_ID_START;
+    recomp_apply_camera_matrix_group(gdl, objMtxGroup);
 }
 
 RECOMP_PATCH void camera_load_parent_projection(Gfx **gdl)
 {
-    // @recomp: Submit projection and view separately instead of [gRSPMtxList] to avoid precision issues
+    // @recomp: Submit projection and view separately instead of [gRSPMtxList] to avoid precision issues.
     // See above notes in setup_rsp_camera_matrices
     gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(recomp_lastCamProjMtx), G_MTX_PROJECTION | G_MTX_LOAD);
     gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(recomp_lastCamViewMtx), G_MTX_PROJECTION | G_MTX_MUL);
 
     // @recomp: Submit the world view offset to RT64 so it can reconcile for frame interpolation
     gEXSetViewMatrixFloat((*gdl)++, recomp_lastCamViewWorldOffsetMtx);
+
+    // @recomp: Restore camera matrix group
+    recomp_apply_camera_matrix_group(gdl, CAMERA_MTX_GROUP_ID_START + recomp_lastCamSelector);
 }
 
 RECOMP_PATCH void viewport_get_full_rect(s32 *ulx, s32 *uly, s32 *lrx, s32 *lry)
