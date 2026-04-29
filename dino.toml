@@ -234,16 +234,6 @@ before_vram = 0x8006272C
 func = "some_crash_print"
 text = "yield_self(rdram);"
 
-# replace PI_STATUS check with yield
-[[patches.hook]]
-before_vram = 0x800012d8
-func = "camera_init"
-text = "yield_self(rdram);"
-[[patches.instruction]]
-vram = 0x800012d8
-func = "camera_init"
-value = 0x00001025 # lw v0,0x0(v1) -> or v0,zero,zero
-
 # osAiGetLength got inlined
 [[patches.hook]]
 before_vram = 0x80011cc0

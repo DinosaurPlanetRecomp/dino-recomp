@@ -1,7 +1,10 @@
 #include "patches.h"
+#include "recompdata.h"
+#include "matrix_groups.h"
 
-#include "PR/os.h"
 #include "sys/gfx/model.h"
+#include "sys/camera.h"
+#include "sys/math.h"
 #include "sys/rarezip.h"
 #include "sys/fs.h"
 #include "sys/memory.h"
@@ -24,6 +27,53 @@ extern s32 gNumFreeModelSlots;
 extern s16* gAuxBuffer;
 
 extern void model_destroy(Model* model);
+
+typedef struct {
+    MtxF *matrices[2];
+} RecompObjAbsoluteMatrices;
+
+static U32ValueHashmapHandle recomp_objAbsoluteMatrixMap;
+static _Bool recomp_objAbsoluteMatrixMapInitialized = FALSE;
+
+static RecompObjAbsoluteMatrices* recomp_get_obj_absolute_matrices(ModelInstance *modelInst) {
+    if (!recomp_objAbsoluteMatrixMapInitialized) {
+        recomp_objAbsoluteMatrixMapInitialized = TRUE;
+        recomp_objAbsoluteMatrixMap = recomputil_create_u32_value_hashmap();
+    }
+
+    RecompObjAbsoluteMatrices *absMatrices;
+    if (recomputil_u32_value_hashmap_get(recomp_objAbsoluteMatrixMap, (collection_key_t)modelInst, (u32*)&absMatrices)) {
+        return absMatrices;
+    }
+
+    // Note: Must allocate on the game's memory pools since we don't have extended GBI addressing enabled currently
+    absMatrices = mmAlloc(sizeof(RecompObjAbsoluteMatrices), 0, NULL);
+    recomputil_u32_value_hashmap_insert(recomp_objAbsoluteMatrixMap, (collection_key_t)modelInst, (u32)absMatrices);
+
+    // Allocate the same matrix count that model_get_stats decides on
+    s32 count = modelInst->model->animCount != 0
+        ? modelInst->model->jointCount
+        : 1;
+
+    absMatrices->matrices[0] = mmAlloc(sizeof(MtxF) * count * 2, 0, NULL);
+    absMatrices->matrices[1] = absMatrices->matrices[0] + count;
+
+    return absMatrices;
+}
+
+static void recomp_free_obj_absolute_matrices(ModelInstance *modelInst) {
+    if (!recomp_objAbsoluteMatrixMapInitialized) return;
+
+    RecompObjAbsoluteMatrices *absMatrices;
+    if (!recomputil_u32_value_hashmap_get(recomp_objAbsoluteMatrixMap, (collection_key_t)modelInst, (u32*)&absMatrices)) {
+        return;
+    }
+
+    mmFree(absMatrices->matrices[0]);
+    mmFree(absMatrices);
+
+    recomputil_u32_value_hashmap_erase(recomp_objAbsoluteMatrixMap, (collection_key_t)modelInst);
+}
 
 RECOMP_PATCH ModelInstance* model_load_create_instance(s32 id, u32 flags) {
     s32 i;
@@ -208,4 +258,61 @@ bail:
     }
     model_destroy(model);
     return NULL;
+}
+
+RECOMP_PATCH void destroy_model_instance(ModelInstance* modelInst) {
+    Model* sp1C;
+    s32 i;
+
+    if (modelInst == NULL) {
+        return;
+    }
+
+    // @recomp: Free copies of matrix lists 
+    recomp_free_obj_absolute_matrices(modelInst);
+
+    sp1C = modelInst->model;
+    if (modelInst->displayList != sp1C->displayList) {
+        mmFree(modelInst->displayList);
+    }
+
+    mmFree(modelInst);
+    sp1C->refCount--;
+    if (sp1C->refCount > 0) {
+        return;
+    }
+
+    for (i = 0; i < gNumLoadedModels; i++) {
+        if (sp1C == (Model*)MODEL_SLOT_MODEL(gLoadedModels, i)) {
+            break;
+        }
+    }
+
+    if (i == gNumLoadedModels) {
+        *(volatile u8*)0x0 = 0; // CRASH!
+    } else {
+        gFreeModelSlots[gNumFreeModelSlots++] = i;
+
+        MODEL_SLOT_ID(gLoadedModels, i) = -1;
+        MODEL_SLOT_MODEL(gLoadedModels, i) = -1;
+        model_destroy(sp1C);
+    }
+}
+
+MtxF* recomp_model_instance_setup_absolute_matrices(ModelInstance *modelInst, s32 count) {
+    s32 idx = modelInst->unk34 & 1;
+    
+    if (recomp_objParentMtx == NULL) {
+        // Nothing to do, just use the normal matrix list
+        return modelInst->matrices[idx];
+    }
+
+    // Factor in the parent matrix for each joint matrix
+    RecompObjAbsoluteMatrices *absMtxs = recomp_get_obj_absolute_matrices(modelInst);
+    for (s32 i = 0; i < count; i++) {
+        matrix_concat_4x3(&modelInst->matrices[idx][i], recomp_objParentMtx, &absMtxs->matrices[idx][i]);
+    }
+    add_matrix_to_pool(absMtxs->matrices[idx], count);
+
+    return absMtxs->matrices[idx];
 }

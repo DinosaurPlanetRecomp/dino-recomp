@@ -1,7 +1,9 @@
 #include "patches.h"
 #include "matrix_groups.h"
 
+#include "dlls/objects/common/group48.h"
 #include "sys/camera.h"
+#include "sys/math.h"
 #include "sys/rsp_segment.h"
 #include "sys/map.h"
 #include "sys/segment_1D900.h"
@@ -13,7 +15,9 @@
 
 extern void func_80036890(Object* arg0, s32 arg1);
 extern void func_800357B4(Object*, ModelInstance*, Model*);
+extern void func_80036058(Object*, Object*, ModelInstance*, Gfx**, Mtx**, Vertex**);
 
+extern MtxF *D_800B2E10;
 extern u8 BYTE_80091754;
 extern u8 BYTE_80091758;
 extern s16 SHORT_800b2e14;
@@ -212,6 +216,12 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
                 } else {
                     func_80019730(modelInst, model, obj, PTR_DAT_800b2e1c);
                 }
+                // @recomp: Factor parent matrix into joint model matrices
+                if (recomp_objParentMtx != NULL) {
+                    sp70 = recomp_model_instance_setup_absolute_matrices(modelInst, model->jointCount);
+                } else {
+                    sp70 = modelInst->matrices[modelInst->unk34 & 1];
+                }
             } else {
                 modelInst->unk34 ^= 1;
                 sp70 = modelInst->matrices[modelInst->unk34 & 1];
@@ -221,6 +231,10 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
                     bcopy((void* ) PTR_DAT_800b2e1c, sp70, 0x40);
                 }
                 add_matrix_to_pool(sp70, 1);
+                // @recomp: Factor parent matrix into joint model matrices
+                if (recomp_objParentMtx != NULL) {
+                    sp70 = recomp_model_instance_setup_absolute_matrices(modelInst, 1);
+                }
             }
             modelInst->unk34 ^= 2;
             if ((obj->def->flags & 0x10) || (model->blendshapes != NULL)) {
@@ -264,8 +278,8 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
                     (objMtxGroup * 8) + obj->modelInstIdx + OBJ_MODEL_MTX_GROUP_ID_START, 
                     G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             }
-            
-            gSPSegment(tempGdl++, SEGMENT_3, modelInst->matrices[modelInst->unk34 & 1]);
+            // @recomp: Use matrix list selected above instead of only using the vanilla one
+            gSPSegment(tempGdl++, SEGMENT_3, sp70);
             gSPSegment(tempGdl++, SEGMENT_5, modelInst->vertices[((s32) modelInst->unk34 >> 1) & 1]);
             if (spFC == 0xFF) {
                 if (modelInst->unk34 & 0x10) {
@@ -315,6 +329,117 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
     *mtxs = tempMtxs;
     *vtxs = tempVtxs;
     *tris = tempTris;
+}
+
+RECOMP_PATCH ModelInstance *func_80035AF4(Gfx** arg0, Mtx** arg1, Vertex** arg2, Triangle** arg3, Object* arg4, ModelInstance* arg5, MtxF* arg6, MtxF* arg7, Object* arg8, s32 arg9, s32 arg10) {
+    MtxF* sp74;
+    s32 sp70;
+    ModelInstance* modelInst;
+    MtxF* var_v1;
+    Model* sp64;
+    SRT sp4C;
+    s32 i;
+
+    D_800B2E10 = 0;
+
+    if (arg8->def->numAnimatedFrames > 0) {
+        func_80036890(arg8, 2);
+    }
+    modelInst = arg8->modelInsts[arg8->modelInstIdx];
+    if (modelInst != NULL && !(arg5->unk34 & 8)) {
+        sp64 = modelInst->model;
+        if (arg4->def->numAttachPoints > 0) {
+            sp70 = arg4->def->pAttachPoints[arg9].bones[arg4->modelInstIdx];
+            sp4C.transl.f[0] = arg4->def->pAttachPoints[arg9].pos.f[0];
+            sp4C.transl.f[1] = arg4->def->pAttachPoints[arg9].pos.f[1];
+            sp4C.transl.f[2] = arg4->def->pAttachPoints[arg9].pos.f[2];
+            sp4C.scale = 1.0f;
+            sp4C.yaw = arg4->def->pAttachPoints[arg9].rot.s[0];
+            sp4C.pitch = arg4->def->pAttachPoints[arg9].rot.s[1];
+            sp4C.roll = arg4->def->pAttachPoints[arg9].rot.s[2];
+            matrix_from_srt(arg6, &sp4C);
+            matrix_concat_4x3(arg6, (MtxF*)&((f32*)arg5->matrices[arg5->unk34 & 1])[sp70 << 4], arg6);
+        } else {
+            // required to match
+        }
+        if (sp64->animCount != 0) {
+            D_800B2E10 = arg6;
+            func_80019730(modelInst, sp64, arg8, arg6);
+            sp74 = modelInst->matrices[modelInst->unk34 & 1];
+            func_80036058(arg8, arg4, modelInst, arg0, arg1, arg2);
+            // @recomp: Factor parent matrix into joint model matrices
+            if (recomp_objParentMtx != NULL) {
+                sp74 = recomp_model_instance_setup_absolute_matrices(modelInst, sp64->jointCount);
+            }
+        } else {
+            modelInst->unk34 ^= 1;
+            arg7 = modelInst->matrices[modelInst->unk34 & 1];
+            for (i = 0; i < 16; i++) {
+                ((f32*)arg7->m)[i] = ((f32*)arg6->m)[i];
+            }
+            func_80036058(arg8, arg4, modelInst, arg0, arg1, arg2);
+            add_matrix_to_pool(arg7, 1);
+            D_800B2E10 = sp74 = arg7;
+            // @recomp: Factor parent matrix into joint model matrices
+            if (recomp_objParentMtx != NULL) {
+                sp74 = recomp_model_instance_setup_absolute_matrices(modelInst, 1);
+            }
+        }
+        modelInst->unk34 ^= 2;
+        if ((arg8->def->flags & 0x10) || (sp64->blendshapes != NULL)) {
+            if (sp64->blendshapes != NULL) {
+                func_8001B100(modelInst);
+            }
+            func_8001DF60(arg8, modelInst);
+        }
+        if (sp64->envMapCount != 0) {
+            func_8001F094(modelInst);
+        }
+        if (sp64->hitSphereCount != 0) {
+            func_8001A8EC(modelInst, sp64, arg8, arg7, arg4);
+        }
+        if (!(arg4->srt.flags & OBJFLAG_SKIP_MODEL_DL)) {
+            gSPSegment((*arg0)++, SEGMENT_3, sp74);
+            gSPSegment((*arg0)++, SEGMENT_5, modelInst->vertices[(modelInst->unk34 >> 1) & 1]);
+            if ((u8) arg10 == 0xFF) {
+                if (modelInst->unk34 & 0x10) {
+                    load_model_display_list(sp64, modelInst);
+                    modelInst->unk34 ^= 0x10;
+                }
+            } else if (!(modelInst->unk34 & 0x10)) {
+                load_model_display_list2(sp64, modelInst);
+                modelInst->unk34 ^= 0x10;
+            }
+            gSPDisplayList((*arg0)++, OS_PHYSICAL_TO_K0(modelInst->displayList));
+            dl_set_all_dirty();
+            tex_render_reset();
+            // @fake
+            if (D_800B2E10) {}
+        }
+        arg8->srt.transl.f[0] = D_800B2E10->m[3][0];
+        arg8->srt.transl.f[1] = D_800B2E10->m[3][1];
+        arg8->srt.transl.f[2] = D_800B2E10->m[3][2];
+        if (arg8->parent != NULL) {
+            transform_point_by_object(arg8->srt.transl.f[0], arg8->srt.transl.f[1], arg8->srt.transl.f[2], arg8->globalPosition.f, &arg8->globalPosition.f[1], &arg8->globalPosition.f[2], arg8->parent);
+        } else {
+            arg8->srt.transl.f[0] += gWorldX;
+            arg8->srt.transl.f[2] += gWorldZ;
+            arg8->globalPosition.f[0] = arg8->srt.transl.f[0];
+            arg8->globalPosition.f[1] = arg8->srt.transl.f[1];
+            arg8->globalPosition.f[2] = arg8->srt.transl.f[2];
+        }
+        if (arg8->def->numAttachPoints >= 2 && arg8->group == GROUP_UNK48) {
+            if (arg8->parent != NULL) {
+                camera_load_parent_projection(arg0);
+            }
+            ((DLL_IGROUP_48 *)arg8->dll)->vtbl->func10(arg8, arg0, arg1, arg2, arg3);
+            if (arg8->parent != NULL) {
+                setup_rsp_matrices_for_object(arg0, arg1, arg8->parent);
+            }
+        }
+    }
+
+    return modelInst;
 }
 
 RECOMP_PATCH void func_800359D0(Object *obj, Gfx **gdl, Mtx **rspMtxs, Vertex **vtxs, Triangle **pols, u32 param_6)

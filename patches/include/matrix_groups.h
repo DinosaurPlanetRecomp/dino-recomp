@@ -2,12 +2,10 @@
 
 #include "PR/ultratypes.h"
 #include "game/objects/object.h"
+#include "sys/math.h"
 
 // Cameras: 0x00000010 - 0x0000001F
 #define CAMERA_MTX_GROUP_ID_START 0x00000010
-
-// Object cameras (parent matrices): 0x00001000 - 0x00004FFF
-#define OBJ_CAMERA_MTX_GROUP_ID_START 0x00001000
 
 // Object modgfx calls: 0x00005000 - 0x00005FFF
 #define OBJ_MODGFX_MTX_GROUP_ID_START 0x00005000
@@ -37,6 +35,10 @@
 
 // Expgfx particles (min length: 30000): 0x04000000 - 0x04008000
 #define EXPGFX_MTX_GROUP_ID_START 0x04000000
+
+extern MtxF *recomp_objParentMtx;
+
+MtxF* recomp_model_instance_setup_absolute_matrices(ModelInstance *modelInst, s32 count);
 
 u32 recomp_obj_get_matrix_group(Object *obj, _Bool *skipInterpolation);
 void recomp_set_skip_camera_interpolation(_Bool skip);

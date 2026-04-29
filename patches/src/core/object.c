@@ -49,8 +49,8 @@ extern void obj_free_objdef(s32 tabIdx);
 extern void func_8002272C(Object *obj);
 
 typedef struct {
-    Object *lastParent;
     s16 lastYaw;
+    u16 lastUnkB0;
     u8 skipInterp;
 } RecompObjMtxTagState;
 
@@ -71,10 +71,9 @@ static void recomp_obj_update_matrix_group_state(Object *obj) {
     RecompObjMtxTagState *state = &recomp_objMtxTagStates[group];
 
     // Determine if interpolation should be skipped for this frame
-    _Bool parentChanged = state->lastParent != obj->parent;
-
     _Bool snapTurned;
     if (state->lastYaw != obj->srt.yaw) {
+        // TODO: doesnt work if parent has a non-zero yaw in a parent transition
         // If the object turned very sharply, interpolation will look wrong since the movement was too large.
         // This is mainly a problem with the player and the ability to instantly do a 180 in a single frame.
         f32 lastDir[2] = {
@@ -86,6 +85,7 @@ static void recomp_obj_update_matrix_group_state(Object *obj) {
             fsin16_precise(obj->srt.yaw)
         };
 
+        // TODO: is this even right?
         f32 dot = (dir[0] * lastDir[0]) + (dir[1] * lastDir[1]);
         
         snapTurned = dot < 0;
@@ -93,11 +93,13 @@ static void recomp_obj_update_matrix_group_state(Object *obj) {
         snapTurned = FALSE;
     }
 
-    state->skipInterp = parentChanged || snapTurned;
+    _Bool exitedSeq = (state->lastUnkB0 & 0x1000) && !(obj->unkB0 & 0x1000);
+
+    state->skipInterp = snapTurned || exitedSeq;
 
     // Update state
-    state->lastParent = obj->parent;
     state->lastYaw = obj->srt.yaw;
+    state->lastUnkB0 = obj->unkB0;
 }
 
 u32 recomp_obj_get_matrix_group(Object *obj, _Bool *skipInterpolation) {
