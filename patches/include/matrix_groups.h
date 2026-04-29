@@ -25,9 +25,11 @@
 #define MODGFX_MTX_GROUP_ID 0x0000F005
 #define WATERFX_MTX_GROUP_ID 0x0000F006
 
-// Object models (min length: 180 * 8): 0x00100000 - 0x00101000
+// Object models (min length: 180 * 16): 0x00100000 - 0x00101000
+// Note: The most models in a vanilla object is 12
 #define OBJ_MODEL_MTX_GROUP_ID_START 0x00100000
-// Object linked object models (min length: 180 * 8): 0x00200000 - 0x00201000
+#define OBJ_MODEL_MTX_GROUP_MAX_MODELS 16
+// Object linked object models (min length: 180 * 16): 0x00200000 - 0x00201000
 #define OBJ_LINKEDOBJ_MODEL_MTX_GROUP_ID_START 0x00200000
 
 // Block shapes: 0x01000000 - 0x03000000

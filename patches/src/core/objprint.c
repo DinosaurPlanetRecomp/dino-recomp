@@ -268,14 +268,13 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
         dl_set_prim_color(&tempGdl, spD7, spD6, spD5, spFC);
         if (!(obj->srt.flags & OBJFLAG_SKIP_MODEL_DL)) {
             // @recomp: Tag model draw
-            // TODO: ever more than 8 models?
             if (skipInterp) {
                 gEXMatrixGroupSkipAll(tempGdl++, 
-                    (objMtxGroup * 8) + obj->modelInstIdx + OBJ_MODEL_MTX_GROUP_ID_START, 
+                    (objMtxGroup * OBJ_MODEL_MTX_GROUP_MAX_MODELS) + obj->modelInstIdx + OBJ_MODEL_MTX_GROUP_ID_START, 
                     G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             } else {
                 gEXMatrixGroupDecomposedNormal(tempGdl++, 
-                    (objMtxGroup * 8) + obj->modelInstIdx + OBJ_MODEL_MTX_GROUP_ID_START, 
+                    (objMtxGroup * OBJ_MODEL_MTX_GROUP_MAX_MODELS) + obj->modelInstIdx + OBJ_MODEL_MTX_GROUP_ID_START, 
                     G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             }
             // @recomp: Use matrix list selected above instead of only using the vanilla one
@@ -298,14 +297,13 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
         }
         if (obj->linkedObject != NULL) {
             // @recomp: Tag linked object model draw
-            // TODO: ever more than 8 models?
             if (skipInterp) {
                 gEXMatrixGroupSkipAll(tempGdl++, 
-                    (objMtxGroup * 8) + obj->linkedObject->modelInstIdx + OBJ_LINKEDOBJ_MODEL_MTX_GROUP_ID_START, 
+                    (objMtxGroup * OBJ_MODEL_MTX_GROUP_MAX_MODELS) + obj->linkedObject->modelInstIdx + OBJ_LINKEDOBJ_MODEL_MTX_GROUP_ID_START, 
                     G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             } else {
                 gEXMatrixGroupDecomposedNormal(tempGdl++, 
-                    (objMtxGroup * 8) + obj->linkedObject->modelInstIdx + OBJ_LINKEDOBJ_MODEL_MTX_GROUP_ID_START, 
+                    (objMtxGroup * OBJ_MODEL_MTX_GROUP_MAX_MODELS) + obj->linkedObject->modelInstIdx + OBJ_LINKEDOBJ_MODEL_MTX_GROUP_ID_START, 
                     G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             }
             // Draw linked object
