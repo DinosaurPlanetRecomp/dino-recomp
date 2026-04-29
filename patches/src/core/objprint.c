@@ -29,32 +29,32 @@ extern u8 BYTE_800b2e21;
 extern u8 BYTE_800b2e22;
 extern u8 BYTE_800b2e23;
 
-RECOMP_PATCH void objprint_func(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** tris, Object* arg4, s8 arg5) {
-    if (arg4->unkB0 & 0x40) {
+RECOMP_PATCH void objprint_func(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** tris, Object* obj, s8 visibility) {
+    if (obj->stateFlags & OBJSTATE_DESTROYED) {
         return;
     }
 
-    if (arg5 == 0) {
-        if (arg4->objhitInfo != NULL && (arg4->objhitInfo->unk5A & 0x30)) {
-            arg4->objhitInfo->unk9F = 2;
+    if (visibility == 0) {
+        if (obj->objhitInfo != NULL && (obj->objhitInfo->unk5A & 0x30)) {
+            obj->objhitInfo->unk9F = 2;
         }
     }
 
-    if (arg4->srt.flags & OBJFLAG_INVISIBLE) {
+    if (obj->srt.flags & OBJFLAG_INVISIBLE) {
         return;
     }
 
-    if (arg4->parent != NULL && (arg4->parent->srt.flags & OBJFLAG_INVISIBLE)) {
+    if (obj->parent != NULL && (obj->parent->srt.flags & OBJFLAG_INVISIBLE)) {
         return;
     }
 
-    update_pi_manager_array(2, arg4->id);
-    dl_add_debug_info(*gdl, arg4->id, "objects/objprint.c", 0x1AAU);
-    if (arg4->dll != NULL) {
-        if (!(arg4->unkB0 & 0x4000)) {
+    update_pi_manager_array(2, obj->id);
+    dl_add_debug_info(*gdl, obj->id, "objects/objprint.c", 426);
+    if (obj->dll != NULL) {
+        if (!(obj->stateFlags & OBJSTATE_PRINT_DISABLED)) {
             // @recomp: Tag anything drawn from the print func not otherwise covered by other groups
             _Bool skipInterp;
-            u32 objMtxGroup = recomp_obj_get_matrix_group(arg4, &skipInterp);
+            u32 objMtxGroup = recomp_obj_get_matrix_group(obj, &skipInterp);
             if (skipInterp) {
                 gEXMatrixGroupSkipAll((*gdl)++, objMtxGroup + OBJ_PRINT_AUTO_MTX_GROUP_ID_START, 
                     G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
@@ -63,32 +63,32 @@ RECOMP_PATCH void objprint_func(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle**
                     G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             }
             
-            arg4->dll->vtbl->print(arg4, gdl, mtxs, vtxs, tris, arg5);
-        } else if (arg5 != 0) {
-            draw_object(arg4, gdl, mtxs, vtxs, tris, 1.0f);
+            obj->dll->vtbl->print(obj, gdl, mtxs, vtxs, tris, visibility);
+        } else if (visibility != 0) {
+            draw_object(obj, gdl, mtxs, vtxs, tris, 1.0f);
         }
-    } else if (arg5 != 0) {
-        draw_object(arg4, gdl, mtxs, vtxs, tris, 1.0f);
+    } else if (visibility != 0) {
+        draw_object(obj, gdl, mtxs, vtxs, tris, 1.0f);
     }
-    if (arg4->unkB0 & 0x800) {
-        func_80023A78(arg4, arg4->modelInsts[arg4->modelInstIdx], arg4->modelInsts[arg4->modelInstIdx]->model);
+    if (obj->stateFlags & OBJSTATE_PENDING_MODEL_SWITCH) {
+        obj_handle_model_switch(obj, obj->modelInsts[obj->modelInstIdx], obj->modelInsts[obj->modelInstIdx]->model);
     }
-    if (arg4->linkedObject != NULL && (arg4->linkedObject->unkB0 & 0x800)) {
-        func_80023A78(arg4->linkedObject, arg4->linkedObject->modelInsts[arg4->modelInstIdx], arg4->linkedObject->modelInsts[arg4->modelInstIdx]->model);
+    if (obj->linkedObject != NULL && (obj->linkedObject->stateFlags & OBJSTATE_PENDING_MODEL_SWITCH)) {
+        obj_handle_model_switch(obj->linkedObject, obj->linkedObject->modelInsts[obj->modelInstIdx], obj->linkedObject->modelInsts[obj->modelInstIdx]->model);
     }
-    dl_add_debug_info(*gdl, (u32) -arg4->id, "objects/objprint.c", 0x1E9U);
+    dl_add_debug_info(*gdl, (u32) -obj->id, "objects/objprint.c", 489);
     update_pi_manager_array(2, -1);
 }
 
 RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** tris, f32 yPrescale) {
-    s32 spFC;
+    s32 opacity;
     ModelInstance* modelInst;
     Model* model;
     SRT spDC;
     Object* parentObj;
-    u8 spD7;
-    u8 spD6;
-    u8 spD5;
+    u8 blendR;
+    u8 blendG;
+    u8 blendB;
     s32 var_v0;
     s32 var_v1;
     s32 var_a0;
@@ -122,28 +122,28 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
     u32 objMtxGroup = recomp_obj_get_matrix_group(obj, &skipInterp);
 
     model = modelInst->model;
-    spFC = obj->opacityWithFade;
-    if (spFC > 0xFF) {
-        spFC = 0xFF;
+    opacity = obj->opacityWithFade;
+    if (opacity > 0xFF) {
+        opacity = 0xFF;
     }
-    if (obj->def->flags & 0x10000) {
+    if (obj->def->flags & OBJDEF_SKY_LIT) {
         if (func_8001EBE0() != 0) {
-            spD5 = spD6 = spD7 = 0xFF;
+            blendB = blendG = blendR = 0xFF;
         } else {
-            spD7 = sp6F;
-            spD6 = sp6E;
-            spD5 = sp6D;
+            blendR = sp6F;
+            blendG = sp6E;
+            blendB = sp6D;
         }
     } else {
-        spD5 = spD6 = spD7 = 0xFF;
+        blendB = blendG = blendR = 0xFF;
     }
     if (obj->def->numAnimatedFrames > 0) {
         func_80036890(obj, 2);
     }
     if (BYTE_80091754 != 0) {
-        var_v0 = (spD7 * SHORT_800b2e14) >> 8;
-        var_v1 = (spD6 * SHORT_800b2e16) >> 8;
-        var_a0 = (spD5 * SHORT_800b2e18) >> 8;
+        var_v0 = (blendR * SHORT_800b2e14) >> 8;
+        var_v1 = (blendG * SHORT_800b2e16) >> 8;
+        var_a0 = (blendB * SHORT_800b2e18) >> 8;
         if (var_v0 > 0xFF) {
             var_v0 = 0xFF;
         }
@@ -153,15 +153,15 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
         if (var_a0 > 0xFF) {
             var_a0 = 0xFF;
         }
-        spD7 = var_v0;
-        spD6 = var_v1;
-        spD5 = var_a0;
+        blendR = var_v0;
+        blendG = var_v1;
+        blendB = var_a0;
         BYTE_80091754 = 0;
     }
     if (BYTE_80091758 != 0) {
-        spD7 = BYTE_800b2e20;
-        spD6 = BYTE_800b2e21;
-        spD5 = BYTE_800b2e22;
+        blendR = BYTE_800b2e20;
+        blendG = BYTE_800b2e21;
+        blendB = BYTE_800b2e22;
         BYTE_80091758 = 0;
     } else {
         BYTE_800b2e23 = 0;
@@ -237,11 +237,11 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
                 }
             }
             modelInst->unk34 ^= 2;
-            if ((obj->def->flags & 0x10) || (model->blendshapes != NULL)) {
+            if ((obj->def->flags & OBJDEF_FLAG10) || (model->blendshapes != NULL)) {
                 if (model->blendshapes != NULL) {
                     func_8001B100(modelInst);
                 }
-                if (obj->def->flags & 0x10) {
+                if (obj->def->flags & OBJDEF_FLAG10) {
                     func_8001DF60(obj, modelInst);
                 }
             }
@@ -263,9 +263,9 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
             }
         }
         if (model->unk71 & 4) {
-            dl_set_env_color(&tempGdl, spD7, spD6, spD5, BYTE_800b2e23);
+            dl_set_env_color(&tempGdl, blendR, blendG, blendB, BYTE_800b2e23);
         }
-        dl_set_prim_color(&tempGdl, spD7, spD6, spD5, spFC);
+        dl_set_prim_color(&tempGdl, blendR, blendG, blendB, opacity);
         if (!(obj->srt.flags & OBJFLAG_SKIP_MODEL_DL)) {
             // @recomp: Tag model draw
             if (skipInterp) {
@@ -280,14 +280,16 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
             // @recomp: Use matrix list selected above instead of only using the vanilla one
             gSPSegment(tempGdl++, SEGMENT_3, sp70);
             gSPSegment(tempGdl++, SEGMENT_5, modelInst->vertices[((s32) modelInst->unk34 >> 1) & 1]);
-            if (spFC == 0xFF) {
+            if (opacity == 0xFF) {
                 if (modelInst->unk34 & 0x10) {
                     load_model_display_list(model, modelInst);
                     modelInst->unk34 ^= 0x10;
                 }
-            } else if (!(modelInst->unk34 & 0x10)) {
-                load_model_display_list2(model, modelInst);
-                modelInst->unk34 ^= 0x10;
+            } else {
+                if (!(modelInst->unk34 & 0x10)) {
+                    load_model_display_list2(model, modelInst);
+                    modelInst->unk34 ^= 0x10;
+                }
             }
             gSPDisplayList(tempGdl++, OS_PHYSICAL_TO_K0(modelInst->displayList));
             dl_set_all_dirty();
@@ -307,7 +309,8 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
                     G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             }
             // Draw linked object
-            func_80035AF4(&tempGdl, &tempMtxs, &tempVtxs, &tempTris, obj, modelInst, &sp78, 0, obj->linkedObject, obj->unkB0 & 3, (u8)spFC);
+            func_80035AF4(&tempGdl, &tempMtxs, &tempVtxs, &tempTris, obj, modelInst, &sp78, 0, 
+                obj->linkedObject, obj->stateFlags & OBJSTATE_UNK_ATTACH_INDEX_MASK, (u8)opacity);
             // @recomp: Pop model tag
             gEXPopMatrixGroup(tempGdl++, G_MTX_MODELVIEW);
         }
@@ -384,7 +387,7 @@ RECOMP_PATCH ModelInstance *func_80035AF4(Gfx** arg0, Mtx** arg1, Vertex** arg2,
             }
         }
         modelInst->unk34 ^= 2;
-        if ((arg8->def->flags & 0x10) || (sp64->blendshapes != NULL)) {
+        if ((arg8->def->flags & OBJDEF_FLAG10) || (sp64->blendshapes != NULL)) {
             if (sp64->blendshapes != NULL) {
                 func_8001B100(modelInst);
             }
@@ -412,7 +415,7 @@ RECOMP_PATCH ModelInstance *func_80035AF4(Gfx** arg0, Mtx** arg1, Vertex** arg2,
             dl_set_all_dirty();
             tex_render_reset();
             // @fake
-            if (D_800B2E10) {}
+            //if (D_800B2E10) {}
         }
         arg8->srt.transl.f[0] = D_800B2E10->m[3][0];
         arg8->srt.transl.f[1] = D_800B2E10->m[3][1];

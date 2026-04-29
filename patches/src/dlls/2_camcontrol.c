@@ -3,6 +3,7 @@
 
 #include "dlls/engine/2_camcontrol.h"
 #include "game/objects/interaction_arrow.h"
+#include "game/objects/object.h"
 #include "sys/curves.h"
 #include "sys/main.h"
 #include "sys/map.h"
@@ -44,7 +45,7 @@ static f32 recomp_get_camera_jump_threshold(f32 cameraSpeed) {
 
     // TODO: these values are way too arbitrary
     Object *player = get_player();
-    _Bool inSeq = player != NULL && (player->unkB0 & 0x1000);
+    _Bool inSeq = player != NULL && (player->stateFlags & OBJSTATE_IN_SEQ);
     if (inSeq != lastInSeq) {
         lastInSeq = inSeq;
         //recomp_printf("seq switch\n");

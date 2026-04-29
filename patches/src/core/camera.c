@@ -239,7 +239,7 @@ RECOMP_PATCH void setup_rsp_matrices_for_object(Gfx **gdl, Mtx **rspMtxs, Object
             }
 
             oldScale = object->srt.scale;
-            if (!(object->unkB0 & 0x8)) {
+            if (!(object->stateFlags & OBJSTATE_WORLD_MTX_IGNORE_SCALE)) {
                 object->srt.scale = 1.0f;
             }
 

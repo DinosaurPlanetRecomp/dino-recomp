@@ -19,7 +19,7 @@
 #include "macros.h"
 #include "dll.h"
 
-extern s16 D_800B18E0;
+extern s16 sObjListVisibleStartIdx;
 extern s16* D_800B18E4;
 extern u32 D_800B18E8;
 extern s32  *gFile_OBJECTS_TAB;
@@ -33,8 +33,8 @@ extern s16  *gFile_OBJINDEX;
 extern int gObjIndexCount; //count of OBJINDEX.BIN entries
 extern Object **gObjDeferredFreeList;
 extern s32 gObjDeferredFreeListCount;
-extern Object **D_800B1918;
-extern s32 D_800B191C;
+extern Object **sObjLockList;
+extern s32 sObjLockListCount;
 extern Object **gObjList; //global object list
 extern s32 gNumObjs;
 extern LinkedList gObjUpdateList;
@@ -43,14 +43,14 @@ extern Object *gEffectBoxes[20];
 extern s32 D_800B1988;
 
 extern void obj_clear_all(void);
-extern void func_80020D90(void);
-extern void copy_obj_position_mirrors(Object *obj, ObjSetup *setup, s32 param3);
+extern void obj_mark_visibility_sort_dirty(void);
+extern void obj_init_object(Object *obj, ObjSetup *setup, s32 reset);
 extern void obj_free_objdef(s32 tabIdx);
 extern void func_8002272C(Object *obj);
 
 typedef struct {
     s16 lastYaw;
-    u16 lastUnkB0;
+    u16 lastStateFlags;
     u8 skipInterp;
 } RecompObjMtxTagState;
 
@@ -93,13 +93,13 @@ static void recomp_obj_update_matrix_group_state(Object *obj) {
         snapTurned = FALSE;
     }
 
-    _Bool exitedSeq = (state->lastUnkB0 & 0x1000) && !(obj->unkB0 & 0x1000);
+    _Bool exitedSeq = (state->lastStateFlags & OBJSTATE_IN_SEQ) && !(obj->stateFlags & OBJSTATE_IN_SEQ);
 
     state->skipInterp = snapTurned || exitedSeq;
 
     // Update state
     state->lastYaw = obj->srt.yaw;
-    state->lastUnkB0 = obj->unkB0;
+    state->lastStateFlags = obj->stateFlags;
 }
 
 u32 recomp_obj_get_matrix_group(Object *obj, _Bool *skipInterpolation) {
@@ -163,7 +163,7 @@ RECOMP_PATCH void init_objects(void) {
 
     //allocate some buffers
     gObjDeferredFreeList = mmAlloc(sizeof(Object*) * 180, ALLOC_TAG_OBJECTS_COL, ALLOC_NAME("obj:dellist"));
-    D_800B1918 = mmAlloc(sizeof(Object*) * 24, ALLOC_TAG_OBJECTS_COL, ALLOC_NAME("obj:locklist"));
+    sObjLockList = mmAlloc(sizeof(Object*) * 24, ALLOC_TAG_OBJECTS_COL, ALLOC_NAME("obj:locklist"));
     D_800B18E4 = mmAlloc(0x10, ALLOC_TAG_OBJECTS_COL, ALLOC_NAME("obj:contnobuf"));
 
     //load OBJINDEX.BIN and count number of entries
@@ -215,7 +215,7 @@ RECOMP_PATCH void obj_add_object(Object *obj, u32 initFlags) {
     obj->prevGlobalPosition.y = obj->globalPosition.y;
     obj->prevGlobalPosition.z = obj->globalPosition.z;
 
-    copy_obj_position_mirrors(obj, obj->setup, 0);
+    obj_init_object(obj, obj->setup, FALSE);
 
     if (obj->objhitInfo != NULL) {
         obj->objhitInfo->unk10.x = obj->srt.transl.x;
@@ -227,26 +227,26 @@ RECOMP_PATCH void obj_add_object(Object *obj, u32 initFlags) {
         obj->objhitInfo->unk20.z = obj->srt.transl.z;
     }
 
-    if (obj->def->unka0 > -1) {
-        func_80046320(obj->def->unka0, obj);
+    if (obj->def->mobileMapID > -1) {
+        map_load_mobile_map(obj->def->mobileMapID, obj);
     }
 
     update_pi_manager_array(0, -1);
 
-    if (obj->def->flags & OBJDATA_FLAG44_HasChildren) {
-        obj_add_object_type(obj, OBJTYPE_7);
+    if (obj->def->flags & OBJDEF_IS_MOBILE_MAP) {
+        obj_add_object_type(obj, OBJTYPE_MOBILE_MAP);
 
-        if (obj->updatePriority != 90) {
-            obj_set_update_priority(obj, 90);
+        if (obj->updatePriority != OBJPRIORITY_MOBILE_MAP) {
+            obj_set_update_priority(obj, OBJPRIORITY_MOBILE_MAP);
         }
     } else {
         if (obj->updatePriority == 0) {
-            obj_set_update_priority(obj, 80);
+            obj_set_update_priority(obj, OBJPRIORITY_DEFAULT);
         }
     }
 
-    if (initFlags & OBJ_INIT_FLAG1) {
-        obj->unkB0 |= 0x10;
+    if (initFlags & OBJINIT_STANDALONE) {
+        obj->stateFlags |= OBJSTATE_STANDALONE;
         gObjList[gNumObjs] = obj;
         gNumObjs += 1;
 
@@ -267,21 +267,23 @@ RECOMP_PATCH void obj_add_object(Object *obj, u32 initFlags) {
         obj_add_object_type(obj, OBJTYPE_9);
     }
 
-    if (obj->def->flags & OBJDATA_FLAG44_HaveModels) {
-        func_80020D90();
+    // Resorting by visibility isn't necessary if the object is visible since the object
+    // was added to the end of the list where the visible objects are.
+    if (obj->def->flags & OBJDEF_INVISIBLE) {
+        obj_mark_visibility_sort_dirty();
     }
 
-    if (obj->def->flags & OBJDATA_FLAG44_DifferentLightColor) {
+    if (obj->def->flags & OBJDEF_FLAG10) {
         obj_add_object_type(obj, OBJTYPE_56);
     }
 
-    write_c_file_label_pointers("objects/objects.c", 0x477);
+    write_c_file_label_pointers("objects/objects.c", 1143);
 
     // @recomp: Allocate matrix group for tagging
     recomp_obj_alloc_matrix_group(obj);
 }
 
-RECOMP_PATCH void obj_free_object(Object *obj, s32 param2) {
+RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
     Object *obj2;
     /*sp+0xE4*/ LightAction lAction;
     ObjectAnim_Data *animObjdata;
@@ -294,7 +296,7 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 param2) {
 
     if (obj->dll != NULL) {
         update_pi_manager_array(4, obj->id);
-        obj->dll->vtbl->free(obj, param2);
+        obj->dll->vtbl->free(obj, onlySelf);
         update_pi_manager_array(4, -1);
         dll_unload(obj->dll);
     }
@@ -303,14 +305,14 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 param2) {
     gDLL_5_AMSEQ->vtbl->func17(obj);
     gDLL_13_Expgfx->vtbl->func9(obj);
 
-    if (obj->def != NULL && obj->def->flags & 0x10) {
-        obj_free_object_type(obj, 56);
+    if (obj->def != NULL && (obj->def->flags & OBJDEF_FLAG10)) {
+        obj_free_object_type(obj, OBJTYPE_56);
     }
 
-    if (obj->def->flags & 0x40) {
-        obj_free_object_type(obj, 7);
+    if (obj->def->flags & OBJDEF_IS_MOBILE_MAP) {
+        obj_free_object_type(obj, OBJTYPE_MOBILE_MAP);
 
-        if (!param2) {
+        if (!onlySelf) {
             numStackObjs = 0;
 
             for (i = 0; i < gNumObjs; i++) {
@@ -339,11 +341,11 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 param2) {
                 obj_destroy_object(stackObjs[i]);
             }
 
-            func_80045F48(obj->unk34);
+            map_free(obj->mobileMapID);
         }
     }
 
-    if (!param2 && obj->group == GROUP_UNK16) {
+    if (!onlySelf && obj->group == GROUP_UNK16) {
         for (i = 0; i < gNumObjs; i++) {
             obj2 = gObjList[i];
             if (obj == obj2->unkC0) {
@@ -407,7 +409,7 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 param2) {
     obj_free_objdef(obj->tabIdx);
 
     if (obj->unkB4 >= 0) {
-        if (!param2) {
+        if (!onlySelf) {
             gDLL_3_Animation->vtbl->func18((s32)obj->unkB4);
             obj->unkB4 = -1;
         }
@@ -438,14 +440,14 @@ RECOMP_PATCH void update_objects(void) {
 
     node = gObjUpdateList.head;
 
-    for (obj = (Object*)node; node != NULL && obj->updatePriority == 100; obj = (Object*)node) {
+    for (obj = (Object*)node; node != NULL && obj->updatePriority == OBJPRIORITY_ANIM; obj = (Object*)node) {
         update_object(obj);
         node = *((void**)(nextFieldOffset + (u32)node));
 
         //if (obj->objhitInfo->unk58){} // fake match
     }
 
-    for (obj = (Object*)node; node != NULL && obj->def->flags & 0x40; obj = (Object*)node) {
+    for (obj = (Object*)node; node != NULL && (obj->def->flags & OBJDEF_IS_MOBILE_MAP); obj = (Object*)node) {
         update_object(obj);
         obj->matrixIdx = camera_alloc_object_matrix(obj);
         node = *((void**)(nextFieldOffset + (u32)node));
@@ -499,7 +501,7 @@ RECOMP_PATCH void update_objects(void) {
     gDLL_3_Animation->vtbl->func5();
     gDLL_2_Camera->vtbl->tick(gUpdateRate);
 
-    write_c_file_label_pointers("objects/objects.c", 0x169);
+    write_c_file_label_pointers("objects/objects.c", 361);
 
     // @recomp: Update matrix tagging state
     for (s32 i = 0; i < gNumObjs; i++) {

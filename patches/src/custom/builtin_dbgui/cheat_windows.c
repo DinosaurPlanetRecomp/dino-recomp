@@ -126,10 +126,10 @@ static CheatInventoryItem magicSpells[] = {
 };
 
 static CheatInventoryItem trickyCommands[] = {
-    { BIT_3F8, FALSE, TYPE_BOOL, "Play" },
-    { BIT_DD, FALSE, TYPE_BOOL, "Guard" },
-    { BIT_Tricky_Distract_Learned, FALSE, TYPE_BOOL, "Distract" },
-    { BIT_245, FALSE, TYPE_BOOL, "Flame" }
+    { BIT_Tricky_Ball_Unlocked, FALSE, TYPE_BOOL, "Play" },
+    { BIT_Tricky_Learned_Guard, FALSE, TYPE_BOOL, "Guard" },
+    { BIT_Tricky_Learned_Distract, FALSE, TYPE_BOOL, "Distract" },
+    { BIT_Tricky_Learned_Flame, FALSE, TYPE_BOOL, "Flame" }
 };
 
 static CheatInventoryItem foodbag[] = {

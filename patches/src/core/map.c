@@ -43,7 +43,7 @@ extern u32 gRenderList[MAX_RENDER_LIST_LENGTH];
 extern s16 gRenderListLength;
 extern Block *gBlocksToDraw[MAX_BLOCKS];
 extern s16 SHORT_800b51dc;
-extern u32 UINT_800b51e0;
+extern s32 UINT_800b51e0;
 extern BlockTexture *gBlockTextures;
 extern Block **gLoadedBlocks;
 extern u8 gLoadedBlockCount;
@@ -58,13 +58,13 @@ extern s8 *D_800B9714;
 extern f32 D_800B97B8;
 extern f32 D_800B97BC;
 
-extern void func_800436DC(Object* arg0, s32 arg1);
+extern void func_800436DC(Object* obj, s32 visibility);
 extern BlockTextureScroller* func_80049D68(s32 arg0);
 extern void func_80044BEC(void);
 extern void func_80048F58(void);
 extern void track_c_func(void);
 
-extern void func_80048B14(Block *block);
+extern void block_color_table_add_block(Block *block);
 extern u32 hits_get_size(s32 id);
 extern void block_setup_vertices(Block *block);
 extern void block_setup_gdl_groups(Block *block);
@@ -74,7 +74,7 @@ extern HitsLine* block_load_hits(Block *block, s32 blockID, u8 unused, HitsLine*
 extern void some_cell_func(BitStream* stream);
 extern void func_80047404(s32, s32, s32*, s32*, s32*, s32*, s32, s32, s32);
 extern s32 func_800451A0(s32 xPos, s32 zPos, Block* blocks);
-extern void func_80043950(Block*, s16, s16, s16);
+extern void block_calc_shape_visibility(Block*, s16, s16, s16);
 extern void block_compute_vertex_colors(Block*,s32,s32,s32);
 extern void block_add_to_render_list(Block *block, f32 x, f32 z);
 extern void func_80043FD8(s8* arg0);
@@ -136,7 +136,7 @@ RECOMP_PATCH void block_load(s32 id, s32 param_2, s32 globalMapIdx, u8 queue) {
     block->gdlGroups = (Gfx*)addr;
     block_setup_gdl_groups(block);
     addr += (3 * block->shapeCount * sizeof(Gfx));
-    func_80048B14(block);
+    block_color_table_add_block(block);
     if (block->vtxFlags & 8) {
         addr = mmAlign8(addr);
         fileVerts = block->vertices;
@@ -293,7 +293,7 @@ RECOMP_PATCH void func_8004225C(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle**
 
 RECOMP_PATCH void track_c_func(void) {
     s32 sp294;
-    Block* var_s0;
+    Block* block;
     s32 temp_t2_2;
     s32 temp_t3;
     s32 temp_v1;
@@ -344,7 +344,7 @@ RECOMP_PATCH void track_c_func(void) {
         sp230 = gBlockIndices[sp240];
         D_800B9714 = D_800B9700[sp240];
         func_80047404(gMapCurrentStreamCoordsX + 7, gMapCurrentStreamCoordsZ + 7, sp274, sp264, sp254, sp244, sp240, 1, D_800B4A54);
-        for (i = 0; i < (s32)ARRAYCOUNT(sp130); i++) { sp130[i] = 0; }
+        for (i = 0; i < ARRAYCOUNT_S(sp130); i++) { sp130[i] = 0; }
         
         for (var_s2 = sp274[2]; sp274[3] >= var_s2; var_s2++) {
             for (temp_s1 = sp274[0]; sp274[1] >= temp_s1; temp_s1++) {
@@ -376,29 +376,29 @@ RECOMP_PATCH void track_c_func(void) {
                 temp_v1 = GRID_INDEX(var_s2, temp_s1);
                 temp_v0 = sp230[temp_v1];
                 if (temp_v0 < 0) {
-                    var_s0 = NULL;
+                    block = NULL;
                 } else {
-                    var_s0 = gLoadedBlocks[temp_v0];
-                    var_s0->vtxFlags ^= 1;
+                    block = gLoadedBlocks[temp_v0];
+                    block->vtxFlags ^= 1;
                     if (sp130[temp_v1] == 0) {
                         continue;
                     }
                 }
-                if (temp_v0 < 0 || func_800451A0(temp_s1, var_s2, var_s0) == 0) {
+                if (temp_v0 < 0 || func_800451A0(temp_s1, var_s2, block) == 0) {
                     continue;
                 }
                 D_800B97B8 = temp_s1 * BLOCKS_GRID_UNIT_F;
                 D_800B97BC = var_s2 * BLOCKS_GRID_UNIT_F;
-                func_80043950(var_s0, temp_s1, var_s2, sp240);
+                block_calc_shape_visibility(block, temp_s1, var_s2, sp240);
                 if (UINT_80092a98 & 0x8000) {
-                    if (var_s0->unk3E != 0) {
-                        block_compute_vertex_colors(var_s0, temp_s1, var_s2, 0);
+                    if (block->unk3E != 0) {
+                        block_compute_vertex_colors(block, temp_s1, var_s2, 0);
                     }
-                    if ((var_s0->unk49 != 0) && (UINT_80092a98 & 0x100)) {
-                        func_8001F4C0(var_s0, temp_s1, var_s2);
+                    if ((block->unk49 != 0) && (UINT_80092a98 & 0x100)) {
+                        func_8001F4C0(block, temp_s1, var_s2);
                     }
                 }
-                block_add_to_render_list(var_s0, D_800B97B8, D_800B97BC);
+                block_add_to_render_list(block, D_800B97B8, D_800B97BC);
             }
         }
     }
@@ -446,7 +446,7 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
     BlockTextureScroller* temp_v0_7;
     s32 i;
     BlocksTextureIndexData* temp_v0_4;
-    u32 spE4;
+    u32 forceTexSet;
     s32 spE0;
     s32 spDC;
     s32 spD8;
@@ -466,8 +466,8 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
     s8 spA3;
     s8 temp2;
     s32 temp_t6;
-    s32 var_s7;
-    s32 var_t0;
+    s32 renderFlags;
+    s32 frameOptions;
     Block* block;
     Object** sp8C;
     Object *obj;
@@ -485,38 +485,40 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
             // @fake
             //if (i) {}
             temp_v1 = gRenderList[i] & 0x3F;
-            spE4 = 0;
+            forceTexSet = FALSE;
             if (temp_v1 != spC4) {
                 spA3 = -1;
                 SHORT_800b51dc = -1;
                 spC4 = temp_v1;
-                UINT_800b51e0 = 0;
+                UINT_800b51e0 = TEX_FRAME(0);
                 spA4 = (temp_v1 * 2) + rspMtxs;
                 block = gBlocksToDraw[temp_v1];
             }
             // @recomp: Tag block shape matrices
             //          TODO: animated water is jittery
             shape = &block->shapes[temp_t6];
-            if (shape->flags & 0x20000000) {
+            if (shape->flags & RENDER_UNK20000000) {
                 if (spA3 != 2) {
                     gSPMatrix(gMainDL++, OS_K0_TO_PHYSICAL(&spA4[1]), G_MTX_MODELVIEW | G_MTX_LOAD);
                     spA3 = 2;
                     gEXMatrixGroupSimpleVerts(gMainDL++, (recomp_get_block_id(block) * 0x1000 * 2) + (temp_t6 * 2) + 1 + BLOCK_SHAPE_MTX_GROUP_ID_START, 
                         G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
                 }
-            } else if (spA3 != 1) {
-                gSPMatrix(gMainDL++, OS_K0_TO_PHYSICAL(spA4), G_MTX_MODELVIEW | G_MTX_LOAD);
-                spA3 = 1;
-                gEXMatrixGroupSimpleVerts(gMainDL++, (recomp_get_block_id(block) * 0x1000 * 2) + (temp_t6 * 2) + 0 + BLOCK_SHAPE_MTX_GROUP_ID_START, 
-                    G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+            } else {
+                if (spA3 != 1) {
+                    gSPMatrix(gMainDL++, OS_K0_TO_PHYSICAL(&spA4[0]), G_MTX_MODELVIEW | G_MTX_LOAD);
+                    spA3 = 1;
+                    gEXMatrixGroupSimpleVerts(gMainDL++, (recomp_get_block_id(block) * 0x1000 * 2) + (temp_t6 * 2) + 0 + BLOCK_SHAPE_MTX_GROUP_ID_START, 
+                        G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+                }
             }
             if (shape->materialIndex == 0xFF) {
                 tex0 = NULL;
             } else {
                 tex0 = block->materials[shape->materialIndex].texture;
             }
-            if (shape->flags & 0x2000) {
-                if (tex0->flags & 0xC000) {
+            if (shape->flags & RENDER_UNK2000) {
+                if (tex0->flags & (RENDER_COMPOSITE_BASE | RENDER_COMPOSITE_OVERLAY)) {
                     dl_set_prim_color(&gMainDL, 0xFF, 0xFF, 0xFF, 0xA0);
                 } else {
                     dl_set_prim_color(&gMainDL, 0xFF, 0xFF, 0xFF, 0x64);
@@ -526,43 +528,43 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
                     dl_set_prim_color(&gMainDL, spE0, spDC, spD8, 0xFF);
                 } else if (shape->envColourMode == 0xFE) {
                     dl_set_prim_color(&gMainDL, 0xFF, 0xFF, 0xFF, 0xFF);
-                } else if (shape->flags & 0x46C00000) {
+                } else if (shape->flags & (RENDER_UNK40000000 | RENDER_UNK4000000 | RENDER_UNK2000000 | RENDER_UNK800000 | RENDER_UNK400000)) {
                     dl_set_prim_color(&gMainDL, 0xFF, 0xFF, 0xFF, 0xFF);
                 } else {
                     func_8001F848(&gMainDL);
                 }
             }
-            var_s7 = shape->flags;
-            if (var_s7 & 0x10000) {
+            renderFlags = shape->flags;
+            if (renderFlags & RENDER_SHAPE_ANIMATED) {
                 temp_v0_4 = func_8004A284(block, shape->animatorID);
                 if (temp_v0_4 != NULL) {
-                    var_t0 = gBlockTextures[temp_v0_4->textureIndex].unk4 << 8;
-                    var_s7 |= gBlockTextures[temp_v0_4->textureIndex].flags;
+                    frameOptions = gBlockTextures[temp_v0_4->textureIndex].unk4 << 8;
+                    renderFlags |= gBlockTextures[temp_v0_4->textureIndex].flags;
                 } else {
-                    var_t0 = 0;
+                    frameOptions = 0;
                 }
-                if ((shape->animatorID != SHORT_800b51dc) || (var_t0 != UINT_800b51e0)) {
+                if ((shape->animatorID != SHORT_800b51dc) || (frameOptions != UINT_800b51e0)) {
                     SHORT_800b51dc = shape->animatorID;
-                    UINT_800b51e0 = var_t0;
-                    spE4 = 1;
+                    UINT_800b51e0 = frameOptions;
+                    forceTexSet = TRUE;
                 }
             } else {
                 SHORT_800b51dc = -1;
-                var_t0 = 0;
+                frameOptions = 0;
             }
             if (shape->blendMaterialIndex != 0xFF) {
                 tex1 = block->materials[shape->blendMaterialIndex].texture;
             } else {
                 tex1 = NULL;
             }
-            tex_gdl_set_textures(&gMainDL, tex0, tex1, var_s7, var_t0, spE4, 0);
+            tex_gdl_set_textures(&gMainDL, tex0, tex1, renderFlags, frameOptions, forceTexSet, FALSE);
             if (shape->unk16 != 0xFF) {
                 temp_v0_7 = func_80049D68(shape->unk16);
                 gDPSetTileSize(gMainDL++, 0, temp_v0_7->uOffsetA, temp_v0_7->vOffsetA, (tex0->width - 1) << 2, (tex0->height - 1) << 2);
                 if (tex1 != NULL) {
                     gDPSetTileSize(gMainDL++, 1, temp_v0_7->uOffsetB, temp_v0_7->vOffsetB, (tex1->width - 1) << 2, (tex1->height - 1) << 2);
                 }
-            } else if ((tex0 != NULL) && (tex0->flags & 0xC000)) {
+            } else if ((tex0 != NULL) && (tex0->flags & (RENDER_COMPOSITE_BASE | RENDER_COMPOSITE_OVERLAY))) {
                 gDPSetTileSize(gMainDL++, 0, 0, 0, (tex0->width - 1) << 2, (tex0->height - 1) << 2);
                 if (tex1 != NULL) {
                     gDPSetTileSize(gMainDL++, 1, 0, 0, (tex1->width - 1) << 2, (tex1->height - 1) << 2);
@@ -607,10 +609,10 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
                 gMainDL++;
             }
             gDLBuilder->needsPipeSync = 1;
-            if ((var_s7 & 0x100408) == 0x100408) {
+            if ((renderFlags & (RENDER_FOG_ACTIVE | RENDER_DECAL_SIMPLE | RENDER_DECAL)) == (RENDER_FOG_ACTIVE | RENDER_DECAL_SIMPLE | RENDER_DECAL)) {
                 temp_s0_2 = gMainDL - temp_s5;
-                dl_set_geometry_mode(&gMainDL, 0x10000);
-                if (var_s7 & 0x2004) {
+                dl_set_geometry_mode(&gMainDL, G_FOG);
+                if (renderFlags & (RENDER_UNK2000 | RENDER_SEMI_TRANSPARENT)) {
                     gDPSetCombineLERP(gMainDL, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1);
                     dl_apply_combine(&gMainDL);
                     gDPSetOtherMode(
@@ -638,7 +640,7 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
     }
 }
 
-RECOMP_PATCH void func_800436DC(Object* obj, s32 arg1) {
+RECOMP_PATCH void func_800436DC(Object* obj, s32 visibility) {
     s8 sp37;
     u8 someBool;
 
@@ -672,13 +674,13 @@ RECOMP_PATCH void func_800436DC(Object* obj, s32 arg1) {
             gDLL_13_Expgfx->vtbl->func6(obj, &gMainDL, &gWorldRSPMatrices, &D_800B51D4, 1, 0, 0);
         }
     }
-    objprint_func(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, &D_800B51D8, obj, arg1);
+    objprint_func(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, &D_800B51D8, obj, visibility);
     if (sp37 != 0) {
         if ((obj->id != OBJ_IMSnowBike) && (obj->id != OBJ_CRSnowBike)) {
             gDLL_13_Expgfx->vtbl->func6(obj, &gMainDL, &gWorldRSPMatrices, &D_800B51D4, 0, 0, 0);
         }
     }
-    if ((obj->linkedObject != NULL) && (arg1 != 0)) {
+    if ((obj->linkedObject != NULL) && (visibility != 0)) {
         sp37 = gDLL_13_Expgfx->vtbl->func10(obj->linkedObject);
         if (sp37 >= 2) {
             gDLL_13_Expgfx->vtbl->func6(obj->linkedObject, &gMainDL, &gWorldRSPMatrices, &D_800B51D4, 1, 0, 0);
