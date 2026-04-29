@@ -501,13 +501,13 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
                 if (spA3 != 2) {
                     gSPMatrix(gMainDL++, OS_K0_TO_PHYSICAL(&spA4[1]), G_MTX_MODELVIEW | G_MTX_LOAD);
                     spA3 = 2;
-                    gEXMatrixGroupSimpleNormalTcs(gMainDL++, (recomp_get_block_id(block) * 0x1000 * 2) + (temp_t6 * 2) + 1 + BLOCK_SHAPE_MTX_GROUP_ID_START, 
+                    gEXMatrixGroupSimpleVerts(gMainDL++, (recomp_get_block_id(block) * 0x1000 * 2) + (temp_t6 * 2) + 1 + BLOCK_SHAPE_MTX_GROUP_ID_START, 
                         G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
                 }
             } else if (spA3 != 1) {
                 gSPMatrix(gMainDL++, OS_K0_TO_PHYSICAL(spA4), G_MTX_MODELVIEW | G_MTX_LOAD);
                 spA3 = 1;
-                gEXMatrixGroupSimpleNormalTcs(gMainDL++, (recomp_get_block_id(block) * 0x1000 * 2) + (temp_t6 * 2) + 0 + BLOCK_SHAPE_MTX_GROUP_ID_START, 
+                gEXMatrixGroupSimpleVerts(gMainDL++, (recomp_get_block_id(block) * 0x1000 * 2) + (temp_t6 * 2) + 0 + BLOCK_SHAPE_MTX_GROUP_ID_START, 
                     G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             }
             if (shape->materialIndex == 0xFF) {
