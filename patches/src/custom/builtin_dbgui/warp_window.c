@@ -162,7 +162,7 @@ void dbgui_warp_window(s32 *open) {
         }
 
         if (dbgui_button("Change Map")) {
-            main_change_map(mapID, setupID, playerNo, MENU_GAMEPLAY);
+            main_change_map(mapID, setupID, playerNo, -1);
         }
     }
     dbgui_end();
