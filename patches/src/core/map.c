@@ -613,7 +613,7 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
             //          TODO: animated water is jittery
             RecompBlockGridInfo *gridInfo = &recomp_blocksToDrawGridCells[temp_v1];
             RecompBlockInterpState *blockInterpState = &recomp_blockInterpStates[gridInfo->blockIndex];
-            // Note: Blocks can reused in different grid cells, so we need to identify the exact absolute cell,
+            // Note: Blocks can be reused in different grid cells, so we need to identify the exact absolute cell and
             //       not just the block itself (the same block can be rendered in two or more locations on the same frame).
             // 200x200 global grid (arbitrary size), 5 layers, (max of) 1000 shapes
             s32 shapeMatrixGroupID = 
