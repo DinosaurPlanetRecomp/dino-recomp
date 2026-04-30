@@ -69,6 +69,12 @@ extern "C" void recomp_get_refresh_rate(uint8_t* rdram, recomp_context* ctx) {
     }
 }
 
+extern "C" void recomp_is_frame_interp_active(uint8_t* rdram, recomp_context* ctx) {
+    ultramodern::renderer::RefreshRate rr = ultramodern::renderer::get_graphics_config().rr_option;
+
+    _return<int>(ctx, rr != ultramodern::renderer::RefreshRate::Original ? 1 : 0);
+}
+
 extern "C" void recomp_error_message_box(uint8_t* rdram, recomp_context* ctx) {
     PTR(char) message_ptr = _arg<0, PTR(char)>(rdram, ctx);
 
@@ -150,6 +156,7 @@ namespace dino::recomp_api {
         REGISTER_EXPORT(recomp_get_aspect_ratio);
         REGISTER_EXPORT(recomp_get_hud_ratio_mode);
         REGISTER_EXPORT(recomp_get_refresh_rate);
+        REGISTER_EXPORT(recomp_is_frame_interp_active);
         REGISTER_EXPORT(recomp_error_message_box);
         REGISTER_EXPORT(recomp_exit_with_error);
         REGISTER_EXPORT(recomp_exit);

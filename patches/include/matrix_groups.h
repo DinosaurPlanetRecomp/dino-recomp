@@ -32,11 +32,11 @@
 // Object linked object models (min length: 180 * 16): 0x00200000 - 0x00201000
 #define OBJ_LINKEDOBJ_MODEL_MTX_GROUP_ID_START 0x00200000
 
-// Block shapes: 0x01000000 - 0x03000000
-#define BLOCK_SHAPE_MTX_GROUP_ID_START 0x01000000
-
 // Expgfx particles (min length: 30000): 0x04000000 - 0x04008000
 #define EXPGFX_MTX_GROUP_ID_START 0x04000000
+
+// Block shapes (unique per global grid coord and layer): 0x10000000 - 0x11000000
+#define BLOCK_SHAPE_MTX_GROUP_ID_START 0x10000000
 
 extern MtxF *recomp_objParentMtx;
 

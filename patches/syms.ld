@@ -8,7 +8,7 @@ bzero_recomp = 0x8F00000C;
 
 osInvalICache_recomp = 0x8F000014;
 osInvalDCache_recomp = 0x8F000018;
-
+recomp_is_frame_interp_active = 0x8F00001C;
 recomp_get_diprintf_enabled = 0x8F000020;
 dbgui_begin = 0x8F000024;
 dbgui_end = 0x8F000028;

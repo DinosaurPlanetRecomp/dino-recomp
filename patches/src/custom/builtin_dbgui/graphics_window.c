@@ -1,6 +1,7 @@
 #include "dbgui.h"
 #include "patches.h"
 #include "patches/main.h"
+#include "patches/map.h"
 #include "patches/vi.h"
 #include "recomp_funcs.h"
 
@@ -43,7 +44,10 @@ extern Triangle *gMainPol[2];
 extern Triangle *gCurPol;
 extern u8 gFrameBufIdx;
 
+extern s16 gBlocksToDrawIdx;
 extern s16 gRenderListLength;
+extern s32 gMapCurrentStreamCoordsX;
+extern s32 gMapCurrentStreamCoordsZ;
 
 extern s32 gFbfxEffectID;
 extern s32 gFbfxEffectDuration;
@@ -52,6 +56,8 @@ extern s32 gFbfxTimer;
 s32 recomp_fbfxShouldPlay = FALSE;
 s32 recomp_fbfxTargetID = 3;
 s32 recomp_fbfxTargetDuration = 15;
+
+#define RECOMP_RENDER_LIST_LENGTH (MAX_RENDER_LIST_LENGTH * 8)
 
 static s32 gCurGfx_overflowed = FALSE;
 static s32 gCurMtx_overflowed = FALSE;
@@ -84,14 +90,18 @@ void graphics_window_check_buffer_sizes(void) {
 }
 
 static void general_tab(void) {
-    dbgui_textf("gRenderListLength: %d", renderListLength);
+    dbgui_textf("gBlocksToDrawLength: %d/%d", gBlocksToDrawIdx, MAX_BLOCKS);
+    dbgui_textf("gRenderListLength: %d/%d\t(%f%%)", renderListLength, RECOMP_RENDER_LIST_LENGTH, 
+        ((f32)renderListLength / (f32)RECOMP_RENDER_LIST_LENGTH) * 100.0f);
     dbgui_textf("gWorldX: %f", gWorldX);
     dbgui_textf("gWorldZ: %f", gWorldZ);
+    dbgui_textf("gMapCurrentStreamCoordsX: %d", gMapCurrentStreamCoordsX);
+    dbgui_textf("gMapCurrentStreamCoordsZ: %d", gMapCurrentStreamCoordsZ);
 
-    dbgui_textf("gCurGfx size: %x/%x\t(%f%%)", gdlSize, RECOMP_MAIN_GFX_BUF_SIZE, (f32)gdlSize / (f32)RECOMP_MAIN_GFX_BUF_SIZE);
-    dbgui_textf("gCurMtx size: %x/%x\t(%f%%)", mtxSize, RECOMP_MAIN_MTX_BUF_SIZE, (f32)mtxSize / (f32)RECOMP_MAIN_MTX_BUF_SIZE);
-    dbgui_textf("gCurVtx size: %x/%x\t(%f%%)", vtxSize, RECOMP_MAIN_VTX_BUF_SIZE, (f32)vtxSize / (f32)RECOMP_MAIN_VTX_BUF_SIZE);
-    dbgui_textf("gCurPol size: %x/%x\t(%f%%)", polSize, RECOMP_MAIN_POL_BUF_SIZE, (f32)polSize / (f32)RECOMP_MAIN_POL_BUF_SIZE);
+    dbgui_textf("gCurGfx size: %x/%x\t(%f%%)", gdlSize, RECOMP_MAIN_GFX_BUF_SIZE, ((f32)gdlSize / (f32)RECOMP_MAIN_GFX_BUF_SIZE) * 100.0f);
+    dbgui_textf("gCurMtx size: %x/%x\t(%f%%)", mtxSize, RECOMP_MAIN_MTX_BUF_SIZE, ((f32)mtxSize / (f32)RECOMP_MAIN_MTX_BUF_SIZE) * 100.0f);
+    dbgui_textf("gCurVtx size: %x/%x\t(%f%%)", vtxSize, RECOMP_MAIN_VTX_BUF_SIZE, ((f32)vtxSize / (f32)RECOMP_MAIN_VTX_BUF_SIZE) * 100.0f);
+    dbgui_textf("gCurPol size: %x/%x\t(%f%%)", polSize, RECOMP_MAIN_POL_BUF_SIZE, ((f32)polSize / (f32)RECOMP_MAIN_POL_BUF_SIZE) * 100.0f);
 }
 
 static void camera_tab(void) {
@@ -258,6 +268,7 @@ static void fbfx_tab(void) {
 
 static void hacks_tab(void) {
     dbgui_checkbox("30 FPS SnowBike race", &recomp_snowbike30FPS);
+    dbgui_checkbox("Force CPU block shape backface culling", &recomp_cpuBlockShapeCulling);
 }
 
 static void recomp_tab(void) {
