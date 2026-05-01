@@ -261,6 +261,15 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
                     obj->objhitInfo->unk9F--;
                 }
             }
+        } else {
+            // @recomp: Extra else case to handle model instances that don't get their matrix list updated.
+            //          We may still need to setup our copy here.
+            if (recomp_objParentMtx != NULL) {
+                s32 mtxCount = model->animCount != 0 ? model->jointCount : 1;
+                sp70 = recomp_model_instance_setup_absolute_matrices(modelInst, mtxCount);
+            } else {
+                sp70 = modelInst->matrices[modelInst->unk34 & 1];
+            }
         }
         if (model->unk71 & 4) {
             dl_set_env_color(&tempGdl, blendR, blendG, blendB, BYTE_800b2e23);
