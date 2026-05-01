@@ -37,7 +37,14 @@ void dbgui_dlls_window(s32 *open) {
                     : recomp_sprintf_helper("%d###%d", dll->tabidx, i);
                 if (dbgui_tree_node(label)) {
                     dbgui_textf("refCount: %d", dll->refCount);
-                    dbgui_textf("address: %p", file);
+                    dbgui_textf("addr:    %p", file);
+                    dbgui_textf(".text:   %p", (u8*)file + file->code);
+                    if (file->data != -1u) {
+                        dbgui_textf(".data:   %p", (u8*)file + file->data);
+                    }
+                    if (file->rodata != -1) {
+                        dbgui_textf(".rodata: %p", (u8*)file + file->rodata);
+                    }
                     if (dll->tabidx != DLL_NONE) {
                         if (dbgui_tree_node(recomp_sprintf_helper("vtable (%d):###vtable", file->exportCount))) {
                             for (u32 k = 0; k < (file->exportCount + 1); k++) {
