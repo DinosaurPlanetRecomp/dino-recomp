@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cassert>
+#include <cstdlib>
 #include <vector>
 
 #include "nfd.h"
@@ -64,17 +65,42 @@ std::vector<recomp::GameEntry> supported_games = {
 struct CliArgs {
     bool skip_launcher = false;
     bool show_console = false;
+    int window_width = 1600;
+    int window_height = 960;
 };
+static CliArgs cli_args;
+
+static ultramodern::renderer::WindowHandle create_window(ultramodern::gfx_callbacks_t::gfx_data_t data) {
+    return dino::runtime::create_window(data, cli_args.window_width, cli_args.window_height); 
+}
 
 int main(int argc, char** argv) {
     // Parse CLI args
-    CliArgs cli_args;
     for (int i = 1; i < argc; i++) {
         char *arg = argv[i];
         if (strcmp(arg, "--skip-launcher") == 0) {
             cli_args.skip_launcher = true;
         } else if (strcmp(argv[i], "--show-console") == 0) {
             cli_args.show_console = true;
+        } else if (strcmp(argv[i], "--4x3") == 0) {
+            cli_args.window_width = 320 * 4;
+            cli_args.window_height = 240 * 4;
+        } else if (strcmp(argv[i], "--window-width") == 0) {
+            i++;
+            if (i < argc) {
+                int width = std::atoi(argv[i]);
+                if (width > 0) {
+                    cli_args.window_width = width;
+                }
+            }
+        } else if (strcmp(argv[i], "--window-height") == 0) {
+            i++;
+            if (i < argc) {
+                int height = std::atoi(argv[i]);
+                if (height > 0) {
+                    cli_args.window_height = height;
+                }
+            }
         }
     }
 
@@ -174,7 +200,7 @@ int main(int argc, char** argv) {
 
     ultramodern::gfx_callbacks_t gfx_callbacks{
         .create_gfx = dino::runtime::create_gfx,
-        .create_window = dino::runtime::create_window,
+        .create_window = create_window,
         .update_gfx = dino::runtime::update_gfx,
     };
 
