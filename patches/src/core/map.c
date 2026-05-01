@@ -701,7 +701,7 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
             gMainDL->words.w0 = block->gdlGroups[shapeIdx].words.w0;
             gMainDL->words.w1 = block->gdlGroups[shapeIdx].words.w1;
             // @recomp: We disable CPU backface culling so re-enable it for the RSP (RT64)
-            if (frameInterpActive || !recomp_cpuBlockShapeCulling) {
+            if (!(shape->flags & RENDER_NO_CULL) && (frameInterpActive || !recomp_cpuBlockShapeCulling)) {
                 gMainDL->words.w1 |= G_CULL_BACK;
             }
             shapeIdx++;
