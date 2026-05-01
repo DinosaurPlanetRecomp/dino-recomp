@@ -38,6 +38,11 @@ const std::string version_string = "0.3.0";
 extern "C" void recomp_entrypoint(uint8_t *rdram, recomp_context *ctx);
 gpr get_entrypoint_address();
 
+static void custom_recomp_entrypoint(uint8_t *rdram, recomp_context *ctx) {
+    printf("Initialized RDRAM at %p\n", rdram);
+    recomp_entrypoint(rdram, ctx);
+}
+
 // array of supported GameEntry objects
 std::vector<recomp::GameEntry> supported_games = {
     {
@@ -52,7 +57,7 @@ std::vector<recomp::GameEntry> supported_games = {
         .decompression_routine =  dino::runtime::patch_rom,
         .has_compressed_code = true,
         .entrypoint_address = get_entrypoint_address(),
-        .entrypoint = recomp_entrypoint,
+        .entrypoint = custom_recomp_entrypoint,
     },
 };
 
