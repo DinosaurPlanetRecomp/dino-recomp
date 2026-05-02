@@ -3,6 +3,7 @@
 #include "matrix_groups.h"
 
 #include "PR/ultratypes.h"
+#include "game/objects/object_id.h"
 #include "sys/camera.h"
 #include "sys/fs.h"
 #include "sys/gfx/model.h"
@@ -48,18 +49,29 @@ extern void obj_init_object(Object *obj, ObjSetup *setup, s32 reset);
 extern void obj_free_objdef(s32 tabIdx);
 extern void func_8002272C(Object *obj);
 
+enum RecompObjInterpConfig {
+    RECOMP_OBJINTERP_DISABLE = (1 << 0)
+};
+
 typedef struct {
     s16 lastYaw;
     u16 lastStateFlags;
     u8 skipInterp;
-} RecompObjMtxTagState;
+} RecompObjInterpState;
 
 static Object* recomp_objMatrixGroupList[1000];
-static RecompObjMtxTagState recomp_objMtxTagStates[1000];
+static RecompObjInterpState recomp_objInterpStates[1000];
 static U32ValueHashmapHandle recomp_objMatrixGroupMap;
 static u32 recomp_objMatrixGroupNext;
+static u8 recomp_objInterpConfig[1300];
 
 // TODO: increase max objects
+
+static void recomp_obj_interp_init(void) {
+    recomp_objMatrixGroupMap = recomputil_create_u32_value_hashmap();
+
+    recomp_objInterpConfig[OBJ_DFP_wallbar] |= RECOMP_OBJINTERP_DISABLE; // object always teleports, don't try interp
+}
 
 static void recomp_obj_update_matrix_group_state(Object *obj) {
     // Get state
@@ -68,7 +80,19 @@ static void recomp_obj_update_matrix_group_state(Object *obj) {
         return;
     }
 
-    RecompObjMtxTagState *state = &recomp_objMtxTagStates[group];
+    RecompObjInterpState *state = &recomp_objInterpStates[group];
+
+    // Get config
+    u8 config = 0;
+    if (obj->id >= 0 && obj->id < ARRAYCOUNT_S(recomp_objInterpConfig)) {
+        config = recomp_objInterpConfig[obj->id];
+    }
+
+    // Check if interp is always disabled for this object ID
+    if (config & RECOMP_OBJINTERP_DISABLE) {
+        state->skipInterp = TRUE;
+        return;
+    }
 
     // Determine if interpolation should be skipped for this frame
     _Bool snapTurned;
@@ -106,7 +130,7 @@ u32 recomp_obj_get_matrix_group(Object *obj, _Bool *skipInterpolation) {
     u32 group;
     if (recomputil_u32_value_hashmap_get(recomp_objMatrixGroupMap, (collection_key_t)obj, &group)) {
         if (skipInterpolation != NULL) {
-            *skipInterpolation = recomp_objMtxTagStates[group].skipInterp;
+            *skipInterpolation = recomp_objInterpStates[group].skipInterp;
         }
         return group;
     }
@@ -137,7 +161,7 @@ static u32 recomp_obj_alloc_matrix_group(Object *obj) {
 
         if (recomp_objMatrixGroupList[group] == NULL) {
             recomp_objMatrixGroupList[group] = obj;
-            bzero(&recomp_objMtxTagStates[group], sizeof(RecompObjMtxTagState));
+            bzero(&recomp_objInterpStates[group], sizeof(RecompObjInterpState));
             recomputil_u32_value_hashmap_insert(recomp_objMatrixGroupMap, (collection_key_t)obj, group);
             return group;
         }
@@ -159,7 +183,7 @@ RECOMP_PATCH void init_objects(void) {
     int i;
 
     // @recomp: Init matrix group stuff
-    recomp_objMatrixGroupMap = recomputil_create_u32_value_hashmap();
+    recomp_obj_interp_init();
 
     //allocate some buffers
     gObjDeferredFreeList = mmAlloc(sizeof(Object*) * 180, ALLOC_TAG_OBJECTS_COL, ALLOC_NAME("obj:dellist"));
