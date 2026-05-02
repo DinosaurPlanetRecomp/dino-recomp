@@ -68,7 +68,6 @@ static List seqsList; // list[ObjSeqEntry]
 static U32List seqsIDList; // list[ReAssetID]
 static U32ValueHashmapHandle seqsMap; // ReAssetID -> seqs list index
 static ReAssetResolveMap seqsResolveMap;
-static U32ValueHashmapHandle actorCurveMapMap; // ReAssetID (seq) -> U32ValueHashmapHandle (actorIdx -> curveTabIdx)
 
 static void actor_curves_list_element_free(void *element) {
     ActorCurve *entry = element;
@@ -174,9 +173,6 @@ static ObjSeqEntry* get_or_create_seq(ReAssetID id) {
         list_set_element_free_callback(&entry->actorCurves, actor_curves_list_element_free);
 
         recomputil_u32_value_hashmap_insert(seqsMap, id, listIdx);
-
-        // Create map for actor curves
-        recomputil_u32_value_hashmap_insert(actorCurveMapMap, id, recomputil_create_u32_value_hashmap());
     }
 
     return list_get(&seqsList, listIdx);
@@ -226,7 +222,6 @@ void reasset_sequences_init(void) {
     u32list_init(&seqsIDList, seqsOriginalCount);
     seqsMap = recomputil_create_u32_value_hashmap();
     seqsResolveMap = reasset_resolve_map_create("ObjectSequence");
-    actorCurveMapMap = recomputil_create_u32_value_hashmap();
 
     // Add base obj seqs (preserving order)
     for (s32 i = 0; i < seqsOriginalCount; i++) {
@@ -281,13 +276,11 @@ void reasset_sequences_repack(void) {
     for (s32 i = 0; i < newSeqCount; i++) {
         ObjSeqEntry *seq = list_get(&seqsList, i);
         u32 seqSize = mmAlign8(buffer_get_size(&seq->seq));
-        s32 numActors = seqSize / 8;
-
-        // Note: We're writing a curve for each actor regardless of if the curve was defined
-        newSeqCurveCount += numActors;
         objSeqBinSize += seqSize;
 
         s32 numActorCurves = list_get_length(&seq->actorCurves);
+        newSeqCurveCount += numActorCurves;
+
         for (s32 k = 0; k < numActorCurves; k++) {
             ActorCurve *curve = list_get(&seq->actorCurves, k);
 
@@ -359,37 +352,22 @@ void reasset_sequences_repack(void) {
         objSeq2CurveTabIdx += 1;
         
         // Write curves
-        U32ValueHashmapHandle actorCurveMap;
-        reasset_assert(recomputil_u32_value_hashmap_get(actorCurveMapMap, seq->id, &actorCurveMap),
-            "[reasset] bug! Object sequence %d actor curve map hashmap get failed.", i);
         s32 numActorCurves = list_get_length(&seq->actorCurves);
-        for (s32 k = 0; k < numActors; k++) {
-            ActorCurve *curve = k < numActorCurves
-                ? list_get(&seq->actorCurves, k)
-                : NULL;
+        for (s32 k = 0; k < numActorCurves; k++) {
+            ActorCurve *curve = list_get(&seq->actorCurves, k);
             AnimCurveHeader *curveTabEntry = &animCurvesTab[animCurvesTabIdx];
 
-            recomputil_u32_value_hashmap_insert(actorCurveMap, k, animCurvesTabIdx);
+            curveTabEntry->size = buffer_get_size(&curve->curve);
+            curveTabEntry->eventCount = curve->eventCount;
+            curveTabEntry->offset = animCurvesBinOffset;
 
-            if (curve != NULL) {
-                curveTabEntry->size = buffer_get_size(&curve->curve);
-                curveTabEntry->eventCount = curve->eventCount;
-                curveTabEntry->offset = animCurvesBinOffset;
+            bin_ptr_set(&curve->curvePtr, animCurvesBin, animCurvesBinOffset, curveTabEntry->size);
+            buffer_copy_to_bin_ptr(&curve->curve, &curve->curvePtr);
 
-                buffer_copy_to(&curve->curve, animCurvesBin, animCurvesBinOffset);
+            animCurvesTabIdx += 1;
 
-                animCurvesTabIdx += 1;
-
-                animCurvesBinOffset += curveTabEntry->size;
-                animCurvesBinOffset = mmAlign4(animCurvesBinOffset);
-            } else {
-                // No curve defined, just write a blank one
-                curveTabEntry->size = 0;
-                curveTabEntry->eventCount = 0;
-                curveTabEntry->offset = animCurvesBinOffset;
-
-                animCurvesTabIdx += 1;
-            }
+            animCurvesBinOffset += curveTabEntry->size;
+            animCurvesBinOffset = mmAlign4(animCurvesBinOffset);
         }
     }
 
@@ -483,16 +461,6 @@ void reasset_sequences_patch(void) {
 }
 
 void reasset_sequences_cleanup(void) {
-    s32 newSeqCount = list_get_length(&seqsList);
-    for (s32 i = 0; i < newSeqCount; i++) {
-        ObjSeqEntry *seq = list_get(&seqsList, i);
-
-        U32ValueHashmapHandle actorCurveMap;
-        if (recomputil_u32_value_hashmap_get(actorCurveMapMap, seq->id, &actorCurveMap)) {
-            recomputil_destroy_u32_value_hashmap(actorCurveMap);
-        }
-    }
-
     list_free(&curvesList);
     u32list_free(&curvesIDList);
     recomputil_destroy_u32_value_hashmap(curvesMap);
@@ -500,7 +468,6 @@ void reasset_sequences_cleanup(void) {
     list_free(&seqsList);
     u32list_free(&seqsIDList);
     recomputil_destroy_u32_value_hashmap(seqsMap);
-    recomputil_destroy_u32_value_hashmap(actorCurveMapMap);
 }
 
 // MARK: Anim Curves
