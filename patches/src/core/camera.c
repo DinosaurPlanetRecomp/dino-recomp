@@ -59,6 +59,10 @@ static MtxF recomp_viewWorldOffsetResetMtx = {
         0.0f, 0.0f, 0.0f, 1.0f
     }
 };
+// Save these separately so we can avoid the precision issue noted below
+// when the game restores the camera viewProj matrix
+static Mtx *recomp_lastCamViewMtx;
+static Mtx *recomp_lastCamProjMtx;
 static _Bool recomp_skipCameraInterp = FALSE;
 static MatrixSlot *recomp_matrixPool; // Custom matrix pool with increased size
 
@@ -127,8 +131,14 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
     matrix_f2l(&gProjectionMtx, *rspMtxs);
     matrix_f2l(&gViewMtx, *rspMtxs + 1);
 
+    recomp_lastCamProjMtx = (*rspMtxs + 0);
+    recomp_lastCamViewMtx = (*rspMtxs + 1);
+
     gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_PROJECTION | G_MTX_LOAD);
     gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_PROJECTION | G_MTX_MUL);
+
+    // @recomp: Projection slot changed, so the parent matrix is no longer valid (if any leaked over to this point)
+    recomp_objParentMtx = NULL;
     
     // @recomp: Tag camera matrix
     if (recomp_skipCameraInterp) {
@@ -171,7 +181,7 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
 
     i = 0;
     while (i < 30) {
-        gRSPMatrices[i++] = 0;
+        gRSPMatrices[i++] = NULL;
     }
 }
 
@@ -197,7 +207,7 @@ RECOMP_PATCH void camera_setup_object_srt_matrix(Gfx **gdl, Mtx **rspMtxs, SRT *
         }
 
         // @recomp: Factor in parent matrix since we don't set it in the projection slot in recomp
-        if (recomp_objParentMtx) {
+        if (recomp_objParentMtx != NULL) {
             matrix_concat_4x3(mtx, recomp_objParentMtx, mtx);
         }
 
@@ -243,12 +253,11 @@ RECOMP_PATCH void setup_rsp_matrices_for_object(Gfx **gdl, Mtx **rspMtxs, Object
                 object->srt.scale = 1.0f;
             }
 
-            // @recomp: Write directly to the matrix list
             if (!ancestor) {
-                matrix_from_srt((MtxF*)*rspMtxs, &object->srt);
+                matrix_from_srt(&MtxF_800a6a60, &object->srt);
             } else {
                 matrix_from_srt(&mtxf, &object->srt);
-                matrix_concat_4x3((MtxF*)*rspMtxs, &mtxf, (MtxF*)*rspMtxs);
+                matrix_concat_4x3(&MtxF_800a6a60, &mtxf, &MtxF_800a6a60);
             }
 
             object->srt.scale = oldScale;
@@ -262,19 +271,44 @@ RECOMP_PATCH void setup_rsp_matrices_for_object(Gfx **gdl, Mtx **rspMtxs, Object
             ancestor = TRUE;
         }
 
-        // @recomp: Don't combine with view-projection matrix or convert to long format
+        matrix_concat(&MtxF_800a6a60, &gViewProjMtx, &gAuxMtx2);
+        // @recomp: Don't store matrix concat'd with view-projection, just store the parent model matrix
+        if (recomp_frameInterpActive) {
+            bcopy(&MtxF_800a6a60, *rspMtxs, sizeof(MtxF));
+        } else {
+            matrix_f2l(&MtxF_800a6a60, *rspMtxs);
+        }
         gRSPMatrices[origObject->matrixIdx] = *rspMtxs;
         (*rspMtxs)++;
     }
 
-    // @recomp: Don't change projection matrix, just save the parent matrix for draws to use
-    recomp_objParentMtx = (MtxF*)gRSPMatrices[origObject->matrixIdx];
+    if (recomp_frameInterpActive) {
+        // @recomp: Don't change projection matrix, just save the parent matrix for draws to use
+        recomp_objParentMtx = (MtxF*)gRSPMatrices[origObject->matrixIdx];
+    } else {
+        // @recomp: Submit projection and view separately to avoid precision issues.
+        // See above notes in setup_rsp_camera_matrices
+        gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(recomp_lastCamProjMtx), G_MTX_PROJECTION | G_MTX_LOAD);
+        gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(recomp_lastCamViewMtx), G_MTX_PROJECTION | G_MTX_MUL);
+        gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(gRSPMatrices[origObject->matrixIdx]), G_MTX_PROJECTION | G_MTX_MUL);
+        
+        recomp_objParentMtx = NULL;
+    }
 }
 
 RECOMP_PATCH void camera_load_parent_projection(Gfx **gdl)
 {
-    // @recomp: Don't change projection matrix, just clear the parent matrix
-    recomp_objParentMtx = NULL;
+    if (recomp_frameInterpActive) {
+        // @recomp: Don't change projection matrix, just clear the parent matrix
+        recomp_objParentMtx = NULL;
+    } else {
+        // @recomp: Submit projection and view separately instead of [gRSPMtxList] to avoid precision issues.
+        // See above notes in setup_rsp_camera_matrices
+        gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(recomp_lastCamProjMtx), G_MTX_PROJECTION | G_MTX_LOAD);
+        gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(recomp_lastCamViewMtx), G_MTX_PROJECTION | G_MTX_MUL);
+        
+        recomp_objParentMtx = NULL;
+    }
 }
 
 RECOMP_PATCH void viewport_get_full_rect(s32 *ulx, s32 *uly, s32 *lrx, s32 *lry)

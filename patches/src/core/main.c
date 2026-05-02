@@ -6,6 +6,9 @@
 #include "patches/rcp.h"
 #include "dbgui.h"
 #include "recomp_options.h"
+#include "recomp_funcs.h"
+#include "matrix_groups.h"
+#include "ui_funcs.h"
 
 #include "sys/audio.h"
 #include "sys/asset_thread.h"
@@ -22,11 +25,12 @@
 #include "sys/vi.h"
 #include "types.h"
 #include "dll.h"
-#include "ui_funcs.h"
 
 RECOMP_DECLARE_EVENT(recomp_on_game_tick_start());
 RECOMP_DECLARE_EVENT(recomp_on_game_tick());
 RECOMP_DECLARE_EVENT(recomp_on_dbgui());
+
+_Bool recomp_frameInterpActive;
 
 extern Gfx *gMainGfx[2];
 extern Gfx *gCurGfx;
@@ -89,6 +93,7 @@ void recomp_dbgui_tick(void) {
 static void recomp_game_tick_start_hook(void) {
     recomp_on_game_tick_start();
     recomp_run_ui_callbacks();
+    recomp_frameInterpActive = recomp_is_frame_interp_active();
     recomp_pull_game_options();
     recomp_dbgui_tick();
 }

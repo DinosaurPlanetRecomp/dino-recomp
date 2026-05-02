@@ -38,6 +38,7 @@
 // Block shapes (unique per global grid coord and layer): 0x10000000 - 0x11000000
 #define BLOCK_SHAPE_MTX_GROUP_ID_START 0x10000000
 
+extern _Bool recomp_frameInterpActive;
 extern MtxF *recomp_objParentMtx;
 
 MtxF* recomp_model_instance_setup_absolute_matrices(ModelInstance *modelInst, s32 count);

@@ -431,9 +431,6 @@ RECOMP_PATCH void track_c_func(void) {
     s8 objVisibilities[MAX_VISIBLE_OBJECTS];
     Mtx* sp78;
 
-    // @recomp: Check if frame interpolation is active. We'll skip block culling if it is
-    _Bool frameInterpActive = recomp_is_frame_interp_active();
-
     dl_add_debug_info(gMainDL, 0, "track/track.c", 0x52B);
     some_cell_func(&D_800B9780);
     shadows_func_8004D9B8();
@@ -501,7 +498,7 @@ RECOMP_PATCH void track_c_func(void) {
                     }
                 }
                 // @recomp: Don't cull if frame interpolation is active
-                if (temp_v0 < 0 || (!frameInterpActive && func_800451A0(temp_s1, var_s2, block) == 0)) {
+                if (temp_v0 < 0 || (!recomp_frameInterpActive && func_800451A0(temp_s1, var_s2, block) == 0)) {
                     continue;
                 }
                 D_800B97B8 = temp_s1 * BLOCKS_GRID_UNIT_F;
@@ -582,8 +579,6 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
     Block* block;
     Object** sp8C;
     Object *obj;
-
-    _Bool frameInterpActive = recomp_is_frame_interp_active();
 
     spC4 = -1;
     sp8C = get_world_objects(NULL, NULL);
@@ -701,7 +696,7 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
             gMainDL->words.w0 = block->gdlGroups[shapeIdx].words.w0;
             gMainDL->words.w1 = block->gdlGroups[shapeIdx].words.w1;
             // @recomp: We disable CPU backface culling so re-enable it for the RSP (RT64)
-            if (!(shape->flags & RENDER_NO_CULL) && (frameInterpActive || !recomp_cpuBlockShapeCulling)) {
+            if (!(shape->flags & RENDER_NO_CULL) && (recomp_frameInterpActive || !recomp_cpuBlockShapeCulling)) {
                 gMainDL->words.w1 |= G_CULL_BACK;
             }
             shapeIdx++;
@@ -807,8 +802,6 @@ RECOMP_PATCH void block_calc_shape_visibility(Block* block, s16 arg1, s16 arg2, 
     //f32 Fd;
     BlockVertex  *shapeVtx;
 
-    _Bool frameInterpActive = recomp_is_frame_interp_active();
-
     Wx = (D_800B51E4->tx - gWorldX) - D_800B97B8;
     Wy = D_800B51E4->ty;
     Wz = (D_800B51E4->tz - gWorldZ) - D_800B97BC;
@@ -825,7 +818,7 @@ RECOMP_PATCH void block_calc_shape_visibility(Block* block, s16 arg1, s16 arg2, 
         }
 
         // @recomp: Skip if frame interpolation is active
-        if (frameInterpActive) {
+        if (recomp_frameInterpActive) {
             // Re-enable all tris in case some were culled when frame interp was previously off
             tri = block->encodedTris;
             tri += shape->triBase;
