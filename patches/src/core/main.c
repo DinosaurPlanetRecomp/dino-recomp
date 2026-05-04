@@ -149,9 +149,9 @@ RECOMP_PATCH void game_tick(void) {
     rsp_init(&gCurGfx);
 
     clearFlags = CLEAR_ZBUFFER;
-    if (func_80041D5C() == 0) {
+    if (track_is_z_buffer_on() == FALSE) {
         clearFlags = CLEAR_NONE;
-    } else if (func_80041D74() == 0) {
+    } else if (track_is_sky_on() == FALSE) {
         clearFlags = CLEAR_COLOR | CLEAR_ZBUFFER;
     }
 

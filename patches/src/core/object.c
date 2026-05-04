@@ -325,7 +325,7 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
         dll_unload(obj->dll);
     }
 
-    gDLL_6_AMSFX->vtbl->func_1218(obj);
+    gDLL_6_AMSFX->vtbl->free_object(obj);
     gDLL_5_AMSEQ->vtbl->func17(obj);
     gDLL_13_Expgfx->vtbl->func9(obj);
 

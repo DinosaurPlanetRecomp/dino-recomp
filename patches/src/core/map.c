@@ -1,12 +1,12 @@
 #include "patches.h"
 #include "patches/map.h"
 #include "matrix_groups.h"
-#include "recomp_funcs.h"
 #include "rt64_extended_gbi.h"
 
 #include "PR/ultratypes.h"
 #include "PR/gbi.h"
 #include "game/objects/object_id.h"
+#include "dlls/objects/common/vehicle.h"
 #include "sys/map.h"
 #include "sys/fs.h"
 #include "sys/memory.h"
@@ -28,78 +28,77 @@
 RECOMP_DECLARE_EVENT(recomp_on_block_loaded_rom(s32 id, Block *block));
 RECOMP_DECLARE_EVENT(recomp_on_block_loaded(s32 id, Block *block));
 
-// TODO: use from map.h
-#define MAX_VISIBLE_OBJECTS 180
-
-extern s32* gFile_BLOCKS_TAB;
-extern u8 *gMapReadBuffer;
-
-extern s32 gMapCurrentStreamCoordsX;
-extern s32 gMapCurrentStreamCoordsZ;
-
+extern s32 D_800B4A54;
+extern s16 D_800B4A5C;
+extern s16 D_800B4A5E; //gFadeDelayTimerStarted
+extern Plane gFrustumPlanes[MAP_LAYER_COUNT];
+//extern u32 gRenderList[MAX_RENDER_LIST_LENGTH];
+extern s16 gRenderListLength;
+extern Block *gBlocksToDraw[MAX_BLOCKS];
+extern s16 gBlocksToDrawIdx;
 extern Gfx* gMainDL;
 extern Mtx* gWorldRSPMatrices;
 extern Vertex* D_800B51D4;
 extern Triangle* D_800B51D8;
-extern s8 gMapType;
-extern Camera* D_800B51E4;
-extern u32 UINT_80092a98;
-extern s16 gRenderListLength;
-extern Block *gBlocksToDraw[MAX_BLOCKS];
 extern s16 SHORT_800b51dc;
 extern s32 UINT_800b51e0;
-extern BlockTexture *gBlockTextures;
+extern Camera* D_800B51E4;
+extern MapHeader* gLoadedMapsDataTable[120];
+extern s8 gMapType;
+extern SavedObject* D_800B96B0;
 extern Block **gLoadedBlocks;
 extern u8 gLoadedBlockCount;
 extern s16 *gLoadedBlockIds;
-extern s32 D_800B4A54;
-extern s16 gBlocksToDrawIdx;
-extern BitStream D_800B9780;
-extern s8 D_80092B0C[176];
+extern s16 gNumTRKBLKEntries;
+extern u8 *gBlockRefCounts;
+extern s32* gFile_BLOCKS_TAB; // unknown pointer type
+extern s32 gNumTotalBlocks;
 extern s8 *gBlockIndices[MAP_LAYER_COUNT];
+extern GlobalMapCell *gDecodedGlobalMap[MAP_LAYER_COUNT]; //16*16 grid of GlobalMapCell structs, one for each layer!
 extern s8 *D_800B9700[MAP_LAYER_COUNT];
 extern s8 *D_800B9714;
-extern f32 D_800B97B8;
-extern f32 D_800B97BC;
-extern BlockColorTableEntry *gBlockColorTable; // 255 items
-extern u8 *gBlockRefCounts;
-extern GlobalMapCell *gDecodedGlobalMap[MAP_LAYER_COUNT]; //16*16 grid of GlobalMapCell structs, one for each layer!
 extern u16 *gFile_TRKBLK;
 extern u32 *gFile_HITS_TAB;
 extern s32* gFile_MAPS_TAB; // unknown pointer type
-extern MapHeader* gLoadedMapsDataTable[120];
-extern s16 gNumTRKBLKEntries;
-extern s32 gNumTotalBlocks;
-extern SavedObject* D_800B96B0;
-extern s16 D_800B4A5C;
-extern BlockTextureScroller *D_800B97A8; //gMapTextureScrollers?
-extern Plane gFrustumPlanes[MAP_LAYER_COUNT];
+extern u8 *gMapReadBuffer;
 extern BitStream D_800B9780;
 extern u8 D_800B9794;
 extern u8 D_800B979C;
+extern BlockTextureAnim *gBlockTexAnimTable;
+extern BlockTextureScroller *sBlockTexScrollTable;
+extern f32 D_800B97B8;
+extern f32 D_800B97BC;
+extern BlockColorTableEntry *gBlockColorTable; // 255 items
 
-extern void func_800436DC(Object* obj, s32 visibility);
-extern BlockTextureScroller* func_80049D68(s32 arg0);
-extern void func_80044BEC(void);
-extern void func_80048F58(void);
-extern void track_c_func(void);
+extern s32 gMapCurrentStreamCoordsX;
+extern s32 gMapCurrentStreamCoordsZ;
+extern f32 gWorldX;
+extern f32 gWorldZ;
+extern DLBuilder *gDLBuilder;
+extern u32 gTrackFlags;
+extern s8 D_80092B0C[16];
 
+extern HitsLine* block_load_hits(Block *block, s32 blockID, u8 unused, HitsLine* hits_ptr);
+extern void track_sort_render_list(u32* arg0, s32 arg1);
 extern void block_color_table_add_block(Block *block);
 extern u32 hits_get_size(s32 id);
 extern void block_setup_vertices(Block *block);
 extern void block_setup_gdl_groups(Block *block);
-extern s32 block_setup_textures(Block *block);
+extern s32 block_setup_texture_anims(Block *block);
 extern void block_setup_xz_bitmap(Block *block);
-extern HitsLine* block_load_hits(Block *block, s32 blockID, u8 unused, HitsLine* hits_ptr);
-extern void some_cell_func(BitStream* stream);
-extern void func_80047404(s32, s32, s32*, s32*, s32*, s32*, s32, s32, s32);
-extern s32 func_800451A0(s32 xPos, s32 zPos, Block* blocks);
-extern void block_calc_shape_visibility(Block*, s16, s16, s16);
 extern void block_compute_vertex_colors(Block*,s32,s32,s32);
+extern void track_update_frustum(void);
+extern void block_color_table_tick(void);
+extern void track_draw_main(void);
+extern void map_check_block_grid(s32 gridX, s32 gridZ, s32* arg2, s32* arg3, s32* arg4, s32* arg5, s32 layer, s32 checkVis, s32 streamMapIdx);
 extern void block_add_to_render_list(Block *block, f32 x, f32 z);
-extern void func_80043FD8(s8* arg0);
+extern void track_draw_object(Object* obj, s32 visibility);
 extern void draw_render_list(Mtx *rspMtxs, s8 *visibilities);
-extern void func_800441F4(u32* arg0, s32 arg1);
+extern void block_calc_shape_visibility(Block*, s16, s16, s16);
+extern void track_add_visible_objects(s8* objVisibilities);
+extern s32 block_frustum_check(s32 xPos, s32 zPos, Block* block);
+extern void some_cell_func(BitStream* stream);
+extern BlockTextureScroller* block_texscroll_get(s32 id);
 extern s32 func_80045600(s32 arg0, BitStream *stream, s16 arg2, s16 arg3, s16 arg4);
 
 typedef struct {
@@ -126,7 +125,7 @@ s32 recomp_cpuBlockShapeCulling;
 RECOMP_PATCH void init_maps(void) {
     s32 i;
 
-    UINT_80092a98 = 0;
+    gTrackFlags = 0;
     gBlockColorTable = mmAlloc(sizeof(BlockColorTableEntry) * 255, ALLOC_TAG_TRACK_COL, ALLOC_NAME("trk:cblocks"));
     gLoadedBlocks = mmAlloc(sizeof(Block*) * MAX_BLOCKS, ALLOC_TAG_TRACK_COL, ALLOC_NAME("trk:blknos"));
     gLoadedBlockIds = mmAlloc(sizeof(s16) * MAX_BLOCKS, ALLOC_TAG_TRACK_COL, ALLOC_NAME("trk:blkusage"));
@@ -158,10 +157,10 @@ RECOMP_PATCH void init_maps(void) {
     D_800B96B0 = mmAlloc(sizeof(SavedObject) * 100, ALLOC_TAG_TRACK_COL, ALLOC_NAME("objdef_store"));
     D_800B4A5C = -1;
     D_800B4A5E = -2;
-    gBlockTextures = mmAlloc(sizeof(BlockTexture) * 20, ALLOC_TAG_TRACK_COL, ALLOC_NAME("trk:texanim"));
-    bzero(gBlockTextures, sizeof(BlockTexture) * 20);
-    D_800B97A8 = mmAlloc(sizeof(BlockTextureScroller) * MAX_TEXTURE_SCROLLERS, ALLOC_TAG_TRACK_COL, ALLOC_NAME("trk:texscroll"));
-    bzero(D_800B97A8, sizeof(BlockTextureScroller) * MAX_TEXTURE_SCROLLERS);
+    gBlockTexAnimTable = mmAlloc(sizeof(BlockTextureAnim) * MAX_TEXTURE_ANIMS, ALLOC_TAG_TRACK_COL, ALLOC_NAME("trk:texanim"));
+    bzero(gBlockTexAnimTable, sizeof(BlockTextureAnim) * MAX_TEXTURE_ANIMS);
+    sBlockTexScrollTable = mmAlloc(sizeof(BlockTextureScroller) * MAX_TEXTURE_SCROLLERS, ALLOC_TAG_TRACK_COL, ALLOC_NAME("trk:texscroll"));
+    bzero(sBlockTexScrollTable, sizeof(BlockTextureScroller) * MAX_TEXTURE_SCROLLERS);
     // @recomp: Use custom render list
     bzero(recomp_RenderList, sizeof(u32) * RECOMP_RENDER_LIST_LENGTH);
     recomp_RenderList[0] = -0x4000;
@@ -240,7 +239,7 @@ RECOMP_PATCH void block_load(s32 id, s32 param_2, s32 globalMapIdx, u8 queue) {
         //if (block->vtxCount && block->vtxCount){} // @fake
         fileVertsEnd += block->vtxCount;
         while (fileVerts < fileVertsEnd) {
-            if (shape->flags & 0x20000000) {
+            if (shape->flags & RENDER_UNK20000000) {
                 verts->ob[0] = (f32) fileVerts->ob[0];
                 verts->ob[1] = (fileVerts->ob[1] - block->minY) * 20.0f;
                 verts->ob[2] = (f32) fileVerts->ob[2];
@@ -269,8 +268,8 @@ RECOMP_PATCH void block_load(s32 id, s32 param_2, s32 globalMapIdx, u8 queue) {
         block->vertices2[1] = (Vtx_t*)block->vertices;
     }
     addr = mmAlign4(addr);
-    block->unk28 = (BlocksTextureIndexData*)addr;
-    addr += block_setup_textures(block);
+    block->texAnims = (BlockTextureAnimInstance*)addr;
+    addr += block_setup_texture_anims(block);
     addr = mmAlign2(addr);
     block->xzBitmap = (s16*)addr;
     addr += block->unk34 * 2;
@@ -289,7 +288,7 @@ RECOMP_PATCH void block_load(s32 id, s32 param_2, s32 globalMapIdx, u8 queue) {
     recomp_on_block_loaded(id, block);
 
     if (queue != 0) {
-        queue_block_emplace(1, (u32* ) block, (u8*)id, param_2, globalMapIdx);
+        queue_block_emplace(1, (u32* ) block, (u8*) id, param_2, globalMapIdx);
     } else {
         block_emplace(block, id, param_2, globalMapIdx);
     }
@@ -329,16 +328,16 @@ RECOMP_PATCH void block_emplace(Block *block, s32 id, s32 param_3, s32 globalMap
     func_80058F3C();
 }
 
-RECOMP_PATCH void func_8004225C(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** pols, Vertex** vtxs2, Triangle** pols2) {
+RECOMP_PATCH void track_draw(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** pols, Vertex** vtxs2, Triangle** pols2) {
     Mtx* mtx;
 
     gMainDL = *gdl;
     gWorldRSPMatrices = *mtxs;
     D_800B51D4 = *vtxs;
     D_800B51D8 = *pols;
-    UINT_80092a98 |= 0x21;
+    gTrackFlags |= (TRACKFLAG_ANTI_ALIAS | TRACKFLAG_UNK1);
     if ((gMapType == MAPTYPE_MOBILE) || (gMapType == MAPTYPE_3)) {
-        UINT_80092a98 &= ~1;
+        gTrackFlags &= ~TRACKFLAG_UNK1;
     }
     gSPTexture(gMainDL++, -1, -1, 3, 0, 1);
     mtx = get_some_model_view_mtx();
@@ -346,38 +345,40 @@ RECOMP_PATCH void func_8004225C(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle**
     camera_setup_viewport_and_matrices(&gMainDL, 0);
     // @recomp: Reset matrix tagging
     gEXMatrixGroupSimpleNormalAuto(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-    func_80044BEC();
+    track_update_frustum();
     if (func_80010048() != 0) {
-        if (!(UINT_80092a98 & 8)) {
-            UINT_80092a98 |= 8;
+        if (!(gTrackFlags & TRACKFLAG_UNK8)) {
+            gTrackFlags |= TRACKFLAG_UNK8;
         }
         camera_set_aspect(1.7777778f);
-    } else if (UINT_80092a98 & 8) {
-        UINT_80092a98 &= ~8;
-        camera_set_aspect(1.3333334f);
+    } else {
+        if (gTrackFlags & TRACKFLAG_UNK8) {
+            gTrackFlags &= ~TRACKFLAG_UNK8;
+            camera_set_aspect(1.3333334f);
+        }
     }
-    if (UINT_80092a98 & 0x10000) {
-        if (UINT_80092a98 & 8) {
+    if (gTrackFlags & TRACKFLAG_UNK10000) {
+        if (gTrackFlags & TRACKFLAG_UNK8) {
             camera_set_aspect(1.7777778f);
         } else {
             camera_set_aspect(1.3333334f);
         }
         viewport_disable(get_camera_selector(), 0U);
         vi_some_video_setup(0);
-        UINT_80092a98 &= ~0x10000;
+        gTrackFlags &= ~TRACKFLAG_UNK10000;
     }
-    if (UINT_80092a98 & 0x10) {
+    if (gTrackFlags & TRACKFLAG_SKY) {
         setup_rsp_camera_matrices(&gMainDL, &gWorldRSPMatrices);
         gDLL_7_Newday->vtbl->func13(&gMainDL, &gWorldRSPMatrices);
 
-        if (UINT_80092a98 & 0x40) {
+        if (gTrackFlags & TRACKFLAG_SKY_OBJECTS) {
             // @recomp: Tag newstars matrices
             gEXMatrixGroupSimpleNormal(gMainDL++, NEWSTARS_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             gDLL_10_Newstars->vtbl->func1(&gMainDL);
         }
         // @recomp: Tag newday matrices (stops the sun from flickering, auto order does not work)
         gEXMatrixGroupSimpleNormal(gMainDL++, NEWDAY_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-        gDLL_7_Newday->vtbl->func3(&gMainDL, &gWorldRSPMatrices, UINT_80092a98 & 0x40);
+        gDLL_7_Newday->vtbl->func3(&gMainDL, &gWorldRSPMatrices, gTrackFlags & TRACKFLAG_SKY_OBJECTS);
         // @recomp: Reset matrix tagging
         gEXMatrixGroupSimpleNormalAuto(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
     } else {
@@ -386,7 +387,7 @@ RECOMP_PATCH void func_8004225C(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle**
     gDLL_11_Newlfx->vtbl->func2();
     gDLL_57->vtbl->func3();
     gDLL_58->vtbl->func2();
-    if (UINT_80092a98 & 0x20000) {
+    if (gTrackFlags & TRACKFLAG_SUN_GLARE) {
         if (gDLL_7_Newday->vtbl->func23(&gMainDL) == 0) {
             gDLL_8->vtbl->func3(&gMainDL);
         }
@@ -394,8 +395,8 @@ RECOMP_PATCH void func_8004225C(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle**
         gDLL_8->vtbl->func3(&gMainDL);
     }
     D_800B51E4 = get_camera();
-    func_80048F58();
-    track_c_func();
+    block_color_table_tick();
+    track_draw_main();
     // @recomp: Tag newclouds matrices
     gEXMatrixGroupSimpleNormalAuto(gMainDL++, NEWCLOUDS_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
     gDLL_9_Newclouds->vtbl->func4(&gMainDL);
@@ -406,124 +407,133 @@ RECOMP_PATCH void func_8004225C(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle**
     *mtxs = gWorldRSPMatrices;
     *vtxs = D_800B51D4;
     *pols = D_800B51D8;
-    UINT_80092a98 &= ~2;
+    gTrackFlags &= ~TRACKFLAG_UPDATE_STREAMING;
     // @fake
     //if (1) { } if (1) { } if (1) { } if (1) { }
     // diProfEnd("Trackdraw") (default.dol)
 }
 
-RECOMP_PATCH void track_c_func(void) {
-    s32 sp294;
+RECOMP_PATCH void track_draw_main(void) {
+    s32 xIdx;
     Block* block;
-    s32 temp_v1;
-    s8 *var_s8;
-    s32 temp_v0;
+    s32 gridIdx;
+    s8 *blockIdxMap;
+    s32 blockIdx;
     s32 sp274[4];
     s32 sp264[4];
     s32 sp254[4];
     s32 sp244[4];
-    s32 sp240;
-    s32 var_s2;
-    s32 var_s3;
-    s32 temp_s1;
+    s32 layer;
+    s32 z;
+    s32 zIdx;
+    s32 x;
     s8* sp230;
-    u8 sp130[BLOCKS_GRID_TOTAL_CELLS];
+    u8 blockVisibilities[BLOCKS_GRID_TOTAL_CELLS];
     s8 objVisibilities[MAX_VISIBLE_OBJECTS];
-    Mtx* sp78;
+    Mtx* rspMtxs;
 
-    dl_add_debug_info(gMainDL, 0, "track/track.c", 0x52B);
+    dl_add_debug_info(gMainDL, 0, "track/track.c", 1323);
     some_cell_func(&D_800B9780);
     shadows_func_8004D9B8();
     shadows_func_8004DABC();
     gRenderListLength = 1;
     gBlocksToDrawIdx = 0;
-    dl_add_debug_info(gMainDL, 0, "track/track.c", 0x53D);
+    dl_add_debug_info(gMainDL, 0, "track/track.c", 1341);
     gDLL_9_Newclouds->vtbl->func6(&gMainDL, gUpdateRate, 0);
     // @recomp: Tag projgfx matrices
     gEXMatrixGroupSimpleNormalAuto(gMainDL++, PROJGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
     gDLL_15_Projgfx->vtbl->func5(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 3);
-    if (UINT_80092a98 & 0x10) {
+    if (gTrackFlags & TRACKFLAG_SKY) {
         // @recomp: Tag minic matrices
         gEXMatrixGroupSimpleNormalAuto(gMainDL++, MINIC_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
         gDLL_12_Minic->vtbl->func3(&gMainDL, &gWorldRSPMatrices);
     }
     // @recomp: Reset matrix tagging
     gEXMatrixGroupSimpleNormalAuto(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-    dl_add_debug_info(gMainDL, 0, "track/track.c", 0x545);
-    var_s8 = D_80092B0C;
-    sp78 = gWorldRSPMatrices;
-    sp240 = ARRAYCOUNT(gBlockIndices);
-    while (--sp240 >= 0) {
-        sp230 = gBlockIndices[sp240];
-        D_800B9714 = D_800B9700[sp240];
-        func_80047404(gMapCurrentStreamCoordsX + 7, gMapCurrentStreamCoordsZ + 7, sp274, sp264, sp254, sp244, sp240, 1, D_800B4A54);
-        for (temp_v1 = 0; temp_v1 < ARRAYCOUNT_S(sp130); temp_v1++) { sp130[temp_v1] = 0; }
+    dl_add_debug_info(gMainDL, 0, "track/track.c", 1349);
+    blockIdxMap = D_80092B0C;
+    rspMtxs = gWorldRSPMatrices;
+    layer = MAP_LAYER_COUNT;
+    while (--layer >= 0) {
+        // Determine which blocks are visible from the current stream coords
+        sp230 = gBlockIndices[layer];
+        D_800B9714 = D_800B9700[layer];
+        map_check_block_grid(gMapCurrentStreamCoordsX + 7, gMapCurrentStreamCoordsZ + 7, 
+            sp274, sp264, sp254, sp244, layer, /*checkVis*/TRUE, D_800B4A54);
+        for (gridIdx = 0; gridIdx < ARRAYCOUNT_S(blockVisibilities); gridIdx++) { blockVisibilities[gridIdx] = 0; }
         
-        for (var_s2 = sp274[2]; sp274[3] >= var_s2; var_s2++) {
-            for (temp_s1 = sp274[0]; sp274[1] >= temp_s1; temp_s1++) {
-                sp130[(temp_s1 + 7) + ((var_s2 + 7) << 4)] = 1;
+        for (z = sp274[2]; sp274[3] >= z; z++) {
+            for (x = sp274[0]; sp274[1] >= x; x++) {
+                blockVisibilities[(x + 7) + ((z + 7) << 4)] = 1;
             }
         }
-        for (var_s2 = sp264[2]; sp264[3] >= var_s2; var_s2++) {
-            for (temp_s1 = sp264[0]; sp264[1] >= temp_s1; temp_s1++) {
-                sp130[(temp_s1 + 7) + ((var_s2 + 7) << 4)] = 1;
+        for (z = sp264[2]; sp264[3] >= z; z++) {
+            for (x = sp264[0]; sp264[1] >= x; x++) {
+                blockVisibilities[(x + 7) + ((z + 7) << 4)] = 1;
             }
         }
-        for (var_s2 = sp254[2]; sp254[3] >= var_s2; var_s2++) {
-            for (temp_s1 = sp254[0]; sp254[1] >= temp_s1; temp_s1++) {
-                sp130[(temp_s1 + 7) + ((var_s2 + 7) << 4)] = 1;
+        for (z = sp254[2]; sp254[3] >= z; z++) {
+            for (x = sp254[0]; sp254[1] >= x; x++) {
+                blockVisibilities[(x + 7) + ((z + 7) << 4)] = 1;
             }
         }
-        for (var_s2 = sp244[2]; sp244[3] >= var_s2; var_s2++) {
-            for (temp_s1 = sp244[0]; sp244[1] >= temp_s1; temp_s1++) {
-                sp130[(temp_s1 + 7) + ((var_s2 + 7) << 4)] = 1;
+        for (z = sp244[2]; sp244[3] >= z; z++) {
+            for (x = sp244[0]; sp244[1] >= x; x++) {
+                blockVisibilities[(x + 7) + ((z + 7) << 4)] = 1;
             }
         }
         // @fake
         //if (sp240){}
 
-        for (sp294 = 0; sp294 < BLOCKS_GRID_SPAN; sp294++) {
-            temp_s1 = var_s8[sp294];
-            for (var_s3 = 0; var_s3 < BLOCKS_GRID_SPAN; var_s3++) {
-                var_s2 = var_s8[var_s3];
-                temp_v1 = GRID_INDEX(var_s2, temp_s1);
-                temp_v0 = sp230[temp_v1];
-                if (temp_v0 < 0) {
+        // Add visible blocks to render list
+        for (xIdx = 0; xIdx < BLOCKS_GRID_SPAN; xIdx++) {
+            x = blockIdxMap[xIdx];
+            for (zIdx = 0; zIdx < BLOCKS_GRID_SPAN; zIdx++) {
+                z = blockIdxMap[zIdx];
+                gridIdx = GRID_INDEX(z, x);
+                blockIdx = sp230[gridIdx];
+                if (blockIdx < 0) {
                     block = NULL;
                 } else {
-                    block = gLoadedBlocks[temp_v0];
+                    block = gLoadedBlocks[blockIdx];
                     block->vtxFlags ^= 1;
-                    if (sp130[temp_v1] == 0) {
+                    if (blockVisibilities[gridIdx] == 0) {
+                        // Block is not visible according to visgrid
                         continue;
                     }
                 }
                 // @recomp: Don't cull if frame interpolation is active
-                if (temp_v0 < 0 || (!recomp_frameInterpActive && func_800451A0(temp_s1, var_s2, block) == 0)) {
+                if (blockIdx < 0 || (!recomp_frameInterpActive && block_frustum_check(x, z, block) == FALSE)) {
                     continue;
                 }
-                D_800B97B8 = temp_s1 * BLOCKS_GRID_UNIT_F;
-                D_800B97BC = var_s2 * BLOCKS_GRID_UNIT_F;
-                block_calc_shape_visibility(block, temp_s1, var_s2, sp240);
-                if (UINT_80092a98 & 0x8000) {
+                // Calculate visible shapes/triangles
+                D_800B97B8 = x * BLOCKS_GRID_UNIT_F;
+                D_800B97BC = z * BLOCKS_GRID_UNIT_F;
+                block_calc_shape_visibility(block, x, z, layer);
+                // Update block lighting
+                if (gTrackFlags & TRACKFLAG_BLOCK_LIGHTING) {
                     if (block->unk3E != 0) {
-                        block_compute_vertex_colors(block, temp_s1, var_s2, 0);
+                        block_compute_vertex_colors(block, x, z, 0);
                     }
-                    if ((block->unk49 != 0) && (UINT_80092a98 & 0x100)) {
-                        func_8001F4C0(block, temp_s1, var_s2);
+                    if ((block->numSphereMappedShapes != 0) && (gTrackFlags & TRACKFLAG_UNK100)) {
+                        func_8001F4C0(block, x, z);
                     }
                 }
                 // @recomp: Pass extra info to block_add_to_render_list so it knows the absolute coords of the block
-                recomp_addBlockToRenderListGridInfo.x = temp_s1 + gMapCurrentStreamCoordsX;
-                recomp_addBlockToRenderListGridInfo.z = var_s2 + gMapCurrentStreamCoordsZ;
-                recomp_addBlockToRenderListGridInfo.layer = sp240;
-                recomp_addBlockToRenderListGridInfo.blockIndex = temp_v0;
+                recomp_addBlockToRenderListGridInfo.x = x + gMapCurrentStreamCoordsX;
+                recomp_addBlockToRenderListGridInfo.z = z + gMapCurrentStreamCoordsZ;
+                recomp_addBlockToRenderListGridInfo.layer = layer;
+                recomp_addBlockToRenderListGridInfo.blockIndex = blockIdx;
+                // Add to render list
                 block_add_to_render_list(block, D_800B97B8, D_800B97BC);
             }
         }
     }
-    func_80043FD8(objVisibilities);
-    draw_render_list(sp78, objVisibilities);
-    dl_add_debug_info(gMainDL, 0, "track/track.c", 0x5B2);
+    // Add visible objects to render list
+    track_add_visible_objects(objVisibilities);
+    // Draw blocks and objects
+    draw_render_list(rspMtxs, objVisibilities);
+    dl_add_debug_info(gMainDL, 0, "track/track.c", 1458);
     // @recomp: Tag projgfx matrices
     gEXMatrixGroupSimpleNormalAuto(gMainDL++, PROJGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
     gDLL_15_Projgfx->vtbl->func5(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 2);
@@ -544,16 +554,16 @@ RECOMP_PATCH void track_c_func(void) {
     gDLL_59_Minimap->vtbl->func1(&gMainDL, &gWorldRSPMatrices);
     shadows_func_8004D974(0);
     D_800B1847 = 0;
-    dl_add_debug_info(gMainDL, 0, "track/track.c", 0x5C6);
+    dl_add_debug_info(gMainDL, 0, "track/track.c", 1478);
 }
 
 RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
     BlockShape* shape;
     Vtx_t *tempVtx;
     s32 shapeIdx;
-    BlockTextureScroller* temp_v0_7;
+    BlockTextureScroller* texScroller;
     s32 i;
-    BlocksTextureIndexData* temp_v0_4;
+    BlockTextureAnimInstance* temp_v0_4;
     u32 forceTexSet;
     s32 spE0;
     s32 spDC;
@@ -562,51 +572,51 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
     s32 spD0;
     s32 spCC;
     EncodedTri* temp_a1;
-    s32 spC4;
+    s32 lastBlockIdx;
     EncodedTri* var_a0;
     EncodedTri* var_s2;
     Gfx* temp_s5;
     Texture* tex1;
     Texture* tex0;
     s32 temp_s0_2;
-    s32 temp_v1;
-    Mtx* spA4;
-    s8 spA3;
+    s32 blockIdx;
+    Mtx* blockMtxList;
+    s8 lastBlockMtx;
     s8 temp2;
-    s32 temp_t6;
+    s32 idx;
     s32 renderFlags;
     s32 frameOptions;
     Block* block;
-    Object** sp8C;
+    Object** objList;
     Object *obj;
 
-    spC4 = -1;
-    sp8C = get_world_objects(NULL, NULL);
+    lastBlockIdx = -1;
+    objList = get_world_objects(NULL, NULL);
     gDLL_57->vtbl->func2(&spE0, &spDC, &spD8, &spD4, &spD0, &spCC);
     for (i = 1; i < gRenderListLength; i++) {
         // @recomp: Use custom render list
-        temp_t6 = shapeIdx = (recomp_RenderList[i] & 0x3F80) >> 7;
+        idx = shapeIdx = (recomp_RenderList[i] & 0x3F80) >> 7;
         if (recomp_RenderList[i] & 0x40) {
-            obj = sp8C[temp_t6];
-            func_800436DC(obj, visibilities[temp_t6]);
-            spA3 = 0;
+            obj = objList[idx];
+            track_draw_object(obj, visibilities[idx]);
+            lastBlockMtx = 0;
         } else {
             // @fake
             //if (i) {}
             // @recomp: Use custom render list
-            temp_v1 = recomp_RenderList[i] & 0x3F;
+            blockIdx = recomp_RenderList[i] & 0x3F;
             forceTexSet = FALSE;
-            if (temp_v1 != spC4) {
-                spA3 = -1;
+            if (blockIdx != lastBlockIdx) {
+                lastBlockMtx = -1;
                 SHORT_800b51dc = -1;
-                spC4 = temp_v1;
+                lastBlockIdx = blockIdx;
                 UINT_800b51e0 = TEX_FRAME(0);
-                spA4 = (temp_v1 * 2) + rspMtxs;
-                block = gBlocksToDraw[temp_v1];
+                blockMtxList = (blockIdx * 2) + rspMtxs;
+                block = gBlocksToDraw[blockIdx];
             }
             // @recomp: Tag block shape matrices (tag each uniquely since shapes can be rendered in any order, independently of the block)
             //          TODO: animated water is jittery
-            RecompBlockGridInfo *gridInfo = &recomp_blocksToDrawGridCells[temp_v1];
+            RecompBlockGridInfo *gridInfo = &recomp_blocksToDrawGridCells[blockIdx];
             RecompBlockInterpState *blockInterpState = &recomp_blockInterpStates[gridInfo->blockIndex];
             // Note: Blocks can be reused in different grid cells, so we need to identify the exact absolute cell and
             //       not just the block itself (the same block can be rendered in two or more locations on the same frame).
@@ -615,23 +625,23 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
                 ((gridInfo->x + 100) * 200 * 5 * 1000) + 
                 ((gridInfo->z + 100)       * 5 * 1000) + 
                 (gridInfo->layer               * 1000) + 
-                temp_t6 + 
+                idx + 
                 BLOCK_SHAPE_MTX_GROUP_ID_START;
             if (blockInterpState->skipInterpolation) {
                 gEXMatrixGroupSkipAll(gMainDL++, shapeMatrixGroupID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             } else {
                 gEXMatrixGroupSimpleVerts(gMainDL++, shapeMatrixGroupID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             }
-            shape = &block->shapes[temp_t6];
+            shape = &block->shapes[idx];
             if (shape->flags & RENDER_UNK20000000) {
-                if (spA3 != 2) {
-                    gSPMatrix(gMainDL++, OS_K0_TO_PHYSICAL(&spA4[1]), G_MTX_MODELVIEW | G_MTX_LOAD);
-                    spA3 = 2;
+                if (lastBlockMtx != 2) {
+                    gSPMatrix(gMainDL++, OS_K0_TO_PHYSICAL(&blockMtxList[1]), G_MTX_MODELVIEW | G_MTX_LOAD);
+                    lastBlockMtx = 2;
                 }
             } else {
-                if (spA3 != 1) {
-                    gSPMatrix(gMainDL++, OS_K0_TO_PHYSICAL(&spA4[0]), G_MTX_MODELVIEW | G_MTX_LOAD);
-                    spA3 = 1;
+                if (lastBlockMtx != 1) {
+                    gSPMatrix(gMainDL++, OS_K0_TO_PHYSICAL(&blockMtxList[0]), G_MTX_MODELVIEW | G_MTX_LOAD);
+                    lastBlockMtx = 1;
                 }
             }
             if (shape->materialIndex == 0xFF) {
@@ -658,10 +668,10 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
             }
             renderFlags = shape->flags;
             if (renderFlags & RENDER_SHAPE_ANIMATED) {
-                temp_v0_4 = func_8004A284(block, shape->animatorID);
+                temp_v0_4 = block_texanim_get_instance(block, shape->animatorID);
                 if (temp_v0_4 != NULL) {
-                    frameOptions = gBlockTextures[temp_v0_4->textureIndex].unk4 << 8;
-                    renderFlags |= gBlockTextures[temp_v0_4->textureIndex].flags;
+                    frameOptions = gBlockTexAnimTable[temp_v0_4->texanimID].unk4 << 8;
+                    renderFlags |= gBlockTexAnimTable[temp_v0_4->texanimID].flags;
                 } else {
                     frameOptions = 0;
                 }
@@ -680,11 +690,11 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
                 tex1 = NULL;
             }
             tex_gdl_set_textures(&gMainDL, tex0, tex1, renderFlags, frameOptions, forceTexSet, FALSE);
-            if (shape->unk16 != 0xFF) {
-                temp_v0_7 = func_80049D68(shape->unk16);
-                gDPSetTileSize(gMainDL++, 0, temp_v0_7->uOffsetA, temp_v0_7->vOffsetA, (tex0->width - 1) << 2, (tex0->height - 1) << 2);
+            if (shape->texScrollerID != 0xFF) {
+                texScroller = block_texscroll_get(shape->texScrollerID);
+                gDPSetTileSize(gMainDL++, 0, texScroller->uOffsetA, texScroller->vOffsetA, (tex0->width - 1) << 2, (tex0->height - 1) << 2);
                 if (tex1 != NULL) {
-                    gDPSetTileSize(gMainDL++, 1, temp_v0_7->uOffsetB, temp_v0_7->vOffsetB, (tex1->width - 1) << 2, (tex1->height - 1) << 2);
+                    gDPSetTileSize(gMainDL++, 1, texScroller->uOffsetB, texScroller->vOffsetB, (tex1->width - 1) << 2, (tex1->height - 1) << 2);
                 }
             } else if ((tex0 != NULL) && (tex0->flags & (RENDER_COMPOSITE_BASE | RENDER_COMPOSITE_OVERLAY))) {
                 gDPSetTileSize(gMainDL++, 0, 0, 0, (tex0->width - 1) << 2, (tex0->height - 1) << 2);
@@ -1012,7 +1022,7 @@ RECOMP_PATCH void block_add_to_render_list(Block *block, f32 x, f32 z) {
     }
 }
 
-RECOMP_PATCH void func_80043FD8(s8* objVisibilities) {
+RECOMP_PATCH void track_add_visible_objects(s8* objVisibilities) {
     Object* object;
     Object** objects;
     s32 numObjs;
@@ -1067,11 +1077,11 @@ RECOMP_PATCH void func_80043FD8(s8* objVisibilities) {
     }
     if (gRenderListLength >= 2) {
         // @recomp: Use custom render list
-        func_800441F4(recomp_RenderList, gRenderListLength);
+        track_sort_render_list(recomp_RenderList, gRenderListLength);
     }
 }
 
-RECOMP_PATCH void func_800436DC(Object* obj, s32 visibility) {
+RECOMP_PATCH void track_draw_object(Object* obj, s32 visibility) {
     s8 sp37;
     u8 someBool;
 
@@ -1082,12 +1092,14 @@ RECOMP_PATCH void func_800436DC(Object* obj, s32 visibility) {
     someBool = TRUE;
     if ((obj->id == OBJ_IMSnowBike) || (obj->id == OBJ_CRSnowBike)) {
         someBool = TRUE;
-        // TODO: snowbike dll
-        if (((DLL_Unknown*)obj->dll)->vtbl->func[13].withOneArgS32((s32)obj) != 0) {
+        if (((DLL_IVehicle*)obj->dll)->vtbl->func13(obj) != 0) {
             someBool = FALSE;
         }
     }
     // @bug: sp37 is uninitialized if someBool is false
+#ifdef AVOID_UB
+    sp37 = 0; // TODO: is this an ok default?
+#endif
     if (someBool != FALSE) {
         sp37 = gDLL_13_Expgfx->vtbl->func10(obj);
     }

@@ -85,7 +85,7 @@ RECOMP_PATCH s32 minimap_print(Gfx **gdl, s32 arg1) {
         if (player->parent) {
             mapID = player->parent->mapID;
         } else {
-            mapID = map_get_map_id_from_xz_ws(player->srt.transl.x, player->srt.transl.z);
+            mapID = map_world_xz_to_map_id(player->srt.transl.x, player->srt.transl.z);
         }
 
         //Iterate over the map definitions until the one with the relevant mapID is found

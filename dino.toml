@@ -184,7 +184,7 @@ text = "cop0_status_write(ctx, cop0_status_read(ctx) & ~0x04000000);"
 # Patch culling frustum calculation to support the dynamic recomp aspect ratio
 [[patches.hook]]
 before_vram = 0x80044C4C
-func = "func_80044BEC"
+func = "track_update_frustum"
 text = """float _aspectHack;
     {
         recomp_context savedCtx = *ctx;
