@@ -195,7 +195,14 @@ static void video_tab(void) {
     dbgui_textf("gDisplayHertz: %d", gDisplayHertz);
     dbgui_textf("gUpdateRate: %d", gUpdateRate);
     dbgui_textf("gUpdateRateF: %f", gUpdateRateF);
-    dbgui_textf("gViUpdateRateTarget: %d", gViUpdateRateTarget);
+    dbgui_push_item_width(80);
+    s32 updateRateTarget = gViUpdateRateTarget;
+    if (dbgui_input_int("gViUpdateRateTarget", &updateRateTarget)) {
+        if (updateRateTarget < 1) updateRateTarget = 1;
+        if (updateRateTarget > 16) updateRateTarget = 16; // arbitrary upper limit, game slows down heavily at higher numbers
+        gViUpdateRateTarget = updateRateTarget;
+    }
+    dbgui_pop_item_width();
     dbgui_textf("gViBlackTimer: %d", gViBlackTimer);
     dbgui_textf("gAspectRatio: %f", gAspectRatio);
     dbgui_textf("gViHeightRatio: %f", gViHeightRatio);
