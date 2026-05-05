@@ -376,7 +376,7 @@ RECOMP_PATCH void cmdmenu_print(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
     // @recomp: Fullscreen scissors
     gEXSetScissorAlign((*gdl)++, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_RIGHT, 0, 0, -SCREEN_WIDTH, 0, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    //Draw Spell reticle when aiming
+    //Draw Spell reticle when aiming (@bug: x coord not adjusted in widescreen)
     if (((DLL_210_Player*)player->dll)->vtbl->func77(player, &screenX, &screenY)) {
         tex_animate(sCrosshairTex, &sCrosshairAnimRenderFlags, &sCrosshairAnimProgress);
         rcp_screen_full_write(

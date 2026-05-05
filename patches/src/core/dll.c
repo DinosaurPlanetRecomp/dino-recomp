@@ -16,7 +16,7 @@ extern u32 *gFile_DLLSIMPORTTAB;
 
 extern DLLFile *dll_load_from_tab(u16 tabidx, s32 *sizeOut);
 
-RECOMP_PATCH void init_dll_system() {
+RECOMP_PATCH void init_dll_system(void) {
     s32 dllNone = DLL_NONE;
 
     queue_alloc_load_file((void**)&gFile_DLLS_TAB, DLLS_TAB);
@@ -28,7 +28,7 @@ RECOMP_PATCH void init_dll_system() {
     }
 
     // @recomp: Use new DLL list size
-    gLoadedDLLList = (DLLState*)mmAlloc(sizeof(DLLState) * RECOMP_MAX_LOADED_DLLS, ALLOC_TAG_DLL_COL, NULL);
+    gLoadedDLLList = (DLLState*)mmAlloc(sizeof(DLLState) * RECOMP_MAX_LOADED_DLLS, ALLOC_TAG_DLL_COL, ALLOC_NAME("dllTab"));
 
     gLoadedDLLCount = RECOMP_MAX_LOADED_DLLS;
     while (gLoadedDLLCount != 0) {
@@ -192,12 +192,14 @@ RECOMP_PATCH s32 dll_unload(void *dllInterfacePtr) {
     idx = (u32)DLL_INTERFACE_TO_STATE(dllInterfacePtr) - (u32)gLoadedDLLList;
 
     if ((idx % 16) != 0) {
+        //STUBBED_PRINTF("DLLS: free fail, DLL not loaded.\n");
         return FALSE;
     }
 
     idx >>= 4;
 
     if (idx >= gLoadedDLLCount) {
+        //STUBBED_PRINTF("DLLS: free fail, DLL not loaded.\n");
         return FALSE;
     }
 

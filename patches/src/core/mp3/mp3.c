@@ -15,7 +15,7 @@ void recomp_update_mp3_volume(void) {
     mp3_update_vars(&g_Mp3Vars);
 }
 
-RECOMP_PATCH void mp3_set_volume(s32 vol, s32 a1) {
+RECOMP_PATCH void mp3_set_volume(s32 vol, s32 arg1) {
     // @recomp: Save last MP3 volume so we can use it if dialog volume is changed mid-playback
     recomp_lastMp3Vol = vol;
 
@@ -24,29 +24,31 @@ RECOMP_PATCH void mp3_set_volume(s32 vol, s32 a1) {
 
     if (vol < 0) {
         g_Mp3Vars.currentvol = 0;
+    } else if (vol > AL_VOL_FULL) {
+        g_Mp3Vars.currentvol = AL_VOL_FULL;
     } else {
         g_Mp3Vars.currentvol = vol;
-        if (vol > 0x7fff) {
-            g_Mp3Vars.currentvol = 0x7fff;
-        }
     }
-
-    g_Mp3Vars.var8009c3e8 = a1;
+    g_Mp3Vars.var8009c3e8 = (u32) arg1;
 }
 
-RECOMP_PATCH void mp3_play_file(s32 romaddr, s32 filesize) {
-    if (g_Mp3Vars.dmafunc != NULL) {
-        // @recomp: Save last MP3 volume so we can use it if dialog volume is changed mid-playback
-        recomp_lastMp3Vol = 0x7fff;
-
-        g_Mp3Vars.dmaoffset = 0;
-        g_Mp3Vars.var8009c3e8 = 0;
-        // @recomp: Factor in recomp dialog volume
-        g_Mp3Vars.currentvol = 0x7fff * (recomp_get_dialog_volume() / 100.0f);
-        g_Mp3Vars.statetimer = 5;
-        g_Mp3Vars.romaddr = romaddr;
-        g_Mp3Vars.filesize = filesize;
-        mp3_dma();
-        g_Mp3Vars.state = 4;
+RECOMP_PATCH void mp3_play_file(s32 romAddr, s32 size) {
+    if (g_Mp3Vars.dmafunc == NULL) {
+        return;
     }
+
+    // @recomp: Save last MP3 volume so we can use it if dialog volume is changed mid-playback
+    recomp_lastMp3Vol = AL_VOL_FULL;
+
+    g_Mp3Vars.romaddr = romAddr;
+    g_Mp3Vars.filesize = size;
+    g_Mp3Vars.dmaoffset = 0;
+    g_Mp3Vars.var8009c3e8 = 0;
+    // @recomp: Factor in recomp dialog volume
+    g_Mp3Vars.currentvol = AL_VOL_FULL * (recomp_get_dialog_volume() / 100.0f);
+    g_Mp3Vars.statetimer = 5;
+    
+    mp3_dma();
+    
+    g_Mp3Vars.state = MP3STATE_LOADING;
 }

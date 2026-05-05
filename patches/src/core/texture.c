@@ -74,7 +74,7 @@ RECOMP_PATCH Texture* tex_load(s32 id, u8 param2) {
         read_file_region(binFileID, gTexLoadBuffer, offset, (numFrames + 1) << 3);
     } else {
         gTexLoadBuffer[0] = 0;
-        gTexLoadBuffer[1] = rarezip_uncompress_size_rom(binFileID, offset, 1);
+        gTexLoadBuffer[1] = rarezip_uncompress_size_rom(binFileID, offset, TRUE);
         gTexLoadBuffer[2] = compressedSize;
     }
     
@@ -88,11 +88,12 @@ RECOMP_PATCH Texture* tex_load(s32 id, u8 param2) {
         if (notCompressed) {
             uncompressedSize = compressedSize - 0x4;
         }
-        tex = mmAlloc((uncompressedSize + 0xE4), gTexAllocTag, NULL);
+        tex = mmAlloc((uncompressedSize + 0xE4), gTexAllocTag, ALLOC_NAME("tex"));
         if (tex == NULL) {
             if ((frame + 1) == 1) {
                 return NULL;
             }
+            // STUBBED_PRINTF("Multiple texture fail!!\n");
             firstTex->animDuration = (s16) (numFrames << 8);
             frame = numFrames;
         } else {

@@ -41,12 +41,12 @@ RECOMP_PATCH void screens_draw(Gfx **gdl) {
         ptr = sLoadedScreen;
         ptr += 8;
 
-        // @recomp: Fullscreen scissor
+        // @recomp start
+        // Fullscreen scissor
         gEXPushScissor((*gdl)++);
         gEXSetScissorAlign((*gdl)++, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_RIGHT, 0, 0, -SCREEN_WIDTH, 0, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
         gDPSetScissor((*gdl)++, G_SC_NON_INTERLACE, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-        // @recomp start
         // Fill behind screen with black since the screen texture won't fill widescreen (it's a 4:3 image)
         rcp_set_screen_color(0, 0, 0);
         rcp_clear_screen(gdl, NULL, CLEAR_COLOR);

@@ -30,7 +30,7 @@ extern s8 sCutToNextScreen;
 extern f32 sLogoTimer;
 extern f32 sGlowTimer;
 
-RECOMP_PATCH s32 rareware_update1() {
+RECOMP_PATCH s32 rareware_update1(void) {
     s32 delay;
 
     //Get gUpdateRate, clamped at maximum of 3

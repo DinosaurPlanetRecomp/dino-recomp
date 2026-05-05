@@ -21,7 +21,7 @@ RECOMP_PATCH void diPrintfInit() {
     /*
     u32 fbRes;
 
-    fbRes = get_some_resolution_encoded();
+    fbRes = vi_get_current_size();
     if (GET_VIDEO_WIDTH(fbRes) > 320) {
         D_800931AC = 1;
     }

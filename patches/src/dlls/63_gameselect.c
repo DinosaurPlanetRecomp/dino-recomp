@@ -81,12 +81,12 @@ RECOMP_PATCH void dll_63_draw(Gfx **gdl, Mtx **mtxs, Vertex **vtxs) {
             // TODO: the clear screen is only necessary because coming from the rolling demo, some 3d stuff still draws??
             rcp_clear_screen(gdl, mtxs, CLEAR_COLOR);
             gEXSetRectAlign((*gdl)++, G_EX_ORIGIN_CENTER, G_EX_ORIGIN_CENTER, (-640 / 2) * 4, 0, (640 / 2) * 4, 0);
-            rcp_screen_full_write(gdl, sBackgroundTexture, 0, 0, 0, 0, 0xFF, 2);
+            rcp_screen_full_write(gdl, sBackgroundTexture, 0, 0, 0, 0, 0xFF, SCREEN_WRITE_CYC_COPY);
             gEXSetRectAlign((*gdl)++, G_EX_ORIGIN_NONE, G_EX_ORIGIN_NONE, 0, 0, 0, 0);
 
             if (sSubmenuIdx == SUBMENU_GAME_RECAP) {
-                rcp_screen_full_write(gdl, sLogoShadowTexture, 119, 92, 0, 0, 0xFF, 0);
-                rcp_screen_full_write(gdl, sLogoTexture, 129, 100, 0, 0, 0xFF, 0);
+                rcp_screen_full_write(gdl, sLogoShadowTexture, 119, 92, 0, 0, 0xFF, SCREEN_WRITE_TRANSLUCENT);
+                rcp_screen_full_write(gdl, sLogoTexture, 129, 100, 0, 0, 0xFF, SCREEN_WRITE_TRANSLUCENT);
 
                 numRecentTasks = gDLL_30_Task->vtbl->get_num_recently_completed();
                 if (numRecentTasks > 3) {
@@ -160,7 +160,7 @@ RECOMP_PATCH void dll_63_draw(Gfx **gdl, Mtx **mtxs, Vertex **vtxs) {
         } else {
             // Always redraw background in case picmenu redraws
             func_80010158(&ulx, &lrx, &uly, &lry);
-            rcp_screen_scroll_write(gdl, sBackgroundTexture, 0, 0, uly, lry, 0xFF, 2);
+            rcp_screen_scroll_write(gdl, sBackgroundTexture, 0, 0, uly, lry, 0xFF, SCREEN_WRITE_CYC_COPY);
         }
 
         // @recomp: Always redraw all

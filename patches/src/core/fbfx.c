@@ -8,10 +8,7 @@ extern s32 gFbfxEffectID;
 extern s32 gFbfxEffectDuration;
 extern s32 gFbfxTimer;
 
-RECOMP_PATCH void fbfx_tick(Gfx** gdl, s32 updateRate) {
-    s32 temp_v0;
-    s32 *v0;
-
+RECOMP_PATCH void fbfx_tick(Gfx **gdl, s32 updateRate) {
     if (gFbfxEffectID > FBFX_NONE) {
         if (gFbfxEffectID == FBFX_MOTION_BLUR && gFbfxTimer == 0) {
             gFbfxTimer = gFbfxEffectDuration;
@@ -28,7 +25,6 @@ RECOMP_PATCH void fbfx_tick(Gfx** gdl, s32 updateRate) {
         } else {
             gFbfxEffectID = FBFX_NONE;
         }
-        return;
     } else {
         gFbfxTimer = 0;
     }

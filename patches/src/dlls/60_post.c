@@ -18,8 +18,8 @@ extern f32 bss_8;
 extern f32 bss_C;
 extern f32 bss_10;
 
-RECOMP_PATCH s32 dll_60_update1() {
-    if (dExpansionPakMissing == 1) {
+RECOMP_PATCH s32 dll_60_update1(void) {
+    if (dExpansionPakMissing == TRUE) {
         return 0;
     } else {
         bss_0 += gUpdateRateF;

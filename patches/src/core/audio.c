@@ -50,7 +50,8 @@ RECOMP_PATCH s32 __amDMA(s32 addr, s32 len, void *state) {
      * pointer, it's better than nothing
      */
     if (!dmaPtr) {
-        //STUBBED_PRINTF("OH DEAR - No audio DMA buffers left\n");
+        // @recomp: Restore print
+        recomp_eprintf("OH DEAR - No audio DMA buffers left\n");
         return (int) osVirtualToPhysical(lastDmaPtr->ptr) + delta;
     }
 
