@@ -16,6 +16,15 @@
 // Object shadowtex models: 0x00008000 - 0x00008FFF
 #define OBJ_SHADOWTEX_MODEL_MTX_GROUP_ID_START 0x00008000
 
+// Waterfx circular ripples: 0x00009000 - 0x0000901F
+#define WATERFX_CIRC_RIPPLE_MTX_GROUP_ID_START 0x00009000
+// Waterfx splashes: 0x00009020 - 0x0000902F
+#define WATERFX_SPLASH_MTX_GROUP_ID_START 0x00009020
+// Waterfx splash particles: 0x00009030 - 0x0000904F
+#define WATERFX_SPLASH_PART_MTX_GROUP_ID_START 0x00009030
+// Waterfx movement ripples: 0x00009050 - 0x0000906F
+#define WATERFX_MOV_RIPPLE_MTX_GROUP_ID_START 0x00009050
+
 // Single groups for graphics DLLs (eventually should be more granular per DLL)
 #define NEWDAY_MTX_GROUP_ID 0x0000F000
 #define NEWSTARS_MTX_GROUP_ID 0x0000F001
@@ -23,7 +32,6 @@
 #define PROJGFX_MTX_GROUP_ID 0x0000F003
 #define MINIC_MTX_GROUP_ID 0x0000F004
 #define MODGFX_MTX_GROUP_ID 0x0000F005
-#define WATERFX_MTX_GROUP_ID 0x0000F006
 
 // Object models (min length: 180 * 16): 0x00100000 - 0x00101000
 // Note: The most models in a vanilla object is 12

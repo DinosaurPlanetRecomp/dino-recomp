@@ -514,7 +514,7 @@ RECOMP_PATCH void update_objects(void) {
         func_8002272C(player->linkedObject);
     }
 
-    gDLL_24_Waterfx->vtbl->func_6E8(gUpdateRate);
+    gDLL_24_Waterfx->vtbl->tick(gUpdateRate);
     gDLL_15_Projgfx->vtbl->func2(gUpdateRate, 0);
     gDLL_14_Modgfx->vtbl->func2(0, 0, 0);
     gDLL_13_Expgfx->vtbl->func2(0, gUpdateRate, 0, 0);

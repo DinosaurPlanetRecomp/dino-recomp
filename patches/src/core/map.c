@@ -542,9 +542,7 @@ RECOMP_PATCH void track_draw_main(void) {
     gEXMatrixGroupSimpleNormalAuto(gMainDL++, MODGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
     gDLL_14_Modgfx->vtbl->func11(objVisibilities);
     gDLL_14_Modgfx->vtbl->func6(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 0, 0);
-    // @recomp: Tag waterfx matrices
-    gEXMatrixGroupSimpleNormalAuto(gMainDL++, WATERFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-    gDLL_24_Waterfx->vtbl->func_C7C(&gMainDL, &gWorldRSPMatrices);
+    gDLL_24_Waterfx->vtbl->print(&gMainDL, &gWorldRSPMatrices);
     // @recomp: Tag projgfx matrices
     gEXMatrixGroupSimpleNormalAuto(gMainDL++, PROJGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
     gDLL_15_Projgfx->vtbl->func5(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 0);
