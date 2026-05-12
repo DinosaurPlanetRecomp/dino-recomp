@@ -247,8 +247,7 @@ RECOMP_PATCH void game_tick(void) {
 
 RECOMP_PATCH void main_handle_map_change(void) {
     if (gMainDoMapChange) {
-        // @recomp: Restore printf
-        recomp_printf("$$$$$  CHANGEMAP \n");
+        //recomp_printf("$$$$$  CHANGEMAP \n");
         mmSetDelay(0);
         if (D_8008CA30 != 0) {
             rcp_set_screen_color(0, 0, 0);

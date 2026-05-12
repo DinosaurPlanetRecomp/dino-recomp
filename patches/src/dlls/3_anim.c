@@ -569,7 +569,7 @@ RECOMP_PATCH s32 anim_process_event(Object* animObj, ModelInstance* animObjModel
     return 0;
 }
 
-RECOMP_PATCH void anim_func_730C(void) {
+RECOMP_PATCH void anim_update_camera(void) {
     s32 _pad;
     AnimObj_Setup *animobjSetup;
     f32 sp184;
