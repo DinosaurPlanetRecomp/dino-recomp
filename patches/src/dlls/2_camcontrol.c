@@ -10,8 +10,6 @@
 #include "sys/menu.h"
 #include "sys/memory.h"
 #include "sys/voxmap.h"
-//#include "sys/print.h"
-#include "sys/objects.h"
 #include "dll.h"
 
 #include "recomp/dlls/engine/2_camcontrol_recomp.h"
@@ -41,23 +39,7 @@ extern void CamControl_restore_player_coords(Object* obj);
 extern Object* CamControl_find_highlight_object(CamControl_Data* arg0, Object* arg1);
 
 static f32 recomp_get_camera_jump_threshold(f32 cameraSpeed) {
-    static _Bool lastInSeq = FALSE;
-
-    // TODO: these values are way too arbitrary
-    Object *player = get_player();
-    _Bool inSeq = player != NULL && (player->stateFlags & OBJSTATE_IN_SEQ);
-    if (inSeq != lastInSeq) {
-        lastInSeq = inSeq;
-        //recomp_printf("seq switch\n");
-        return -1.0f;
-    }
-    if (inSeq) {
-        // Player in sequence
-        return 7.0f + (cameraSpeed * 1.4f);
-    } else {
-        //return 50.0f + (cameraSpeed * 1.0f);
-        return 10000.0f;
-    }
+    return 75.0f + (cameraSpeed * 1.15f);
 }
 
 static void recomp_check_camera_jumps(void) {
@@ -72,21 +54,19 @@ static void recomp_check_camera_jumps(void) {
     f32 distToProjected = vec3_distance(&sCamData->srt.transl, &posProjected);
     f32 speed = vec3_length(&camVelocity);
     f32 threshold = recomp_get_camera_jump_threshold(speed);
-    // diPrintf("dist %f\n", &distToProjected);
-    // if (distToProjected > (threshold * 0.5f)) {
-    //     recomp_printf("dist %f / %f  (%f)\n", distToProjected, threshold, speed);
-    // }
+    if (distToProjected > (threshold * 0.5f)) {
+        recomp_printf("dist %f / %f  (%f)\n", distToProjected, threshold, speed);
+    }
     if (distToProjected > threshold) {
-        //recomp_printf("dist %f / %f  (%f)\n", distToProjected, threshold, speed);
         camVelocity.x = 0.0f;
         camVelocity.y = 0.0f;
         camVelocity.z = 0.0f;
-        recomp_set_skip_camera_interpolation(TRUE);
+        recomp_skip_camera_interp();
+        recomp_printf("skip camera interp, big jump\n");
     } else {
         camVelocity.x = posDelta.x;
         camVelocity.y = posDelta.y;
         camVelocity.z = posDelta.z;
-        recomp_set_skip_camera_interpolation(FALSE);
     }
 }
 
@@ -188,7 +168,9 @@ RECOMP_PATCH void CamControl_tick(void) {
     }
 
     // @recomp: Check for sudden camera movements
-    recomp_check_camera_jumps();
+    if (!recomp_isCameraInSeq) {
+        recomp_check_camera_jumps();
+    }
     
     sCamData->positionMirror.x = sCamData->srt.transl.x;
     sCamData->positionMirror.y = sCamData->srt.transl.y;

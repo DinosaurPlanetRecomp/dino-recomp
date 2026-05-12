@@ -344,7 +344,11 @@ RECOMP_PATCH void track_draw(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** po
     gSPMatrix(gMainDL++, OS_K0_TO_PHYSICAL(mtx), G_MTX_MODELVIEW | G_MTX_LOAD);
     camera_setup_viewport_and_matrices(&gMainDL, 0);
     // @recomp: Reset matrix tagging
-    gEXMatrixGroupSimpleNormalAuto(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    if (recomp_skipAllInterp) {
+        gEXMatrixGroupSkipAll(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    } else {
+        gEXMatrixGroupSimpleNormalAuto(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    }
     track_update_frustum();
     if (func_80010048() != 0) {
         if (!(gTrackFlags & TRACKFLAG_UNK8)) {
@@ -373,14 +377,26 @@ RECOMP_PATCH void track_draw(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** po
 
         if (gTrackFlags & TRACKFLAG_SKY_OBJECTS) {
             // @recomp: Tag newstars matrices
-            gEXMatrixGroupSimpleNormal(gMainDL++, NEWSTARS_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+            if (recomp_skipCameraInterp || recomp_skipAllInterp) {
+                gEXMatrixGroupSkipAll(gMainDL++, NEWSTARS_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+            } else {
+                gEXMatrixGroupSimpleNormal(gMainDL++, NEWSTARS_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+            }
             gDLL_10_Newstars->vtbl->func1(&gMainDL);
         }
         // @recomp: Tag newday matrices (stops the sun from flickering, auto order does not work)
-        gEXMatrixGroupSimpleNormal(gMainDL++, NEWDAY_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+        if (recomp_skipCameraInterp || recomp_skipAllInterp) {
+            gEXMatrixGroupSkipAll(gMainDL++, NEWDAY_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+        } else {
+            gEXMatrixGroupSimpleNormal(gMainDL++, NEWDAY_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+        }
         gDLL_7_Newday->vtbl->func3(&gMainDL, &gWorldRSPMatrices, gTrackFlags & TRACKFLAG_SKY_OBJECTS);
         // @recomp: Reset matrix tagging
-        gEXMatrixGroupSimpleNormalAuto(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+        if (recomp_skipAllInterp) {
+            gEXMatrixGroupSkipAll(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+        } else {
+            gEXMatrixGroupSimpleNormalAuto(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+        }
     } else {
         setup_rsp_camera_matrices(&gMainDL, &gWorldRSPMatrices);
     }
@@ -398,10 +414,18 @@ RECOMP_PATCH void track_draw(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** po
     block_color_table_tick();
     track_draw_main();
     // @recomp: Tag newclouds matrices
-    gEXMatrixGroupSimpleNormalAuto(gMainDL++, NEWCLOUDS_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    if (recomp_skipCameraInterp || recomp_skipAllInterp) {
+        gEXMatrixGroupSkipAll(gMainDL++, NEWCLOUDS_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    } else {
+        gEXMatrixGroupSimpleNormalAuto(gMainDL++, NEWCLOUDS_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    }
     gDLL_9_Newclouds->vtbl->func4(&gMainDL);
     // @recomp: Reset matrix tagging
-    gEXMatrixGroupSimpleNormalAuto(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    if (recomp_skipAllInterp) {
+        gEXMatrixGroupSkipAll(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    } else {
+        gEXMatrixGroupSimpleNormalAuto(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    }
     camera_setup_fullscreen_viewport(&gMainDL);
     *gdl = gMainDL;
     *mtxs = gWorldRSPMatrices;
@@ -441,15 +465,27 @@ RECOMP_PATCH void track_draw_main(void) {
     dl_add_debug_info(gMainDL, 0, "track/track.c", 1341);
     gDLL_9_Newclouds->vtbl->func6(&gMainDL, gUpdateRate, 0);
     // @recomp: Tag projgfx matrices
-    gEXMatrixGroupSimpleNormalAuto(gMainDL++, PROJGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    if (recomp_skipAllInterp) {
+        gEXMatrixGroupSkipAll(gMainDL++, PROJGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    } else {
+        gEXMatrixGroupSimpleNormalAuto(gMainDL++, PROJGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    }
     gDLL_15_Projgfx->vtbl->func5(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 3);
     if (gTrackFlags & TRACKFLAG_SKY) {
         // @recomp: Tag minic matrices
-        gEXMatrixGroupSimpleNormalAuto(gMainDL++, MINIC_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+        if (recomp_skipCameraInterp || recomp_skipAllInterp) {
+            gEXMatrixGroupSkipAll(gMainDL++, MINIC_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+        } else {
+            gEXMatrixGroupSimpleNormalAuto(gMainDL++, MINIC_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+        }
         gDLL_12_Minic->vtbl->func3(&gMainDL, &gWorldRSPMatrices);
     }
     // @recomp: Reset matrix tagging
-    gEXMatrixGroupSimpleNormalAuto(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    if (recomp_skipAllInterp) {
+        gEXMatrixGroupSkipAll(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    } else {
+        gEXMatrixGroupSimpleNormalAuto(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    }
     dl_add_debug_info(gMainDL, 0, "track/track.c", 1349);
     blockIdxMap = D_80092B0C;
     rspMtxs = gWorldRSPMatrices;
@@ -535,19 +571,35 @@ RECOMP_PATCH void track_draw_main(void) {
     draw_render_list(rspMtxs, objVisibilities);
     dl_add_debug_info(gMainDL, 0, "track/track.c", 1458);
     // @recomp: Tag projgfx matrices
-    gEXMatrixGroupSimpleNormalAuto(gMainDL++, PROJGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    if (recomp_skipAllInterp) {
+        gEXMatrixGroupSkipAll(gMainDL++, PROJGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    } else {
+        gEXMatrixGroupSimpleNormalAuto(gMainDL++, PROJGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    }
     gDLL_15_Projgfx->vtbl->func5(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 2);
     gDLL_15_Projgfx->vtbl->func5(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 1);
     // @recomp: Tag modgfx matrices
-    gEXMatrixGroupSimpleNormalAuto(gMainDL++, MODGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    if (recomp_skipAllInterp) {
+        gEXMatrixGroupSkipAll(gMainDL++, MODGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    } else {
+        gEXMatrixGroupSimpleNormalAuto(gMainDL++, MODGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    }
     gDLL_14_Modgfx->vtbl->func11(objVisibilities);
     gDLL_14_Modgfx->vtbl->func6(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 0, 0);
     gDLL_24_Waterfx->vtbl->print(&gMainDL, &gWorldRSPMatrices);
     // @recomp: Tag projgfx matrices
-    gEXMatrixGroupSimpleNormalAuto(gMainDL++, PROJGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    if (recomp_skipAllInterp) {
+        gEXMatrixGroupSkipAll(gMainDL++, PROJGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    } else {
+        gEXMatrixGroupSimpleNormalAuto(gMainDL++, PROJGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    }
     gDLL_15_Projgfx->vtbl->func5(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 0);
     // @recomp: Reset matrix tagging
-    gEXMatrixGroupSimpleNormalAuto(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    if (recomp_skipAllInterp) {
+        gEXMatrixGroupSkipAll(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    } else {
+        gEXMatrixGroupSimpleNormalAuto(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    }
     gDLL_2_Camera->vtbl->lock_icon_print(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, &D_800B51D8);
     gDLL_59_Minimap->vtbl->func1(&gMainDL, &gWorldRSPMatrices);
     shadows_func_8004D974(0);
@@ -625,7 +677,7 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
                 (gridInfo->layer               * 1000) + 
                 idx + 
                 BLOCK_SHAPE_MTX_GROUP_ID_START;
-            if (blockInterpState->skipInterpolation) {
+            if (blockInterpState->skipInterpolation || recomp_skipAllInterp) {
                 gEXMatrixGroupSkipAll(gMainDL++, shapeMatrixGroupID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             } else {
                 gEXMatrixGroupSimpleVerts(gMainDL++, shapeMatrixGroupID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
@@ -1102,7 +1154,7 @@ RECOMP_PATCH void track_draw_object(Object* obj, s32 visibility) {
         sp37 = gDLL_13_Expgfx->vtbl->func10(obj);
     }
     // @recomp: Tag modgfx matrices
-    if (skipInterp) {
+    if (skipInterp || recomp_skipAllInterp) {
         gEXMatrixGroupSkipAll(gMainDL++, objMtxGroup + OBJ_MODGFX_MTX_GROUP_ID_START, 
             G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
     } else {

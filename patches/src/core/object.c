@@ -53,12 +53,6 @@ enum RecompObjInterpConfig {
     RECOMP_OBJINTERP_DISABLE = (1 << 0)
 };
 
-typedef struct {
-    s16 lastYaw;
-    u16 lastStateFlags;
-    u8 skipInterp;
-} RecompObjInterpState;
-
 static Object* recomp_objMatrixGroupList[1000];
 static RecompObjInterpState recomp_objInterpStates[1000];
 static U32ValueHashmapHandle recomp_objMatrixGroupMap;
@@ -71,6 +65,14 @@ static void recomp_obj_interp_init(void) {
     recomp_objMatrixGroupMap = recomputil_create_u32_value_hashmap();
 
     recomp_objInterpConfig[OBJ_DFP_wallbar] |= RECOMP_OBJINTERP_DISABLE; // object always teleports, don't try interp
+}
+
+void recomp_obj_skip_interp(Object *obj) {
+    u32 group;
+    if (recomputil_u32_value_hashmap_get(recomp_objMatrixGroupMap, (collection_key_t)obj, &group)) {
+        RecompObjInterpState *state = &recomp_objInterpStates[group];
+        state->skipNextInterp = TRUE;
+    }
 }
 
 static void recomp_obj_update_matrix_group_state(Object *obj) {
@@ -117,13 +119,28 @@ static void recomp_obj_update_matrix_group_state(Object *obj) {
         snapTurned = FALSE;
     }
 
-    _Bool exitedSeq = (state->lastStateFlags & OBJSTATE_IN_SEQ) && !(obj->stateFlags & OBJSTATE_IN_SEQ);
+    state->skipInterp = recomp_skipAllInterp || state->skipNextInterp || snapTurned;
 
-    state->skipInterp = snapTurned || exitedSeq;
+    if ((obj->seqSlot == SEQSLOT_NONE) && !(obj->stateFlags & OBJSTATE_IN_SEQ)) {
+        for (s32 i = 0; i < 19; i++) {
+            state->lastKeyframes[i] = 0;
+        }
+        state->lastSeqTime = 0;
+    }
 
     // Update state
+    state->skipNextInterp = FALSE;
     state->lastYaw = obj->srt.yaw;
-    state->lastStateFlags = obj->stateFlags;
+}
+
+RecompObjInterpState* recomp_obj_get_interp_state(Object *obj) {
+    u32 group;
+    if (recomputil_u32_value_hashmap_get(recomp_objMatrixGroupMap, (collection_key_t)obj, &group)) {
+        RecompObjInterpState *state = &recomp_objInterpStates[group];
+        return state;
+    }
+
+    return NULL;
 }
 
 u32 recomp_obj_get_matrix_group(Object *obj, _Bool *skipInterpolation) {
@@ -372,8 +389,8 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
     if (!onlySelf && obj->group == GROUP_UNK16) {
         for (i = 0; i < gNumObjs; i++) {
             obj2 = gObjList[i];
-            if (obj == obj2->unkC0) {
-                obj2->unkC0 = NULL;
+            if (obj == obj2->animObj) {
+                obj2->animObj = NULL;
             }
         }
     }
@@ -432,10 +449,10 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
 
     obj_free_objdef(obj->tabIdx);
 
-    if (obj->unkB4 >= 0) {
+    if (obj->seqSlot >= 0) {
         if (!onlySelf) {
-            gDLL_3_Animation->vtbl->func18((s32)obj->unkB4);
-            obj->unkB4 = -1;
+            gDLL_3_Animation->vtbl->end_obj_sequence(obj->seqSlot);
+            obj->seqSlot = SEQSLOT_NONE;
         }
     }
 

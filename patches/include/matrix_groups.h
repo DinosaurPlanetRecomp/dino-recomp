@@ -48,8 +48,22 @@
 
 extern _Bool recomp_frameInterpActive;
 extern MtxF *recomp_objParentMtx;
+extern _Bool recomp_skipCameraInterp;
+extern _Bool recomp_skipAllInterp;
+extern _Bool recomp_isCameraInSeq;
+
+typedef struct {
+    s16 lastYaw;
+    s16 lastSeqTime;
+    u8 skipInterp;
+    u8 skipNextInterp;
+    s32 lastKeyframes[19];
+} RecompObjInterpState;
 
 MtxF* recomp_model_instance_setup_absolute_matrices(ModelInstance *modelInst, s32 count);
 
 u32 recomp_obj_get_matrix_group(Object *obj, _Bool *skipInterpolation);
-void recomp_set_skip_camera_interpolation(_Bool skip);
+RecompObjInterpState* recomp_obj_get_interp_state(Object *obj);
+void recomp_obj_skip_interp(Object *obj);
+void recomp_skip_camera_interp(void);
+void recomp_skip_all_interp(void);

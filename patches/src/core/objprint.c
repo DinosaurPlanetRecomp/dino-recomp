@@ -29,6 +29,19 @@ extern u8 BYTE_800b2e21;
 extern u8 BYTE_800b2e22;
 extern u8 BYTE_800b2e23;
 
+static void recomp_push_obj_model_matrix_group(Model* model, Gfx** gdl, s32 id, _Bool skipInterp) {
+    if (skipInterp) {
+        gEXMatrixGroupSkipAll((*gdl)++, id, G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    } else {
+        _Bool hasBones = model->animCount != 0;
+        if (hasBones) {
+            gEXMatrixGroupSimpleNormal((*gdl)++, id, G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+        } else {
+            gEXMatrixGroupDecomposedNormal((*gdl)++, id, G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+        }
+    }
+}
+
 RECOMP_PATCH void objprint_func(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** tris, Object* obj, s8 visibility) {
     if (obj->stateFlags & OBJSTATE_DESTROYED) {
         return;
@@ -277,15 +290,9 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
         dl_set_prim_color(&tempGdl, blendR, blendG, blendB, opacity);
         if (!(obj->srt.flags & OBJFLAG_SKIP_MODEL_DL)) {
             // @recomp: Tag model draw
-            if (skipInterp) {
-                gEXMatrixGroupSkipAll(tempGdl++, 
-                    (objMtxGroup * OBJ_MODEL_MTX_GROUP_MAX_MODELS) + obj->modelInstIdx + OBJ_MODEL_MTX_GROUP_ID_START, 
-                    G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-            } else {
-                gEXMatrixGroupDecomposedNormal(tempGdl++, 
-                    (objMtxGroup * OBJ_MODEL_MTX_GROUP_MAX_MODELS) + obj->modelInstIdx + OBJ_MODEL_MTX_GROUP_ID_START, 
-                    G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-            }
+            recomp_push_obj_model_matrix_group(model, &tempGdl,
+                (objMtxGroup * OBJ_MODEL_MTX_GROUP_MAX_MODELS) + obj->modelInstIdx + OBJ_MODEL_MTX_GROUP_ID_START,
+                skipInterp);
             // @recomp: Use matrix list selected above instead of only using the vanilla one
             gSPSegment(tempGdl++, SEGMENT_3, sp70);
             gSPSegment(tempGdl++, SEGMENT_5, modelInst->vertices[((s32) modelInst->unk34 >> 1) & 1]);
@@ -307,21 +314,9 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
             gEXPopMatrixGroup(tempGdl++, G_MTX_MODELVIEW);
         }
         if (obj->linkedObject != NULL) {
-            // @recomp: Tag linked object model draw
-            if (skipInterp) {
-                gEXMatrixGroupSkipAll(tempGdl++, 
-                    (objMtxGroup * OBJ_MODEL_MTX_GROUP_MAX_MODELS) + obj->linkedObject->modelInstIdx + OBJ_LINKEDOBJ_MODEL_MTX_GROUP_ID_START, 
-                    G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-            } else {
-                gEXMatrixGroupDecomposedNormal(tempGdl++, 
-                    (objMtxGroup * OBJ_MODEL_MTX_GROUP_MAX_MODELS) + obj->linkedObject->modelInstIdx + OBJ_LINKEDOBJ_MODEL_MTX_GROUP_ID_START, 
-                    G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-            }
             // Draw linked object
             func_80035AF4(&tempGdl, &tempMtxs, &tempVtxs, &tempTris, obj, modelInst, &sp78, 0, 
                 obj->linkedObject, obj->stateFlags & OBJSTATE_UNK_ATTACH_INDEX_MASK, (u8)opacity);
-            // @recomp: Pop model tag
-            gEXPopMatrixGroup(tempGdl++, G_MTX_MODELVIEW);
         }
     }
     if ((obj->objhitInfo != NULL) && (obj->objhitInfo->unk5A & 0x20) && (modelInst->unk14 != NULL)) {
@@ -349,6 +344,11 @@ RECOMP_PATCH ModelInstance *func_80035AF4(Gfx** arg0, Mtx** arg1, Vertex** arg2,
     Model* sp64;
     SRT sp4C;
     s32 i;
+
+    // @recomp: Get base matrix group (note: take group of owner object since 
+    //          linked objects won't have their own interp state tracked)
+    _Bool skipInterp;
+    u32 objMtxGroup = recomp_obj_get_matrix_group(arg4, &skipInterp);
 
     D_800B2E10 = 0;
 
@@ -409,6 +409,10 @@ RECOMP_PATCH ModelInstance *func_80035AF4(Gfx** arg0, Mtx** arg1, Vertex** arg2,
             func_8001A8EC(modelInst, sp64, arg8, arg7, arg4);
         }
         if (!(arg4->srt.flags & OBJFLAG_SKIP_MODEL_DL)) {
+            // @recomp: Tag linked object model draw
+            recomp_push_obj_model_matrix_group(sp64, arg0,
+                (objMtxGroup * OBJ_MODEL_MTX_GROUP_MAX_MODELS) + arg8->modelInstIdx + OBJ_LINKEDOBJ_MODEL_MTX_GROUP_ID_START,
+                skipInterp);
             gSPSegment((*arg0)++, SEGMENT_3, sp74);
             gSPSegment((*arg0)++, SEGMENT_5, modelInst->vertices[(modelInst->unk34 >> 1) & 1]);
             if ((u8) arg10 == 0xFF) {
@@ -425,6 +429,8 @@ RECOMP_PATCH ModelInstance *func_80035AF4(Gfx** arg0, Mtx** arg1, Vertex** arg2,
             tex_render_reset();
             // @fake
             //if (D_800B2E10) {}
+            // @recomp: Pop model tag
+            gEXPopMatrixGroup((*arg0)++, G_MTX_MODELVIEW);
         }
         arg8->srt.transl.f[0] = D_800B2E10->m[3][0];
         arg8->srt.transl.f[1] = D_800B2E10->m[3][1];
@@ -471,20 +477,16 @@ RECOMP_PATCH void func_800359D0(Object *obj, Gfx **gdl, Mtx **rspMtxs, Vertex **
     } else {
         otherIdx = obj->def->numModels - 1;
     }
-    
-    // @recomp: Tag shadowtex model draw
-    _Bool skipInterp;
-    u32 objMtxGroup = recomp_obj_get_matrix_group(obj, &skipInterp);
-    if (skipInterp) {
-        gEXMatrixGroupSkipAll(mygdl++, objMtxGroup + OBJ_SHADOWTEX_MODEL_MTX_GROUP_ID_START, 
-            G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-    } else {
-        gEXMatrixGroupDecomposedNormal(mygdl++, objMtxGroup + OBJ_SHADOWTEX_MODEL_MTX_GROUP_ID_START, 
-            G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-    }
 
     modelInst = obj->modelInsts[mainIdx];
     modelInst2 = obj->modelInsts[otherIdx];
+
+    // @recomp: Tag shadowtex model draw
+    _Bool skipInterp;
+    u32 objMtxGroup = recomp_obj_get_matrix_group(obj, &skipInterp);
+    recomp_push_obj_model_matrix_group(modelInst->model, &mygdl,
+        objMtxGroup + OBJ_SHADOWTEX_MODEL_MTX_GROUP_ID_START,
+        skipInterp);
 
     d = modelInst->matrices[modelInst->unk34 & 1];
     gSPSegment(mygdl++, SEGMENT_3, d);

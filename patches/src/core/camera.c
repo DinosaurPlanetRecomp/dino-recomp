@@ -63,16 +63,13 @@ static MtxF recomp_viewWorldOffsetResetMtx = {
 // when the game restores the camera viewProj matrix
 static Mtx *recomp_lastCamViewMtx;
 static Mtx *recomp_lastCamProjMtx;
-static _Bool recomp_skipCameraInterp = FALSE;
+_Bool recomp_skipCameraInterp = FALSE;
 static MatrixSlot *recomp_matrixPool; // Custom matrix pool with increased size
 
 MtxF *recomp_objParentMtx = NULL;
 
-void recomp_set_skip_camera_interpolation(_Bool skip) {
-    recomp_skipCameraInterp = skip;
-    // if (skip) {
-    //     recomp_printf("skip camera interp\n");
-    // }
+void recomp_skip_camera_interp(void) {
+    recomp_skipCameraInterp = TRUE;
 }
 
 RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
@@ -141,7 +138,7 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
     recomp_objParentMtx = NULL;
     
     // @recomp: Tag camera matrix
-    if (recomp_skipCameraInterp) {
+    if (recomp_skipCameraInterp || recomp_skipAllInterp) {
         gEXMatrixGroupSkipAll((*gdl)++, CAMERA_MTX_GROUP_ID_START + gCameraSelector, G_EX_NOPUSH, G_MTX_PROJECTION, G_EX_EDIT_NONE);
     } else {
         gEXMatrixGroupSimpleNormal((*gdl)++, CAMERA_MTX_GROUP_ID_START + gCameraSelector, G_EX_NOPUSH, G_MTX_PROJECTION, G_EX_EDIT_NONE);
@@ -525,4 +522,6 @@ RECOMP_PATCH void camera_tick(void) {
 
         camera->shakeTime += gUpdateRateF / 60.0f;
     }
+
+    recomp_skipCameraInterp = FALSE;
 }

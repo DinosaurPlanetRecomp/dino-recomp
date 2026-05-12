@@ -10,6 +10,7 @@
 #include "matrix_groups.h"
 #include "ui_funcs.h"
 
+#include "libnaudio/n_unkfuncs.h"
 #include "sys/audio.h"
 #include "sys/asset_thread.h"
 #include "sys/dl_debug.h"
@@ -22,6 +23,7 @@
 #include "sys/print.h"
 #include "sys/framebuffer_fx.h"
 #include "sys/map.h"
+#include "sys/menu.h"
 #include "sys/vi.h"
 #include "types.h"
 #include "dll.h"
@@ -31,6 +33,7 @@ RECOMP_DECLARE_EVENT(recomp_on_game_tick());
 RECOMP_DECLARE_EVENT(recomp_on_dbgui());
 
 _Bool recomp_frameInterpActive;
+_Bool recomp_skipAllInterp;
 
 extern Gfx *gMainGfx[2];
 extern Gfx *gCurGfx;
@@ -43,6 +46,10 @@ extern Triangle *gCurPol;
 
 extern u8 gFrameBufIdx;
 extern s8 gPauseState;
+
+extern u8 D_8008CA30;
+extern s32 gMainMapChangeNextMenu;
+extern s8 gMainDoMapChange;
 
 extern void func_80013D80(void);
 extern void main_handle_map_change(void);
@@ -208,6 +215,9 @@ RECOMP_PATCH void game_tick(void) {
     gDPFullSync(gCurGfx++);
     gSPEndDisplayList(gCurGfx++);
 
+    // @recomp: Re-enable global interp
+    recomp_skipAllInterp = FALSE;
+
     gfxtask_wait();
     obj_do_deferred_free();
     mmFreeTick();
@@ -233,4 +243,47 @@ RECOMP_PATCH void game_tick(void) {
 
     main_handle_map_change();
     write_c_file_label_pointers("main/main.c", 0x37C);
+}
+
+RECOMP_PATCH void main_handle_map_change(void) {
+    if (gMainDoMapChange) {
+        // @recomp: Restore printf
+        recomp_printf("$$$$$  CHANGEMAP \n");
+        mmSetDelay(0);
+        if (D_8008CA30 != 0) {
+            rcp_set_screen_color(0, 0, 0);
+            func_800668A4();
+            map_func_800484A8();
+
+            gCurGfx = gMainGfx[gFrameBufIdx];
+            gDPFullSync(gCurGfx++);
+            gSPEndDisplayList(gCurGfx++);
+        }
+
+        gMainDoMapChange = FALSE;
+
+        // @recomp: Skip interpolation since everything is being reloaded
+        recomp_skip_all_interp();
+
+        mmSetDelay(0);
+        camera_init();
+
+        if (gMainMapChangeNextMenu >= 0) {
+            menu_set(gMainMapChangeNextMenu);
+            gMainMapChangeNextMenu = -1;
+        }
+
+        map_func_8004773C();
+
+        if (gDLL_23 != NULL) {
+            gDLL_23->vtbl->func_18(1);
+        }
+
+        mmSetDelay(2);
+        D_8008CA30 = 1;
+    }
+}
+
+void recomp_skip_all_interp(void) {
+    recomp_skipAllInterp = TRUE;
 }
