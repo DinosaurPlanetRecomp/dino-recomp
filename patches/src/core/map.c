@@ -579,11 +579,12 @@ RECOMP_PATCH void track_draw_main(void) {
     gDLL_15_Projgfx->vtbl->func5(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 2);
     gDLL_15_Projgfx->vtbl->func5(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 1);
     // @recomp: Tag modgfx matrices
-    if (recomp_skipAllInterp) {
+    // TODO: Always skip modgfx interp. We need to tag them individually
+    // if (recomp_skipAllInterp) {
         gEXMatrixGroupSkipAll(gMainDL++, MODGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-    } else {
-        gEXMatrixGroupSimpleNormalAuto(gMainDL++, MODGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-    }
+    // } else {
+    //     gEXMatrixGroupSimpleNormalAuto(gMainDL++, MODGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    // }
     gDLL_14_Modgfx->vtbl->func11(objVisibilities);
     gDLL_14_Modgfx->vtbl->func6(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 0, 0);
     gDLL_24_Waterfx->vtbl->print(&gMainDL, &gWorldRSPMatrices);
@@ -677,7 +678,9 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
                 (gridInfo->layer               * 1000) + 
                 idx + 
                 BLOCK_SHAPE_MTX_GROUP_ID_START;
-            if (blockInterpState->skipInterpolation || recomp_skipAllInterp) {
+            // Note: Also skip interpolation if the shape texture is being animated. Multi-texture animations don't work
+            //       right with interpolation and animation looping is not currently handled. Disabling interp looks better for now.
+            if (blockInterpState->skipInterpolation || recomp_skipAllInterp || shape->texScrollerID != 0xFF || (shape->flags & RENDER_SHAPE_ANIMATED)) {
                 gEXMatrixGroupSkipAll(gMainDL++, shapeMatrixGroupID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             } else {
                 gEXMatrixGroupSimpleVerts(gMainDL++, shapeMatrixGroupID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
