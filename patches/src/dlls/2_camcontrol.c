@@ -39,7 +39,7 @@ extern void CamControl_restore_player_coords(Object* obj);
 extern Object* CamControl_find_highlight_object(CamControl_Data* arg0, Object* arg1);
 
 static f32 recomp_get_camera_jump_threshold(f32 cameraSpeed) {
-    return 75.0f + (cameraSpeed * 1.15f);
+    return 65.0f + (cameraSpeed * 1.0f);
 }
 
 static void recomp_check_camera_jumps(void) {
