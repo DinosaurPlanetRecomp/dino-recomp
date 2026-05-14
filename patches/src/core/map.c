@@ -665,6 +665,7 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
                 blockMtxList = (blockIdx * 2) + rspMtxs;
                 block = gBlocksToDraw[blockIdx];
             }
+            shape = &block->shapes[idx];
             // @recomp: Tag block shape matrices (tag each uniquely since shapes can be rendered in any order, independently of the block)
             //          TODO: animated water is jittery
             RecompBlockGridInfo *gridInfo = &recomp_blocksToDrawGridCells[blockIdx];
@@ -685,7 +686,6 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
             } else {
                 gEXMatrixGroupSimpleVerts(gMainDL++, shapeMatrixGroupID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             }
-            shape = &block->shapes[idx];
             if (shape->flags & RENDER_UNK20000000) {
                 if (lastBlockMtx != 2) {
                     gSPMatrix(gMainDL++, OS_K0_TO_PHYSICAL(&blockMtxList[1]), G_MTX_MODELVIEW | G_MTX_LOAD);
