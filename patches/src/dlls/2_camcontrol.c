@@ -54,15 +54,15 @@ static void recomp_check_camera_jumps(void) {
     f32 distToProjected = vec3_distance(&sCamData->srt.transl, &posProjected);
     f32 speed = vec3_length(&camVelocity);
     f32 threshold = recomp_get_camera_jump_threshold(speed);
-    if (distToProjected > (threshold * 0.5f)) {
-        recomp_printf("dist %f / %f  (%f)\n", distToProjected, threshold, speed);
-    }
+    // if (distToProjected > (threshold * 0.5f)) {
+    //     recomp_printf("dist %f / %f  (%f)\n", distToProjected, threshold, speed);
+    // }
     if (distToProjected > threshold) {
         camVelocity.x = 0.0f;
         camVelocity.y = 0.0f;
         camVelocity.z = 0.0f;
         recomp_skip_camera_interp();
-        recomp_printf("skip camera interp, big jump\n");
+        //recomp_printf("skip camera interp, big jump\n");
     } else {
         camVelocity.x = posDelta.x;
         camVelocity.y = posDelta.y;

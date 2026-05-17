@@ -28,6 +28,7 @@ RECOMP_PATCH void rcp_clear_screen(Gfx **gdl, Mtx **mtx, s32 flags) {
     viWidth = GET_VIDEO_WIDTH(viSize);
     viHeight = GET_VIDEO_HEIGHT(viSize);
 
+    // TODO: is this right?
     // @recomp: remove hardcoded -1 width/height scissor offset
     gDPSetScissor((*gdl)++, G_SC_NON_INTERLACE, 0, 0, viWidth, viHeight);
 
@@ -66,6 +67,7 @@ RECOMP_PATCH void rcp_clear_screen(Gfx **gdl, Mtx **mtx, s32 flags) {
             (GPACK_RGBA5551(sBGPrimColourR, sBGPrimColourG, sBGPrimColourB, 1) << 16) 
                 | GPACK_RGBA5551(sBGPrimColourR, sBGPrimColourG, sBGPrimColourB, 1));
 
+        // TODO: is this right?
         // @recomp: remove hardcoded -1 width/height offset
         if ((flags & CLEAR_COLOR) != 0) {
             gDPFillRectangle((*gdl)++, 0, 0, viWidth, viHeight);
@@ -117,17 +119,12 @@ RECOMP_PATCH void draw_pause_screen_freeze_frame(Gfx** gdl) {
     width = 320;
     height = 240;
 
-    gSPClearGeometryMode(*gdl, 0xFFFFFF);
-    dl_apply_geometry_mode(gdl);
-    
-    gDPSetCombineMode(*gdl, G_CC_DECALRGBA, G_CC_DECALRGBA);
-    dl_apply_combine(gdl);
-   
-    gDPSetOtherMode(*gdl, 
+    gSPClearGeometryMode((*gdl)++, 0xFFFFFF);
+    gDPSetCombineMode((*gdl)++, G_CC_DECALRGBA, G_CC_DECALRGBA);
+    gDPSetOtherMode((*gdl)++, 
         G_AD_PATTERN | G_CD_DISABLE | G_CK_NONE | G_TC_FILT | G_TF_POINT | G_TT_NONE | 
             G_TL_TILE | G_TD_CLAMP | G_TP_NONE | G_CYC_COPY | G_PM_NPRIMITIVE, 
         G_AC_NONE | G_ZS_PIXEL | G_RM_NOOP | G_RM_NOOP2);
-    dl_apply_other_mode(gdl);
   
     // @recomp: Let RT64 display the high res screenshot
     gDPLoadTextureTile((*gdl)++, gFramebufferEnd, G_IM_FMT_RGBA, G_IM_SIZ_16b, 
@@ -141,7 +138,8 @@ RECOMP_PATCH void draw_pause_screen_freeze_frame(Gfx** gdl) {
 
     gSPTextureRectangle((*gdl)++, 0, 0, (width + 1) * 4, (height + 1) * 4, 0, 0, 0, 1 << 12, 1 << 10);
 
-    gDLBuilder->needsPipeSync = 1;
+    // @recomp: Reset DLBuilder state since we're not using it
+    dl_set_all_dirty();
 
     // @recomp: Reset texture DL cache since we're changing the texture outside the tex code
     tex_render_reset();
