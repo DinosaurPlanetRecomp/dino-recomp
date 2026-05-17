@@ -15,15 +15,17 @@ extern s32 gFbfxEffectID;
 extern s32 gFbfxEffectDuration;
 extern s32 gFbfxTimer;
 
-u16 recomp_fbfxNextFramebufferSnapshot[320 * 260];
+u16 recomp_fbfxFramebufferSnapshot[320 * 260];
+u16 recomp_fbfxTargetFramebufferSnapshot[320 * 260];
 
 static s32 recomp_fps_aware_accum_alpha(s32 alpha, f32 targetFramerate) {
     // https://github.com/Zelda64Recomp/Zelda64Recomp/blob/ab677e76615e5e47b3b26c822ca426485752ac77/patches/effect_patches.c#L90-L102
     f32 exponent = targetFramerate / (f32)recomp_get_refresh_rate();
     f32 alpha_float = recomp_powf(alpha / 255.0f, exponent);
     // Cap for higher framerates
-    // TODO: why doesn't high precision framebuffer avoid this issue?
-    alpha_float = MIN(alpha_float, 0.825f);
+    if (!recomp_high_precision_fb_enabled()) {
+        alpha_float = MIN(alpha_float, 0.825f);
+    }
     return (s32)(alpha_float * 255.0f);
 }
 
@@ -97,7 +99,7 @@ static void recomp_fbfx_3(void) {
         
         // Redraw current frame as base 
         gDPSetPrimColor((*gdl)++, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF);
-        gDPLoadTextureTile((*gdl)++, gBackFramebuffer, G_IM_FMT_RGBA, G_IM_SIZ_16b,
+        gDPLoadTextureTile((*gdl)++, recomp_fbfxFramebufferSnapshot, G_IM_FMT_RGBA, G_IM_SIZ_16b,
             viWidth, viHeight,
             0, 0,
             viWidth - 1, viHeight - 1, 0, 
@@ -110,7 +112,7 @@ static void recomp_fbfx_3(void) {
         
         // Add next frame on top with transparency
         gDPSetPrimColor((*gdl)++, 0, 0, 0xFF, 0xFF, 0xFF, alpha);
-        gDPLoadTextureTile((*gdl)++, recomp_fbfxNextFramebufferSnapshot, G_IM_FMT_RGBA, G_IM_SIZ_16b,
+        gDPLoadTextureTile((*gdl)++, recomp_fbfxTargetFramebufferSnapshot, G_IM_FMT_RGBA, G_IM_SIZ_16b,
             viWidth, viHeight,
             0, 0,
             viWidth - 1, viHeight - 1, 0, 
@@ -120,6 +122,9 @@ static void recomp_fbfx_3(void) {
             G_TX_NOLOD, G_TX_NOLOD
         );
         gSPTextureRectangle((*gdl)++, 0, 0, (viWidth) * 4, (viHeight) * 4, 0, 0, 0, 1 << 10, 1 << 10);
+    
+        // Save frame for next iteration
+        recomp_fbfx_snapshot_framebuffer(gdl, gFrontFramebuffer, recomp_fbfxFramebufferSnapshot);
         
         recomp_do_fake_frame_end();
 
@@ -146,11 +151,7 @@ void recomp_fbfx(void) {
     }
 }
 
-void recomp_fbfx_prepare(void) {
-    if (gFbfxEffectID == 0 || gFbfxEffectID == 10) {
-        return;
-    }
-
+void recomp_fbfx_snapshot(void) {
     Gfx **gdl = &gCurGfx;
 
     u32 viSize = vi_get_current_size();
@@ -159,24 +160,29 @@ void recomp_fbfx_prepare(void) {
 
     gDPSetScissor((*gdl)++, G_SC_NON_INTERLACE, 0, 0, viWidth, viHeight);
 
+    if (gFbfxEffectID != 0 && gFbfxEffectID != 10) {
+        // Copy the frame that we want to transition into
+        recomp_fbfx_snapshot_framebuffer(gdl, gFrontFramebuffer, recomp_fbfxTargetFramebufferSnapshot);
+
+        // Keep displaying the previous frame
+        gDPSetCombineMode((*gdl)++, G_CC_DECALRGBA, G_CC_DECALRGBA);
+        gDPSetOtherMode((*gdl)++, 
+            G_AD_PATTERN | G_CD_DISABLE | G_CK_NONE | G_TC_FILT | G_TF_POINT | G_TT_NONE | 
+                G_TL_TILE | G_TD_CLAMP | G_TP_NONE | G_CYC_COPY | G_PM_NPRIMITIVE, 
+            G_AC_NONE | G_ZS_PIXEL | G_RM_NOOP | G_RM_NOOP2);
+        gDPLoadTextureTile((*gdl)++, recomp_fbfxFramebufferSnapshot, G_IM_FMT_RGBA, G_IM_SIZ_16b, 
+                viWidth, viHeight, 
+                0, 0, viWidth, viHeight, 
+                0, 
+                G_TX_NOMIRROR | G_TX_WRAP | G_TX_NOMASK, 
+                G_TX_NOMIRROR | G_TX_WRAP | G_TX_NOMASK,
+                G_TX_NOMASK, G_TX_NOMASK,
+                G_TX_NOLOD, G_TX_NOLOD);
+        gSPTextureRectangle((*gdl)++, 0, 0, (viWidth + 1) * 4, (viHeight + 1) * 4, 0, 0, 0, 1 << 12, 1 << 10);
+    }
+
     // Copy next frame
-    recomp_fbfx_snapshot_framebuffer(gdl, gFrontFramebuffer, recomp_fbfxNextFramebufferSnapshot);
-    
-    // Keep displaying the previous frame
-    gDPSetCombineMode((*gdl)++, G_CC_DECALRGBA, G_CC_DECALRGBA);
-    gDPSetOtherMode((*gdl)++, 
-        G_AD_PATTERN | G_CD_DISABLE | G_CK_NONE | G_TC_FILT | G_TF_POINT | G_TT_NONE | 
-            G_TL_TILE | G_TD_CLAMP | G_TP_NONE | G_CYC_COPY | G_PM_NPRIMITIVE, 
-        G_AC_NONE | G_ZS_PIXEL | G_RM_NOOP | G_RM_NOOP2);
-    gDPLoadTextureTile((*gdl)++, gBackFramebuffer, G_IM_FMT_RGBA, G_IM_SIZ_16b, 
-            viWidth, viHeight, 
-            0, 0, viWidth, viHeight, 
-            0, 
-            G_TX_NOMIRROR | G_TX_WRAP | G_TX_NOMASK, 
-            G_TX_NOMIRROR | G_TX_WRAP | G_TX_NOMASK,
-            G_TX_NOMASK, G_TX_NOMASK,
-            G_TX_NOLOD, G_TX_NOLOD);
-    gSPTextureRectangle((*gdl)++, 0, 0, (viWidth + 1) * 4, (viHeight + 1) * 4, 0, 0, 0, 1 << 12, 1 << 10);
+    recomp_fbfx_snapshot_framebuffer(gdl, gFrontFramebuffer, recomp_fbfxFramebufferSnapshot);
 }
 
 void recomp_fbfx_motion_blur_tick(void) {
@@ -201,7 +207,7 @@ void recomp_fbfx_motion_blur_tick(void) {
         G_TT_NONE | G_TL_TILE | G_TD_CLAMP | G_TP_NONE | G_CYC_1CYCLE | 
         G_PM_NPRIMITIVE, G_AC_NONE | G_ZS_PIXEL | G_RM_XLU_SURF | G_RM_XLU_SURF2);
     gDPSetPrimColor((*gdl)++, 0, 0, 0xFF, 0xFF, 0xFF, alpha);
-    gDPLoadTextureTile((*gdl)++, gBackFramebuffer, G_IM_FMT_RGBA, G_IM_SIZ_16b,
+    gDPLoadTextureTile((*gdl)++, recomp_fbfxFramebufferSnapshot, G_IM_FMT_RGBA, G_IM_SIZ_16b,
         viWidth, viHeight,
         0, 0,
         viWidth - 1, viHeight - 1, 0, 

@@ -9,6 +9,7 @@
 #include "recomp.h"
 
 #include "config/config.hpp"
+#include "renderer/renderer.hpp"
 #include "ui/recomp_ui.h"
 #include "common.hpp"
 
@@ -73,6 +74,10 @@ extern "C" void recomp_is_frame_interp_active(uint8_t* rdram, recomp_context* ct
     ultramodern::renderer::RefreshRate rr = ultramodern::renderer::get_graphics_config().rr_option;
 
     _return<int>(ctx, rr != ultramodern::renderer::RefreshRate::Original ? 1 : 0);
+}
+
+extern "C" void recomp_high_precision_fb_enabled(uint8_t* rdram, recomp_context* ctx) {
+    _return(ctx, static_cast<s32>(dino::renderer::RT64HighPrecisionFBEnabled()));
 }
 
 extern "C" void recomp_error_message_box(uint8_t* rdram, recomp_context* ctx) {
@@ -157,6 +162,7 @@ namespace dino::recomp_api {
         REGISTER_EXPORT(recomp_get_hud_ratio_mode);
         REGISTER_EXPORT(recomp_get_refresh_rate);
         REGISTER_EXPORT(recomp_is_frame_interp_active);
+        REGISTER_EXPORT(recomp_high_precision_fb_enabled);
         REGISTER_EXPORT(recomp_error_message_box);
         REGISTER_EXPORT(recomp_exit_with_error);
         REGISTER_EXPORT(recomp_exit);

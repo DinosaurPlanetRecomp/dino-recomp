@@ -181,10 +181,10 @@ RECOMP_PATCH void game_tick(void) {
     // @recomp: Hook game_tick, before we end the frame
     recomp_game_tick_hook();
     diPrintfAll(gdl);
-    // @recomp: Recomp framebuffer FX preparations
-    recomp_fbfx_prepare();
     // @recomp: Motion blur framebuffer FX
     recomp_fbfx_motion_blur_tick();
+    // @recomp: Recomp framebuffer FX snapshot
+    recomp_fbfx_snapshot();
     
     // @recomp: Draw invisible fullscreen rect to avoid RT64 issue where it sometimes thinks
     //          the final framebuffer isn't fullscreen and doesn't apply aspect ratio correction
