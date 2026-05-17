@@ -144,7 +144,7 @@
 
                     <!-- Framerate -->
                     <div class="config-option" data-event-mouseover="set_cur_config_index(4)">
-                        <label class="config-option__title">Framerate <small class="experimental">(⚠EXPERIMENTAL⚠)</small></label>
+                        <label class="config-option__title">Framerate</label>
                         <div class="config-option__list">
                             <input type="radio"
                                 data-event-blur="set_cur_config_index(-1)" 
@@ -299,9 +299,7 @@
                         Sets whether the game should display <b>Windowed</b> or <b>Fullscreen</b>. You can also use <b>F11</b> or <b>Alt + Enter</b> to toggle this option.
                     </p>
                     <p data-if="cur_config_index == 4">
-                        <b>EXPERIMENTAL</b>
-                        <br/>
-                        Causes minor graphical issues.
+                        <i>Causes minor graphical issues.</i>
                         <br />
                         <br />
                         Sets the game's output framerate. This option does not affect gameplay.
