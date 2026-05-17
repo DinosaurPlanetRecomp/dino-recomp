@@ -667,7 +667,6 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
             }
             shape = &block->shapes[idx];
             // @recomp: Tag block shape matrices (tag each uniquely since shapes can be rendered in any order, independently of the block)
-            //          TODO: animated water is jittery
             RecompBlockGridInfo *gridInfo = &recomp_blocksToDrawGridCells[blockIdx];
             RecompBlockInterpState *blockInterpState = &recomp_blockInterpStates[gridInfo->blockIndex];
             // Note: Blocks can be reused in different grid cells, so we need to identify the exact absolute cell and
@@ -679,12 +678,24 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
                 (gridInfo->layer               * 1000) + 
                 idx + 
                 BLOCK_SHAPE_MTX_GROUP_ID_START;
-            // Note: Also skip interpolation if the shape texture is being animated. Multi-texture animations don't work
-            //       right with interpolation and animation looping is not currently handled. Disabling interp looks better for now.
-            if (blockInterpState->skipInterpolation || recomp_skipAllInterp || shape->texScrollerID != 0xFF || (shape->flags & RENDER_SHAPE_ANIMATED)) {
+            if (blockInterpState->skipInterpolation || recomp_skipAllInterp) {
                 gEXMatrixGroupSkipAll(gMainDL++, shapeMatrixGroupID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             } else {
-                gEXMatrixGroupSimpleVerts(gMainDL++, shapeMatrixGroupID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+                // TODO: don't interpolate texture coords. multi-texture anims don't work right with interp and looping is not currently handled
+                gEXMatrixGroup(gMainDL++, shapeMatrixGroupID, G_EX_INTERPOLATE_SIMPLE, G_EX_NOPUSH, G_MTX_MODELVIEW, 
+                    /*pos*/ G_EX_COMPONENT_INTERPOLATE, 
+                    /*rot*/ G_EX_COMPONENT_INTERPOLATE, 
+                    /*scale*/ G_EX_COMPONENT_INTERPOLATE, 
+                    /*skew*/ G_EX_COMPONENT_INTERPOLATE, 
+                    /*persp*/ G_EX_COMPONENT_INTERPOLATE, 
+                    /*vert*/ G_EX_COMPONENT_INTERPOLATE, 
+                    /*tile*/ G_EX_COMPONENT_INTERPOLATE, 
+                    /*order*/ G_EX_ORDER_LINEAR, 
+                    /*edit*/ G_EX_EDIT_NONE, 
+                    /*aspect*/ G_EX_ASPECT_AUTO, 
+                    /*tc*/ G_EX_COMPONENT_SKIP,
+                    /*lookat*/ G_EX_COMPONENT_AUTO);
+                
             }
             if (shape->flags & RENDER_UNK20000000) {
                 if (lastBlockMtx != 2) {
