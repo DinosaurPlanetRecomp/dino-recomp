@@ -181,11 +181,7 @@ RECOMP_PATCH void game_tick(void) {
     // @recomp: Hook game_tick, before we end the frame
     recomp_game_tick_hook();
     diPrintfAll(gdl);
-    // @recomp: Motion blur framebuffer FX
-    recomp_fbfx_motion_blur_tick();
-    // @recomp: Recomp framebuffer FX snapshot
-    recomp_fbfx_snapshot();
-    
+
     // @recomp: Draw invisible fullscreen rect to avoid RT64 issue where it sometimes thinks
     //          the final framebuffer isn't fullscreen and doesn't apply aspect ratio correction
     //          in fullscreen. The result is all 2D rendering getting stretched out horizontally
@@ -206,6 +202,11 @@ RECOMP_PATCH void game_tick(void) {
     gDPSetScissor((*gdl)++, G_SC_NON_INTERLACE, 0, 0, viWidth, viHeight);
     gDPSetFillColor((*gdl)++, (GPACK_RGBA5551(0, 0, 0, 0) << 16) | GPACK_RGBA5551(0, 0, 0, 0));
     gDPFillRectangle((*gdl)++, 0, 0, viWidth, viHeight);
+
+    // @recomp: Motion blur framebuffer FX
+    recomp_fbfx_motion_blur_tick();
+    // @recomp: Recomp framebuffer FX snapshot
+    recomp_fbfx_snapshot();
 
     // @recomp: Take pause screenshot with the DP so RT64 can display the high res version instead
     if (get_pause_state() == 1) {
