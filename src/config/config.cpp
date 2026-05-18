@@ -91,6 +91,7 @@ void call_if_key_exists(void (*func)(T), const nlohmann::json& j, const std::str
 
 void graphics_config_to_json(nlohmann::json& j, const ultramodern::renderer::GraphicsConfig& config) {
     j = nlohmann::json{
+        {"_config_version", 2},
         {"res_option",      config.res_option},
         {"wm_option",       config.wm_option},
         {"hr_option",       config.hr_option},
@@ -117,6 +118,18 @@ void graphics_config_from_json(const nlohmann::json& j, ultramodern::renderer::G
     config.hpfb_option      = from_or_default(j, "hpfb_option",     hpfb_default);
     config.rr_manual_value  = from_or_default(j, "rr_manual_value", rr_manual_default);
     config.developer_mode   = from_or_default(j, "developer_mode",  developer_mode_default);
+
+    // Migrate users to new defaults
+    int config_version = from_or_default(j, "_config_version", 1);
+    if (config_version == 1) {
+        // Enabling high precision framebuffer is very important for accumulation motion blur to work right.
+        // Only turn this on once in case a user needs to disable it for compatibility reasons.
+        config.hpfb_option = hpfb_default;
+
+        // New widescreen defaults. Change these because the new default window size is 16:9.
+        config.ar_option = ar_default;
+        config.hr_option = hr_default;
+    }
 }
 
 void input_field_to_json(nlohmann::json& j, const dino::input::InputField& field) {
@@ -211,6 +224,7 @@ bool save_general_config(const std::filesystem::path& path) {
 
     dino::config::to_json(config_json["targeting_mode"], get_targeting_mode());
     dino::input::to_json(config_json["background_input_mode"], dino::input::get_background_input_mode());
+    config_json["_config_version"] = 2;
     config_json["rumble_strength"] = dino::input::get_rumble_strength();
     config_json["gyro_sensitivity"] = dino::input::get_gyro_sensitivity();
     config_json["mouse_sensitivity"] = dino::input::get_mouse_sensitivity();
@@ -250,6 +264,14 @@ void set_general_settings_from_json(const nlohmann::json& config_json) {
     set_debug_dll_logging_enabled(from_or_default(config_json, "debug_dll_logging", false));
     set_debug_diprintf_enabled(from_or_default(config_json, "debug_diprintf", false));
     set_debug_reasset_loglevel(from_or_default(config_json, "debug_reasset_loglevel", 0));
+
+    // Migrate users to new defaults
+    int config_version = from_or_default(config_json, "_config_version", 1);
+    if (config_version == 1) {
+        // Kick users off of 60 Hz mode just once. This option really isn't safe at the time of writing and
+        // we should encourage users to migrate to frame interpolation instead.
+        set_sixty_fps_enabled(false);
+    }
 }
 
 bool load_general_config(const std::filesystem::path& path) {
