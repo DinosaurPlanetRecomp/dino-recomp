@@ -681,7 +681,7 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
             if (blockInterpState->skipInterpolation || recomp_skipAllInterp) {
                 gEXMatrixGroupSkipAll(gMainDL++, shapeMatrixGroupID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             } else {
-                // TODO: don't interpolate texture coords. multi-texture anims don't work right with interp and looping is not currently handled
+                // TODO: don't interpolate texture coords/tiles. multi-tile anims don't work right with interp and looping is not currently handled
                 gEXMatrixGroup(gMainDL++, shapeMatrixGroupID, G_EX_INTERPOLATE_SIMPLE, G_EX_NOPUSH, G_MTX_MODELVIEW, 
                     /*pos*/ G_EX_COMPONENT_INTERPOLATE, 
                     /*rot*/ G_EX_COMPONENT_INTERPOLATE, 
@@ -689,13 +689,12 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
                     /*skew*/ G_EX_COMPONENT_INTERPOLATE, 
                     /*persp*/ G_EX_COMPONENT_INTERPOLATE, 
                     /*vert*/ G_EX_COMPONENT_INTERPOLATE, 
-                    /*tile*/ G_EX_COMPONENT_INTERPOLATE, 
+                    /*tile*/ G_EX_COMPONENT_SKIP, 
                     /*order*/ G_EX_ORDER_LINEAR, 
                     /*edit*/ G_EX_EDIT_NONE, 
                     /*aspect*/ G_EX_ASPECT_AUTO, 
                     /*tc*/ G_EX_COMPONENT_SKIP,
                     /*lookat*/ G_EX_COMPONENT_AUTO);
-                
             }
             if (shape->flags & RENDER_UNK20000000) {
                 if (lastBlockMtx != 2) {
