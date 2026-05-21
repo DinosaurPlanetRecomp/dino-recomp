@@ -6,6 +6,8 @@
 
 #include "PR/os.h"
 
+// TODO: rename to IterableMap
+
 void iterable_set_init(IterableSet *set, s32 elementSize) {
     bzero(set, sizeof(IterableSet));
     list_init(&set->list, elementSize, 0);
@@ -23,6 +25,23 @@ void iterable_set_add(IterableSet *set, u32 key, const void *value) {
 
         recomputil_u32_value_hashmap_insert(set->map, key, listIdx);
     }
+}
+
+_Bool iterable_set_contains(IterableSet *set, u32 key) {
+    return recomputil_u32_value_hashmap_contains(set->map, key);
+}
+
+_Bool iterable_set_get(IterableSet *set, u32 key, void **outValue) {
+    u32 listIdx;
+    if (recomputil_u32_value_hashmap_get(set->map, key, &listIdx)) {
+        void *value = list_get(&set->list, listIdx);
+        if (outValue != NULL) {
+            *outValue = value;
+        }
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 List* iterable_set_get_list(IterableSet *set) {

@@ -22,17 +22,24 @@ typedef struct {
     s32 localID;  // namespaced ID
 } RecompSaveMusicActionLink;
 
+typedef struct {
+    s32 resolvedUID;
+    u16 mapID;
+    u8 extension; // identifies namespace
+    s32 localID;  // namespaced ID
+} RecompSaveMapObjectLink;
+
 // size: 0x10
 typedef struct {
 /*00*/ char magic[2]; // must be 'RC'
 /*02*/ u16 version;
 /*04*/ u8 numExtensions;
 /*05*/ u8 numBitstrings;
-/*06*/ u8 numObjUIDs;
+/*06*/ u8 numMapObjects;
 /*07*/ u8 numMusicActions;
-/*08*/ u8 numLActions;
-/*09*/ u8 numEnvfxActions;
-/*0A*/ u8 reserved1;
+/*08*/ u8 numLActions; // unimplemented
+/*09*/ u8 numEnvfxActions; // unimplemented
+/*0A*/ u8 numMaps; // unimplemented
 /*0B*/ u8 reserved2;
 /*0C*/ u8 reserved3;
 /*0D*/ u8 reserved4;

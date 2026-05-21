@@ -308,7 +308,7 @@ void reasset_maps_repack(void) {
         for (s32 k = 0; k < numObjects; k++) {
             MapObjectEntry *objEntry = list_get(&entry->objects.list, k);
             if (!objEntry->delete) {
-                newBinSize += buffer_get_size(&objEntry->object);
+                newBinSize += mmAlign4(buffer_get_size(&objEntry->object));
             }
         }
         newBinSize += buffer_get_size(&entry->gridB1);
@@ -497,6 +497,9 @@ void reasset_maps_repack(void) {
     newTab[endIndex] = offset;
     newTab[endIndex + 1] = -1;
 
+    reasset_assert((u32)offset <= newBinSize, 
+        "[reasset] Overflow writing MAPS.bin. %d > %d", offset, newBinSize);
+
     // Finalize resolve map
     reasset_resolve_map_finalize(mapResolveMap);
 
@@ -635,6 +638,10 @@ static void log_map_set(ReAssetID id, const char *msg) {
 
 RECOMP_EXPORT void reasset_maps_set_header(ReAssetID id, const void *data) {
     reasset_assert_stage_set_call("reasset_maps_set_header");
+
+    ReAssetIDData *idData = reasset_id_lookup_data(id);
+    reasset_assert(idData->namespace == REASSET_BASE_NAMESPACE, 
+        "[reasset] Custom maps are not supported at this time.");
 
     MapEntry *entry = get_or_create_map(id);
     buffer_set(&entry->header, data, sizeof(MapHeader));

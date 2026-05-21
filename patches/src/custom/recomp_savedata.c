@@ -7,6 +7,7 @@
 #include "reasset/reasset_resolve_map.h"
 #include "reasset/files/reasset_bits.h"
 #include "reasset/files/reasset_music_actions.h"
+#include "reasset/files/reasset_maps.h"
 #include "reasset/list.h"
 #include "reasset/iterable_set.h"
 
@@ -39,6 +40,12 @@ typedef struct {
     ReAssetIDData *idData;
 } IDLink;
 
+typedef struct {
+    s32 resolvedIdentifier;
+    s32 mapID;
+    ReAssetIDData *idData;
+} MapObjIDLink;
+
 static U32ValueHashmapHandle customDataMap; // ReAssetNamespace -> list idx
 static List customDataList; // list[CustomSaveData]
 static _Bool bInitialized = FALSE;
@@ -66,7 +73,7 @@ static void extension_set_add(ExtensionSet *set, ReAssetNamespace namespace) {
 static u32 extension_set_lookup(ExtensionSet *set, ReAssetNamespace namespace) {
     u32 listIdx;
     if (!recomputil_u32_value_hashmap_get(set->map, namespace, &listIdx)) {
-        recomp_exit_with_error("recomp bug! extension_set_lookup failed.");
+        recomp_exit_with_error("[recompsave] recomp bug! extension_set_lookup failed.");
     }
 
     return listIdx;
@@ -147,6 +154,70 @@ static void recomp_savedata_init(void) {
     bInitialized = TRUE;
 }
 
+static void determine_maction_links(RecompFlashData *flash, ExtensionSet *extensions, IterableSet *mactionLinks) {
+    ReAssetResolveMap mactionResolveMap = reasset_music_actions_get_resolve_map();
+    for (s32 p = 0; p < 2; p++) {
+        PlayerMusicAction *pmactions = &flash->base.asSave.map.unk179C[p];
+        for (s32 i = 0; i < 4; i++) {
+            s32 actionNo = pmactions->actionNums[i];
+            if (actionNo <= 0) {
+                continue;
+            }
+
+            // Save info about custom music actions that are in use
+            ReAssetIDData *actionIDData;
+            if (reasset_resolve_map_id_data_of(mactionResolveMap, actionNo - 1, &actionIDData) 
+                    && actionIDData->namespace != REASSET_BASE_NAMESPACE) {
+                extension_set_add(extensions, actionIDData->namespace);
+                IDLink link = { .resolvedIdentifier = actionNo - 1, .idData = actionIDData };
+                iterable_set_add(mactionLinks, actionNo - 1, &link);
+            }
+        }
+    }
+}
+
+static void determine_map_object_links(RecompFlashData *flash, ExtensionSet *extensions, List *mapObjLinks) {
+    ReAssetResolveMap mapResolveMap = reasset_maps_get_resolve_map();
+    for (s32 i = 0; i < flash->base.asSave.file.numSavedObjects; i++) {
+        SavedObject *savedObj = &flash->base.asSave.file.savedObjects[i];
+
+        if (savedObj->mapID < 0) {
+            // Can't link without a map ID. This saved object won't be restored by the game anyway without a map set.
+            continue;
+        }
+
+        ReAssetID mapID;
+        if (!reasset_resolve_map_id_of(mapResolveMap, savedObj->mapID, &mapID)) {
+            // Not a map we know about, shouldn't be possible?
+            recomp_eprintf("[recompsave] Unknown map ID %d in saved object %d (UID 0x%X). Recomp save link won't be created!\n", 
+                savedObj->mapID, i, savedObj->uID);
+            continue;
+        }
+
+        ReAssetResolveMap mapObjResolveMap = reasset_map_objects_get_resolve_map(mapID);
+
+        // Save info about custom map objects that are in use
+        ReAssetIDData *objIDData;
+        if (reasset_resolve_map_id_data_of(mapObjResolveMap, savedObj->uID, &objIDData) 
+                && objIDData->namespace != REASSET_BASE_NAMESPACE) {
+            if (objIDData->identifier == -1) {
+                // Cannot save map objects with auto IDs
+                recomp_eprintf("[recompsave] WARN: Saved object %d (UID 0x%X, map %d) is defined as a ReAsset auto ID and thus cannot be a saved object!\n",
+                    i, savedObj->uID, savedObj->mapID);
+                continue;
+            }
+
+            extension_set_add(extensions, objIDData->namespace);
+            MapObjIDLink link = { 
+                .resolvedIdentifier = savedObj->uID, 
+                .mapID = savedObj->mapID,
+                .idData = objIDData
+            };
+            list_add_copy(mapObjLinks, &link);
+        }
+    }
+}
+
 void recomp_savedata_save(RecompFlashData *flash, s32 slotno) {
     if (!bInitialized) recomp_savedata_init();
 
@@ -188,25 +259,11 @@ void recomp_savedata_save(RecompFlashData *flash, s32 slotno) {
 
     IterableSet mactionLinks;
     iterable_set_init(&mactionLinks, sizeof(IDLink));
-    ReAssetResolveMap mactionResolveMap = reasset_music_actions_get_resolve_map();
-    for (s32 p = 0; p < 2; p++) {
-        PlayerMusicAction *pmactions = &flash->base.asSave.map.unk179C[p];
-        for (s32 i = 0; i < 4; i++) {
-            s32 actionNo = pmactions->actionNums[i];
-            if (actionNo <= 0) {
-                continue;
-            }
-
-            // Save info about custom music actions that are in use
-            ReAssetIDData *actionIDData;
-            if (reasset_resolve_map_id_data_of(mactionResolveMap, actionNo - 1, &actionIDData) 
-                    && actionIDData->namespace != REASSET_BASE_NAMESPACE) {
-                extension_set_add(&extensions, actionIDData->namespace);
-                IDLink link = { .resolvedIdentifier = actionNo - 1, .idData = actionIDData };
-                iterable_set_add(&mactionLinks, actionNo - 1, &link);
-            }
-        }
-    }
+    determine_maction_links(flash, &extensions, &mactionLinks); 
+    
+    List mapObjLinks;
+    list_init(&mapObjLinks, sizeof(MapObjIDLink), 0);
+    determine_map_object_links(flash, &extensions, &mapObjLinks);
 
     // Write extensions
     header->numExtensions = u32list_get_length(&extensions.list);
@@ -283,17 +340,68 @@ void recomp_savedata_save(RecompFlashData *flash, s32 slotno) {
         ptr += sizeof(RecompSaveMusicActionLink);
     }
 
+    // Write map objects
+    s32 numMapObjs = list_get_length(&mapObjLinks);
+    header->numMapObjects = numMapObjs;
+    for (s32 i = 0; i < numMapObjs; i++) {
+        ptr = (u8*)mmAlign4((u32)ptr);
+
+        MapObjIDLink *link = list_get(&mapObjLinks, i);
+        u32 extension = extension_set_lookup(&extensions, link->idData->namespace);
+
+        RecompSaveMapObjectLink *saveLink = (RecompSaveMapObjectLink*)ptr;
+        saveLink->resolvedUID = link->resolvedIdentifier;
+        saveLink->extension = (u8)extension;
+        saveLink->mapID = (u16)link->mapID;
+        saveLink->localID = link->idData->identifier;
+
+        ptr += sizeof(RecompSaveMapObjectLink);
+    }
+
     if (ptr > flashEndPtr) {
-        recomp_eprintf("Overflow when writing recomp savedata! Savefile slot %d may be corrupt.", slotno);
+        recomp_eprintf("[recompsave] Overflow when writing recomp savedata! Savefile slot %d may be corrupt.", slotno);
     }
 
     // Clean up
+    list_free(&mapObjLinks);
     iterable_set_free(&mactionLinks);
     extension_set_free(&extensions);
     list_free(&packedBitNamespaces);
 
-    //recomp_printf("Wrote recomp savedata (slot %d).\n", slotno);
+    //recomp_printf("[recompsave] Wrote recomp savedata (slot %d).\n", slotno);
     recomp_savedata_on_saved(slotno);
+}
+
+static void remove_invalid_saved_objects(Savegame *savegame, U32List *invalidList) {
+    s32 count = u32list_get_length(invalidList);
+    for (s32 i = 0; i < count; i++) {
+        u32 invalidIdx = u32list_get(invalidList, i);
+
+        SavedObject *invalid = &savegame->file.savedObjects[invalidIdx];
+        recomp_printf("[recompsave] Removing invalid saved object %d (UID 0x%X, map %d)\n", 
+            invalidIdx, invalid->uID, invalid->mapID);
+
+        for (s32 k = invalidIdx; k < (100 - 1); k++) {
+            SavedObject *curr = &savegame->file.savedObjects[k];
+            SavedObject *next = &savegame->file.savedObjects[k + 1];
+
+            curr->uID = next->uID;
+            curr->mapID = next->mapID;
+            curr->_unk6 = next->_unk6;
+            curr->x = next->x;
+            curr->y = next->y;
+            curr->z = next->z;
+        }
+
+        for (s32 j = 0; j < count; j++) {
+            u32 idx = u32list_get(invalidList, j);
+            if (idx > invalidIdx) {
+                u32list_set(invalidList, j, idx - 1);
+            }
+        }
+
+        savegame->file.numSavedObjects--;
+    }
 }
 
 void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
@@ -311,12 +419,12 @@ void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
     RecompSaveDataHeader *header = &flash->recomp;
     if (header->magic[0] != 'R' || header->magic[1] != 'C') {
         // Missing or invalid recomp savedata
-        //recomp_printf("Recomp savedata not found in slot %d (this is OK).\n", slotno);
+        //recomp_printf("[recompsave] Recomp savedata not found in slot %d (this is OK).\n", slotno);
         recomp_savedata_on_loaded(slotno);
         return;
     }
     if (header->version != 1) {
-        recomp_eprintf("Recomp savedata (slot %d) has an invalid version: %d\n", slotno, header->version);
+        recomp_eprintf("[recompsave] Recomp savedata (slot %d) has an invalid version: %d\n", slotno, header->version);
         recomp_savedata_on_loaded(slotno);
         return;
     }
@@ -394,7 +502,7 @@ void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
                 // No room left in the bitstring. Drop the orphaned data to prioritize the current mod list
                 const char *namespaceName;
                 reasset_namespace_lookup_name(namespace, &namespaceName);
-                recomp_eprintf("Dropping orphaned bitstring region %s:%d. The bitstring is full. Savefile slot: %d\n",
+                recomp_eprintf("[recompsave] Dropping orphaned bitstring region %s:%d. The bitstring is full. Savefile slot: %d\n",
                     namespaceName, region->bitstring, slotno);
                 continue;
             }
@@ -445,11 +553,92 @@ void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
         }
     }
 
+    // Load map objects
+    ReAssetResolveMap mapResolveMap = reasset_maps_get_resolve_map();
+    IterableSet mapObjMaps;
+    iterable_set_init(&mapObjMaps, sizeof(U32ValueHashmapHandle));
+    for (s32 i = 0; i < header->numMapObjects && ptr < flashEndPtr; i++) {
+        ptr = (u8*)mmAlign4((u32)ptr);
+
+        RecompSaveMapObjectLink *link = (RecompSaveMapObjectLink*)ptr;
+        ptr += sizeof(RecompSaveMapObjectLink);
+
+        if (link->localID == -1) {
+            // Cannot restore auto IDs
+            continue;
+        }
+
+        ReAssetNamespace namespace = extNamespaces[link->extension];
+        ReAssetID assetID = reasset_id(namespace, link->localID);
+
+        // TODO: when we save map links, we'll need to go through that here
+        ReAssetID mapID;
+        if (!reasset_resolve_map_id_of(mapResolveMap, link->mapID, &mapID)) {
+            // Not a map we know about
+            continue;
+        }
+
+        ReAssetResolveMap mapObjResolveMap = reasset_map_objects_get_resolve_map(mapID);
+
+        s32 newResolvedIdentifier = reasset_resolve_map_lookup(mapObjResolveMap, assetID);
+        U32ValueHashmapHandle objMap;
+        U32ValueHashmapHandle *objMapPtr;
+        if (iterable_set_get(&mapObjMaps, link->mapID, (void**)&objMapPtr)) {
+            objMap = *objMapPtr; // ughhhhh
+        } else {
+            objMap = recomputil_create_u32_value_hashmap();
+            iterable_set_add(&mapObjMaps, link->mapID, &objMap);
+        }
+        recomputil_u32_value_hashmap_insert(objMap, link->resolvedUID, newResolvedIdentifier);
+    }
+    U32List invalidSavedObjs;
+    u32list_init(&invalidSavedObjs, 0);
+    for (s32 i = 0; i < savegame->file.numSavedObjects; i++) {
+        SavedObject *savedObj = &savegame->file.savedObjects[i];
+
+        ReAssetID mapID;
+        if (!reasset_resolve_map_id_of(mapResolveMap, savedObj->mapID, &mapID)) {
+            // Saved object references a map we don't have anymore
+            u32list_add(&invalidSavedObjs, i);
+            continue;
+        }
+
+        if (reasset_map_objects_is_base_uid(mapID, savedObj->uID)) {
+            continue;
+        }
+
+        U32ValueHashmapHandle *objMapPtr;
+        if (!iterable_set_get(&mapObjMaps, savedObj->mapID, (void**)&objMapPtr)) {
+            // No hashmap for new identifiers exists, so we can't restore this object
+            u32list_add(&invalidSavedObjs, i);
+            continue;
+        }
+        
+        // Remap to the new identifier of the original asset, if a mod is still providing it
+        s32 newResolvedIdentifier;
+        if (recomputil_u32_value_hashmap_get(*objMapPtr, savedObj->uID, (u32*)&newResolvedIdentifier)) {
+            recomp_printf("[recompsave] Remapping saved object %d UID 0x%X -> 0x%X\n", i, savedObj->uID, newResolvedIdentifier);
+            savedObj->uID = newResolvedIdentifier;
+        } else {
+            u32list_add(&invalidSavedObjs, i);
+        }
+    }
+    remove_invalid_saved_objects(savegame, &invalidSavedObjs);
+
     if (ptr > flashEndPtr) {
-        recomp_eprintf("Overflow when reading recomp savedata! Savefile slot %d may be corrupt.", slotno);
+        recomp_eprintf("[recompsave] Overflow when reading recomp savedata! Savefile slot %d may be corrupt.", slotno);
     }
 
     // Clean up
+    u32list_free(&invalidSavedObjs);
+    {
+        List *mapObjMapsList = iterable_set_get_list(&mapObjMaps);
+        s32 numMapObjMaps = list_get_length(mapObjMapsList);
+        for (s32 i = 0; i < numMapObjMaps; i++) {
+            recomputil_destroy_u32_value_hashmap(*(U32ValueHashmapHandle*)list_get(mapObjMapsList, i));
+        }
+        iterable_set_free(&mapObjMaps);
+    }
     recomputil_destroy_u32_value_hashmap(mactionMap);
     for (s32 i = 0; i < (s32)ARRAYCOUNT(bitstringSrc); i++) {
         recomp_free(bitstringSrc[i]);
@@ -458,7 +647,7 @@ void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
         recomp_free(extNamespaces);
     }
 
-    //recomp_printf("Loaded recomp savedata from slot %d.\n", slotno);
+    //recomp_printf("[recompsave] Loaded recomp savedata from slot %d.\n", slotno);
     recomp_savedata_on_loaded(slotno);
 }
 
@@ -467,7 +656,7 @@ static void validate_extension_name(const char *name) {
     s32 nameLen = strlen(name);
     if (nameLen <= 0 || nameLen > 16) {
         recomp_exit_with_error(recomp_sprintf_helper(
-            "Invalid recomp savedata extension name: \"%s\". Extension names must be at least one character long and less than or equal to 16 characters long.",
+            "[recompsave] Invalid recomp savedata extension name: \"%s\". Extension names must be at least one character long and less than or equal to 16 characters long.",
             name));
     }
 }
@@ -475,7 +664,7 @@ static void validate_extension_name(const char *name) {
 RECOMP_EXPORT void recomp_savedata_set_custom_data(const char *extensionName, void *data, u32 sizeBytes) {
     validate_extension_name(extensionName);
     if (!bInitialized) {
-        recomp_exit_with_error("Cannot call recomp_savedata_set_custom_data before a savegame has been loaded!");
+        recomp_exit_with_error("[recompsave] Cannot call recomp_savedata_set_custom_data before a savegame has been loaded!");
     }
 
     custom_data_list_set(reasset_namespace(extensionName), data, sizeBytes);
@@ -484,7 +673,7 @@ RECOMP_EXPORT void recomp_savedata_set_custom_data(const char *extensionName, vo
 RECOMP_EXPORT int recomp_savedata_get_custom_data(const char *extensionName, void **outData, u32 *outSizeBytes) {
     validate_extension_name(extensionName);
     if (!bInitialized) {
-        recomp_exit_with_error("Cannot call recomp_savedata_get_custom_data before a savegame has been loaded!");
+        recomp_exit_with_error("[recompsave] Cannot call recomp_savedata_get_custom_data before a savegame has been loaded!");
     }
 
     return custom_data_list_get(reasset_namespace(extensionName), outData, outSizeBytes) ? 1 : 0;
