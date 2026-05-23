@@ -1,5 +1,7 @@
 #pragma once
 
+#include "PR/ultratypes.h"
+
 // Original values from the game
 #define MAIN_GFX_BUF_SIZE 0x8CA0
 #define MAIN_MTX_BUF_SIZE 0x11300
@@ -11,5 +13,7 @@
 #define RECOMP_MAIN_MTX_BUF_SIZE ((int)(MAIN_MTX_BUF_SIZE * 8))
 #define RECOMP_MAIN_VTX_BUF_SIZE ((int)(MAIN_VTX_BUF_SIZE * 8))
 #define RECOMP_MAIN_POL_BUF_SIZE ((int)(MAIN_POL_BUF_SIZE * 8))
+
+extern u32 recomp_tickCounter;
 
 void recomp_dbgui_tick(void);

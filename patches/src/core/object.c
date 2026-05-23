@@ -1,4 +1,5 @@
 #include "patches.h"
+#include "patches/main.h"
 #include "recompdata.h"
 #include "matrix_groups.h"
 
@@ -16,7 +17,6 @@
 #include "sys/objtype.h"
 #include "sys/objhits.h"
 #include "sys/newshadows.h"
-#include "sys/main.h"
 #include "macros.h"
 #include "dll.h"
 
@@ -72,17 +72,17 @@ void recomp_obj_skip_interp(Object *obj) {
     if (recomputil_u32_value_hashmap_get(recomp_objMatrixGroupMap, (collection_key_t)obj, &group)) {
         RecompObjInterpState *state = &recomp_objInterpStates[group];
         state->skipNextInterp = TRUE;
+    } else {
+        recomp_eprintf("[recomp_obj_skip_interp] Can't skip interp for object %s (%d), no matrix group was allocated!\n",
+            obj->def == NULL ? "<null>" : obj->def->name, obj->id);
     }
 }
 
-static void recomp_obj_update_matrix_group_state(Object *obj) {
-    // Get state
-    u32 group;
-    if (!recomputil_u32_value_hashmap_get(recomp_objMatrixGroupMap, (collection_key_t)obj, &group)) {
+static void recomp_obj_update_matrix_group_state(Object *obj, RecompObjInterpState *state) {
+    // Only update once per tick
+    if (state->lastGameTick == recomp_tickCounter) {
         return;
     }
-
-    RecompObjInterpState *state = &recomp_objInterpStates[group];
 
     // Get config
     u8 config = 0;
@@ -129,6 +129,7 @@ static void recomp_obj_update_matrix_group_state(Object *obj) {
     }
 
     // Update state
+    state->lastGameTick = recomp_tickCounter;
     state->skipNextInterp = FALSE;
     state->lastYaw = obj->srt.yaw;
 }
@@ -146,8 +147,10 @@ RecompObjInterpState* recomp_obj_get_interp_state(Object *obj) {
 u32 recomp_obj_get_matrix_group(Object *obj, _Bool *skipInterpolation) {
     u32 group;
     if (recomputil_u32_value_hashmap_get(recomp_objMatrixGroupMap, (collection_key_t)obj, &group)) {
+        RecompObjInterpState *state = &recomp_objInterpStates[group];
+        recomp_obj_update_matrix_group_state(obj, state); // lazily update state
         if (skipInterpolation != NULL) {
-            *skipInterpolation = recomp_objInterpStates[group].skipInterp;
+            *skipInterpolation = state->skipInterp;
         }
         return group;
     }
@@ -464,88 +467,4 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
     }
 
     mmFree(obj);
-}
-
-RECOMP_PATCH void update_objects(void) {
-    void *node;
-    Object *obj;
-    Object *player;
-    s32 nextFieldOffset;
-
-    nextFieldOffset = gObjUpdateList.nextFieldOffset; // == 0x38, &obj->next
-
-    func_80058FE8();
-
-    update_obj_models();
-    update_obj_hitboxes(gNumObjs);
-
-    node = gObjUpdateList.head;
-
-    for (obj = (Object*)node; node != NULL && obj->updatePriority == OBJPRIORITY_ANIM; obj = (Object*)node) {
-        update_object(obj);
-        node = *((void**)(nextFieldOffset + (u32)node));
-
-        //if (obj->objhitInfo->unk58){} // fake match
-    }
-
-    for (obj = (Object*)node; node != NULL && (obj->def->flags & OBJDEF_IS_MOBILE_MAP); obj = (Object*)node) {
-        update_object(obj);
-        obj->matrixIdx = camera_alloc_object_matrix(obj);
-        node = *((void**)(nextFieldOffset + (u32)node));
-    }
-
-    func_80025E58();
-
-    while (node != NULL) {
-        obj = (Object*)node;
-
-        if (obj->objhitInfo != NULL) {
-            if (obj->objhitInfo->unk5A != 8 || (obj->objhitInfo->unk58 & 1) == 0) {
-                update_object(obj);
-            }
-        } else {
-            update_object(obj);
-        }
-
-        node = *((void**)(nextFieldOffset + (u32)node));
-    }
-
-    player = get_player();
-    if (player != NULL && player->linkedObject != NULL) {
-        player->linkedObject->parent = player->parent;
-        update_object(player->linkedObject);
-    }
-
-    obj_do_hit_detection(gNumObjs);
-
-    node = gObjUpdateList.head;
-    while (node != NULL) {
-        obj = (Object*)node;
-        func_8002272C(obj);
-        node = *((void**)(nextFieldOffset + (u32)node));
-    }
-
-    player = get_player();
-    if (player != NULL && player->linkedObject != NULL) {
-        player->linkedObject->parent = player->parent;
-        func_8002272C(player->linkedObject);
-    }
-
-    gDLL_24_Waterfx->vtbl->tick(gUpdateRate);
-    gDLL_15_Projgfx->vtbl->func2(gUpdateRate, 0);
-    gDLL_14_Modgfx->vtbl->func2(0, 0, 0);
-    gDLL_13_Expgfx->vtbl->func2(0, gUpdateRate, 0, 0);
-
-    func_8002B6EC();
-
-    gDLL_3_Animation->vtbl->tick();
-    gDLL_3_Animation->vtbl->update_camera();
-    gDLL_2_Camera->vtbl->tick(gUpdateRate);
-
-    write_c_file_label_pointers("objects/objects.c", 361);
-
-    // @recomp: Update matrix tagging state
-    for (s32 i = 0; i < gNumObjs; i++) {
-        recomp_obj_update_matrix_group_state(gObjList[i]);
-    }
 }

@@ -52,6 +52,7 @@ extern _Bool recomp_skipAllInterp;
 extern _Bool recomp_isCameraInSeq;
 
 typedef struct {
+    u32 lastGameTick;
     s16 lastYaw;
     s16 lastSeqTime;
     u8 skipInterp;

@@ -29,6 +29,7 @@
 /*0x1A0*/ extern s32 sPreviousFree;      //Ease (Start Module): free setting for previous module
 /*0x1A4*/ extern s32 sPreviousSetupVal;  //Ease (Start Module): arg1 for previous module's setup function
 /*0x1C0*/ extern f32 sFov;
+/*0x1D0*/ extern Object* sLockIcon;
 /*0x1D4*/ extern s16 sLetterboxHeight;  //Controls the letterboxing at the top/bottom of frame
 
 extern void CamControl_update_camera(CamControl_Data* arg0);
@@ -37,6 +38,8 @@ extern void CamControl_store_player_coords(Object* arg0);
 extern void CamControl_average_player_speed(CamControl_Data* arg0, Object* arg1);
 extern void CamControl_restore_player_coords(Object* obj);
 extern Object* CamControl_find_highlight_object(CamControl_Data* arg0, Object* arg1);
+
+static Object* recomp_lastHighlightObj;
 
 static f32 recomp_get_camera_jump_threshold(f32 cameraSpeed) {
     return 65.0f + (cameraSpeed * 1.0f);
@@ -165,6 +168,14 @@ RECOMP_PATCH void CamControl_tick(void) {
         if (sActiveID != DLL_ID_ATTENTIONCAM1) {
             sCamData->targetFlags &= ~ARROW_FLAG_1_Interacted;
         }
+    }
+
+    // @recomp: Skip interp for lock icon if the target changes
+    if (recomp_lastHighlightObj != sCamData->highlight && sLockIcon != NULL) {
+        if (sCamData->highlight != NULL) {
+            recomp_obj_skip_interp(sLockIcon);
+        }
+        recomp_lastHighlightObj = sCamData->highlight;
     }
 
     // @recomp: Check for sudden camera movements

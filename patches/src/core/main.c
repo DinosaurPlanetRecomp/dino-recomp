@@ -54,6 +54,8 @@ extern s8 gMainDoMapChange;
 extern void func_80013D80(void);
 extern void main_handle_map_change(void);
 
+u32 recomp_tickCounter;
+
 // @recomp: Move graphics buffers into patch memory to save vanilla pool memory
 static Gfx recompMainGfx[2][RECOMP_MAIN_GFX_BUF_SIZE / sizeof(Gfx)]; 
 static Mtx recompMainMtx[2][RECOMP_MAIN_MTX_BUF_SIZE / sizeof(Mtx)]; 
@@ -244,6 +246,9 @@ RECOMP_PATCH void game_tick(void) {
 
     main_handle_map_change();
     write_c_file_label_pointers("main/main.c", 0x37C);
+
+    // @recomp: Track semi-unique number for each game tick
+    recomp_tickCounter++;
 }
 
 RECOMP_PATCH void main_handle_map_change(void) {
