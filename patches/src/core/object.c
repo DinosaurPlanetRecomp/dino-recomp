@@ -275,7 +275,7 @@ RECOMP_PATCH void obj_add_object(Object *obj, u32 initFlags) {
     update_pi_manager_array(0, -1);
 
     if (obj->def->flags & OBJDEF_IS_MOBILE_MAP) {
-        obj_add_object_type(obj, OBJTYPE_MOBILE_MAP);
+        obj_add_object_type(obj, OBJTYPE_MobileMap);
 
         if (obj->updatePriority != OBJPRIORITY_MOBILE_MAP) {
             obj_set_update_priority(obj, OBJPRIORITY_MOBILE_MAP);
@@ -305,7 +305,7 @@ RECOMP_PATCH void obj_add_object(Object *obj, u32 initFlags) {
     }
 
     if (obj->def->unk5e >= 1) {
-        obj_add_object_type(obj, OBJTYPE_9);
+        obj_add_object_type(obj, OBJTYPE_LookAt);
     }
 
     // Resorting by visibility isn't necessary if the object is visible since the object
@@ -327,7 +327,7 @@ RECOMP_PATCH void obj_add_object(Object *obj, u32 initFlags) {
 RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
     Object *obj2;
     /*sp+0xE4*/ LightAction lAction;
-    ObjectAnim_Data *animObjdata;
+    AnimObj_Data *animObjdata;
     ModelInstance *modelInst;
     /*sp+0x40*/ Object *stackObjs[39]; // unknown exact length
     /*sp+0x3c*/ s32 k;
@@ -351,7 +351,7 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
     }
 
     if (obj->def->flags & OBJDEF_IS_MOBILE_MAP) {
-        obj_free_object_type(obj, OBJTYPE_MOBILE_MAP);
+        obj_free_object_type(obj, OBJTYPE_MobileMap);
 
         if (!onlySelf) {
             numStackObjs = 0;
@@ -371,7 +371,7 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
                         }
                         */
                         // @recomp: Restore print
-                        if (numStackObjs > (s32)ARRAYCOUNT(stackObjs)) {
+                        if (numStackObjs > ARRAYCOUNT_S(stackObjs)) {
                             recomp_eprintf("world free obj list overflow\n");
                         }
                     }
@@ -386,7 +386,7 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
         }
     }
 
-    if (!onlySelf && obj->group == GROUP_UNK16) {
+    if (!onlySelf && obj->controlNo == OBJCONTROL_AnimObj) {
         for (i = 0; i < gNumObjs; i++) {
             obj2 = gObjList[i];
             if (obj == obj2->animObj) {
@@ -397,10 +397,10 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
 
     for (k = 0; k < gNumObjs; k++) {
         obj2 = gObjList[k];
-        if (obj2->group == GROUP_UNK16) {
-            animObjdata = (ObjectAnim_Data*)obj2->data;
-            if (obj == animObjdata->unk0) {
-                animObjdata->unk0 = NULL;
+        if (obj2->controlNo == OBJCONTROL_AnimObj) {
+            animObjdata = (AnimObj_Data*)obj2->data;
+            if (obj == animObjdata->actor) {
+                animObjdata->actor = NULL;
                 animObjdata->unk9C = 1;
             }
         }
@@ -408,7 +408,7 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
     
 
     if (obj->def->unk5e >= 1) {
-        obj_free_object_type(obj, 9);
+        obj_free_object_type(obj, OBJTYPE_LookAt);
     }
 
     if (obj->def->unk87 & 0x10) {
@@ -538,7 +538,7 @@ RECOMP_PATCH void update_objects(void) {
 
     func_8002B6EC();
 
-    gDLL_3_Animation->vtbl->func9();
+    gDLL_3_Animation->vtbl->tick();
     gDLL_3_Animation->vtbl->update_camera();
     gDLL_2_Camera->vtbl->tick(gUpdateRate);
 

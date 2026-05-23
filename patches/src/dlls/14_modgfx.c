@@ -7,41 +7,7 @@
 #include "sys/segment_1D900.h"
 #include "macros.h"
 
-#include "recomp/dlls/_asm/14_recomp.h"
-
-typedef struct {
-    void* unk0;
-    Object* unk4;
-    u8 _unk8[0x20 - 0x8];
-    f32 unk20;
-    f32 unk24;
-    f32 unk28;
-    Vec3f unk2C;
-    f32 unk38;
-    s32 unk3C;
-    s32 unk40;
-    s16 unk44;
-    s16 unk46;
-    s16 unk48;
-    s16 unk4A;
-    s16 unk4C;
-    s16 unk4E;
-    s16 unk50;
-    s16 unk52;
-    s32 unk54;
-    u8 _unk58;
-    u8 unk59;
-    u8 unk5A;
-    u8 unk5B;
-    u8 _unk5C;
-    u8 unk5D;
-} ModgfxStruct;
-
-// size: 0x10
-typedef struct {
-    s16 unk0[3];
-    u8 _unk6[0x10 - 0x6];
-} BSS0_78;
+#include "recomp/dlls/engine/14_modgfx_recomp.h"
 
 // size: 0x18
 typedef struct {
@@ -67,10 +33,10 @@ typedef struct {
     f32 unk64;
     f32 unk68;
     Vec3f unk6C;
-    Vtx* unk78[1]; // array size?
-    u8 _unk7C[0x84 - 0x7C];
-    DLTri* unk84[1]; // array size?
-    u8 _unk88[0x98 - 0x88];
+    Vtx* unk78[2];
+    u8 _unk80[0x84 - 0x80];
+    DLTri* unk84[2];
+    u8 _unk8C[0x98 - 0x8C];
     Texture* unk98;
     BSS0_9C* unk9C;
     LightAction* unkA0;
@@ -123,11 +89,11 @@ typedef struct {
     u8 unk13D;
     u8 unk13E;
     u8 unk13F;
-} BSS0;
+} ModgfxInstance;
 
-/*0x0*/ extern BSS0* bss_0[496];
+/*0x0*/ extern ModgfxInstance* bss_0[496];
 
-extern void dll_14_func_4EDC(BSS0* arg0, u8 arg1);
+extern void dll_14_func_4EDC(ModgfxInstance* arg0, u8 arg1);
 
 RECOMP_PATCH s32 dll_14_func_2618(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, u8 arg3, Object* obj) {
     s32 idx;

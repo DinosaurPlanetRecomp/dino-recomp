@@ -444,7 +444,7 @@ RECOMP_PATCH ModelInstance *func_80035AF4(Gfx** arg0, Mtx** arg1, Vertex** arg2,
             arg8->globalPosition.f[1] = arg8->srt.transl.f[1];
             arg8->globalPosition.f[2] = arg8->srt.transl.f[2];
         }
-        if (arg8->def->numAttachPoints >= 2 && arg8->group == GROUP_UNK48) {
+        if (arg8->def->numAttachPoints >= 2 && arg8->controlNo == OBJCONTROL_Weapon) {
             if (arg8->parent != NULL) {
                 camera_load_parent_projection(arg0);
             }

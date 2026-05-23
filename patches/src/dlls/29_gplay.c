@@ -28,9 +28,7 @@ extern Savegame *sRestartSave;
 extern GplayOptions *sGameOptions;
 extern GameState sState;
 extern s8 sSavegameIdx;
-extern u8 bss_1840[40];
-extern u32 sAllMapObjGroups[120];
-extern MapSetup sMapSetup;
+extern MapSetup sMapAct;
 extern MapObjGroupBits sMapObjGroups;
 
 extern void gplay_start_loaded_game(void);
@@ -42,7 +40,7 @@ RECOMP_PATCH void gplay_ctor(DLLFile *self)  {
     gplay_reset_state();
     sRestartSave = NULL;
     sGameOptions = (GplayOptions*)mmAlloc(sizeof(GplayOptions), COLOUR_TAG_YELLOW, NULL);
-    sMapSetup.mapID = -1;
+    sMapAct.mapID = -1;
     sMapObjGroups.mapID = -1;
 }
 
@@ -149,7 +147,7 @@ RECOMP_PATCH void gplay_save_game(void) {
             TRUE);
         
         if (sRestartSave != NULL) {
-            bcopy(&sState.save.chkpnt, &sRestartSave->chkpnt, sizeof(CheckpointSaveData));
+            bcopy(&sState.save.main, &sRestartSave->main, sizeof(MainSaveData));
         }
     }
 }

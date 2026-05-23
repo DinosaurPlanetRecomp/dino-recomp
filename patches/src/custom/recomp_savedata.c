@@ -157,7 +157,7 @@ static void recomp_savedata_init(void) {
 static void determine_maction_links(RecompFlashData *flash, ExtensionSet *extensions, IterableSet *mactionLinks) {
     ReAssetResolveMap mactionResolveMap = reasset_music_actions_get_resolve_map();
     for (s32 p = 0; p < 2; p++) {
-        PlayerMusicAction *pmactions = &flash->base.asSave.map.unk179C[p];
+        PlayerMusicActions *pmactions = &flash->base.asSave.map.musicActions[p];
         for (s32 i = 0; i < 4; i++) {
             s32 actionNo = pmactions->actionNums[i];
             if (actionNo <= 0) {
@@ -464,16 +464,16 @@ void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
 
     // Load bitstring regions
     u8 *bitstringDst[3] = {
-        savegame->chkpnt.bitString,
+        savegame->main.bitString,
         savegame->file.bitString,
         savegame->map.bitString
     };
     u8 *bitstringSrc[3] = {
-        recomp_alloc(sizeof(savegame->chkpnt.bitString)),
+        recomp_alloc(sizeof(savegame->main.bitString)),
         recomp_alloc(sizeof(savegame->file.bitString)),
         recomp_alloc(sizeof(savegame->map.bitString))
     };
-    bcopy(savegame->chkpnt.bitString, bitstringSrc[0], sizeof(savegame->chkpnt.bitString));
+    bcopy(savegame->main.bitString, bitstringSrc[0], sizeof(savegame->main.bitString));
     bcopy(savegame->file.bitString, bitstringSrc[1], sizeof(savegame->file.bitString));
     bcopy(savegame->map.bitString, bitstringSrc[2], sizeof(savegame->map.bitString));
 
@@ -536,7 +536,7 @@ void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
         recomputil_u32_value_hashmap_insert(mactionMap, link->resolvedIdentifier, newResolvedIdentifier);
     }
     for (s32 p = 0; p < 2; p++) {
-        PlayerMusicAction *pmactions = &savegame->map.unk179C[p];
+        PlayerMusicActions *pmactions = &savegame->map.musicActions[p];
         for (s32 i = 0; i < 4; i++) {
             s32 actionNo = pmactions->actionNums[i];
             if (actionNo <= 0 || reasset_music_actions_is_base_id(actionNo - 1)) {
