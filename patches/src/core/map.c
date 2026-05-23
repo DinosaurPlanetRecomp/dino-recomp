@@ -5,14 +5,11 @@
 
 #include "PR/ultratypes.h"
 #include "PR/gbi.h"
-#include "game/objects/object_id.h"
-#include "dlls/objects/common/vehicle.h"
 #include "sys/map.h"
 #include "sys/fs.h"
 #include "sys/memory.h"
 #include "sys/rarezip.h"
 #include "sys/asset_thread.h"
-#include "sys/objprint.h"
 #include "sys/objects.h"
 #include "sys/vi.h"
 #include "sys/menu.h"
@@ -578,13 +575,6 @@ RECOMP_PATCH void track_draw_main(void) {
     }
     gDLL_15_Projgfx->vtbl->func5(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 2);
     gDLL_15_Projgfx->vtbl->func5(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 1);
-    // @recomp: Tag modgfx matrices
-    // TODO: Always skip modgfx interp. We need to tag them individually
-    // if (recomp_skipAllInterp) {
-        gEXMatrixGroupSkipAll(gMainDL++, MODGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-    // } else {
-    //     gEXMatrixGroupSimpleNormalAuto(gMainDL++, MODGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-    // }
     gDLL_14_Modgfx->vtbl->func11(objVisibilities);
     gDLL_14_Modgfx->vtbl->func6(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 0, 0);
     gDLL_24_Waterfx->vtbl->print(&gMainDL, &gWorldRSPMatrices);
@@ -1141,58 +1131,5 @@ RECOMP_PATCH void track_add_visible_objects(s8* objVisibilities) {
     if (gRenderListLength >= 2) {
         // @recomp: Use custom render list
         track_sort_render_list(recomp_RenderList, gRenderListLength);
-    }
-}
-
-RECOMP_PATCH void track_draw_object(Object* obj, s32 visibility) {
-    s8 sp37;
-    u8 someBool;
-
-    // @recomp: Get base matrix tagging group
-    _Bool skipInterp;
-    u32 objMtxGroup = recomp_obj_get_matrix_group(obj, &skipInterp);
-
-    someBool = TRUE;
-    if ((obj->id == OBJ_IMSnowBike) || (obj->id == OBJ_CRSnowBike)) {
-        someBool = TRUE;
-        if (((DLL_IVehicle*)obj->dll)->vtbl->func13(obj) != 0) {
-            someBool = FALSE;
-        }
-    }
-    // @bug: sp37 is uninitialized if someBool is false
-#ifdef AVOID_UB
-    sp37 = 0; // TODO: is this an ok default?
-#endif
-    if (someBool != FALSE) {
-        sp37 = gDLL_13_Expgfx->vtbl->func10(obj);
-    }
-    // @recomp: Tag modgfx matrices
-    if (skipInterp || recomp_skipAllInterp) {
-        gEXMatrixGroupSkipAll(gMainDL++, objMtxGroup + OBJ_MODGFX_MTX_GROUP_ID_START, 
-            G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-    } else {
-        gEXMatrixGroupDecomposedVertsOrderAuto(gMainDL++, objMtxGroup + OBJ_MODGFX_MTX_GROUP_ID_START, 
-            G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-    }
-    gDLL_14_Modgfx->vtbl->func6(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 1, obj);
-    if (sp37 >= 2) {
-        if ((obj->id != OBJ_IMSnowBike) && (obj->id != OBJ_CRSnowBike)) {
-            gDLL_13_Expgfx->vtbl->func6(obj, &gMainDL, &gWorldRSPMatrices, &D_800B51D4, 1, 0, 0);
-        }
-    }
-    objprint_func(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, &D_800B51D8, obj, visibility);
-    if (sp37 != 0) {
-        if ((obj->id != OBJ_IMSnowBike) && (obj->id != OBJ_CRSnowBike)) {
-            gDLL_13_Expgfx->vtbl->func6(obj, &gMainDL, &gWorldRSPMatrices, &D_800B51D4, 0, 0, 0);
-        }
-    }
-    if ((obj->linkedObject != NULL) && (visibility != 0)) {
-        sp37 = gDLL_13_Expgfx->vtbl->func10(obj->linkedObject);
-        if (sp37 >= 2) {
-            gDLL_13_Expgfx->vtbl->func6(obj->linkedObject, &gMainDL, &gWorldRSPMatrices, &D_800B51D4, 1, 0, 0);
-        }
-        if (sp37 != 0) {
-            gDLL_13_Expgfx->vtbl->func6(obj->linkedObject, &gMainDL, &gWorldRSPMatrices, &D_800B51D4, 0, 0, 0);
-        }
     }
 }

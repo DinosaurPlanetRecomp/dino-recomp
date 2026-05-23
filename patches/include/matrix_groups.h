@@ -7,8 +7,6 @@
 // Cameras: 0x00000010 - 0x0000001F
 #define CAMERA_MTX_GROUP_ID_START 0x00000010
 
-// Object modgfx calls: 0x00005000 - 0x00005FFF
-#define OBJ_MODGFX_MTX_GROUP_ID_START 0x00005000
 // Object print (fallback group for stuff rendered during the print func): 0x00006000 - 0x00006FFF
 #define OBJ_PRINT_AUTO_MTX_GROUP_ID_START 0x00006000
 // Object shadows: 0x00007000 - 0x00007FFF
@@ -31,7 +29,6 @@
 #define NEWCLOUDS_MTX_GROUP_ID 0x0000F002
 #define PROJGFX_MTX_GROUP_ID 0x0000F003
 #define MINIC_MTX_GROUP_ID 0x0000F004
-#define MODGFX_MTX_GROUP_ID 0x0000F005
 
 // Object models (min length: 180 * 16): 0x00100000 - 0x00101000
 // Note: The most models in a vanilla object is 12
@@ -42,6 +39,8 @@
 
 // Expgfx particles (min length: 30000): 0x04000000 - 0x04008000
 #define EXPGFX_MTX_GROUP_ID_START 0x04000000
+// Modgfx (min length: 20000): 0x05000000 - 0x05008000
+#define MODGFX_MTX_GROUP_ID_START 0x05000000
 
 // Block shapes (unique per global grid coord and layer): 0x10000000 - 0x11000000
 #define BLOCK_SHAPE_MTX_GROUP_ID_START 0x10000000
