@@ -10,6 +10,7 @@
 #include "reasset/reasset_fst.h"
 #include "reasset/reasset_iterator.h"
 #include "reasset/files/reasset_blocks.h"
+#include "reasset/files/reasset_objects.h"
 #include "reasset/list.h"
 #include "reasset/buffer.h"
 #include "reasset/bin_ptr.h"
@@ -518,6 +519,7 @@ void reasset_maps_repack(void) {
 
 void reasset_maps_patch(void) {
     ReAssetResolveMap trkblkResolveMap = reasset_trkblk_get_resolve_map();
+    ReAssetResolveMap objIndexResolveMap = reasset_object_indices_get_resolve_map();
 
     s32 numMaps = list_get_length(&mapList);
     for (s32 i = 0; i < numMaps; i++) {
@@ -578,7 +580,7 @@ void reasset_maps_patch(void) {
             }
         }
 
-        // Patch curve link IDs
+        // Patch map objects
         s32 numObjects = list_get_length(&mapEntry->objects.list);
         for (s32 k = 0; k < numObjects; k++) {
             MapObjectEntry *mapObj = list_get(&mapEntry->objects.list, k);
@@ -591,6 +593,7 @@ void reasset_maps_patch(void) {
                 continue;
             }
 
+            // Patch curve link IDs
             if (setup->objId == OBJ_curve) {
                 CurveSetup *curve = (CurveSetup*)setup;
 
@@ -610,9 +613,26 @@ void reasset_maps_patch(void) {
                         }
                     }
                 }
-            }
+            } else if (setup->objId == OBJ_checkpoint4) {
+                // TODO: patch race checkpoint links (which field is that?)
+            } else {
+                // Patch ObjSetup object IDs
+                s32 resolvedID = reasset_resolve_map_lookup(objIndexResolveMap, reasset_id(mapObj->owner, setup->objId));
+                if (resolvedID != -1) {
+                    setup->objId = resolvedID;
+                } else if (!reasset_object_indices_is_base_id(setup->objId)) {
+                    const char *mapObjNamespaceName;
+                    s32 mapObjIdentifier;
+                    reasset_id_lookup_name(mapObj->id, &mapObjNamespaceName, &mapObjIdentifier);
 
-            // TODO: patch race checkpoint links (which field is that?)
+                    reasset_log_warning("[reasset] WARN: Failed to map (%s:%d) object (%s:0x%X). Object ID 0x%X was not defined!",
+                        namespaceName, identifier, 
+                        mapObjNamespaceName, mapObjIdentifier,
+                        setup->objId);
+                    
+                    setup->objId = OBJ_DummyObject;
+                }
+            }
         }
     }
 }
