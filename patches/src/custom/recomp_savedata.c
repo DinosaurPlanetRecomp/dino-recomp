@@ -581,6 +581,11 @@ void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
         ReAssetResolveMap mapObjResolveMap = reasset_map_objects_get_resolve_map(mapID);
 
         s32 newResolvedIdentifier = reasset_resolve_map_lookup(mapObjResolveMap, assetID);
+        if (newResolvedIdentifier == -1) {
+            // Not a map object we know about
+            continue;
+        }
+
         U32ValueHashmapHandle objMap;
         U32ValueHashmapHandle *objMapPtr;
         if (iterable_set_get(&mapObjMaps, link->mapID, (void**)&objMapPtr)) {
