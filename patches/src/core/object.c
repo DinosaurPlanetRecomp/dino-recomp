@@ -57,14 +57,11 @@ static Object* recomp_objMatrixGroupList[1000];
 static RecompObjInterpState recomp_objInterpStates[1000];
 static U32ValueHashmapHandle recomp_objMatrixGroupMap;
 static u32 recomp_objMatrixGroupNext;
-static u8 recomp_objInterpConfig[1300];
 
 // TODO: increase max objects
 
 static void recomp_obj_interp_init(void) {
     recomp_objMatrixGroupMap = recomputil_create_u32_value_hashmap();
-
-    recomp_objInterpConfig[OBJ_DFP_wallbar] |= RECOMP_OBJINTERP_DISABLE; // object always teleports, don't try interp
 }
 
 void recomp_obj_skip_interp(Object *obj) {
@@ -84,14 +81,8 @@ static void recomp_obj_update_matrix_group_state(Object *obj, RecompObjInterpSta
         return;
     }
 
-    // Get config
-    u8 config = 0;
-    if (obj->id >= 0 && obj->id < ARRAYCOUNT_S(recomp_objInterpConfig)) {
-        config = recomp_objInterpConfig[obj->id];
-    }
-
     // Check if interp is always disabled for this object ID
-    if (config & RECOMP_OBJINTERP_DISABLE) {
+    if (state->config & RECOMP_OBJINTERP_DISABLE) {
         state->skipInterp = TRUE;
         return;
     }
@@ -163,6 +154,18 @@ u32 recomp_obj_get_matrix_group(Object *obj, _Bool *skipInterpolation) {
     return group;
 }
 
+static void recomp_obj_set_matrix_group_config(Object *obj, RecompObjInterpState *interpState) {
+    u8 config = 0;
+    
+    switch (obj->id) {
+        case OBJ_DFP_wallbar:
+            config |= RECOMP_OBJINTERP_DISABLE; // object always teleports, don't try interp
+            break;
+    }
+
+    interpState->config = config;
+}
+
 static u32 recomp_obj_alloc_matrix_group(Object *obj) {
     u32 group;
     if (recomputil_u32_value_hashmap_get(recomp_objMatrixGroupMap, (collection_key_t)obj, &group)) {
@@ -181,7 +184,11 @@ static u32 recomp_obj_alloc_matrix_group(Object *obj) {
 
         if (recomp_objMatrixGroupList[group] == NULL) {
             recomp_objMatrixGroupList[group] = obj;
-            bzero(&recomp_objInterpStates[group], sizeof(RecompObjInterpState));
+
+            RecompObjInterpState *interpState = &recomp_objInterpStates[group];
+            bzero(interpState, sizeof(RecompObjInterpState));
+            recomp_obj_set_matrix_group_config(obj, interpState);
+
             recomputil_u32_value_hashmap_insert(recomp_objMatrixGroupMap, (collection_key_t)obj, group);
             return group;
         }

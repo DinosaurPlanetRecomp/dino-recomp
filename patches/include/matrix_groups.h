@@ -58,6 +58,7 @@ typedef struct {
     u8 skipInterp;
     u8 skipNextInterp;
     s32 lastKeyframes[19];
+    u8 config;
 } RecompObjInterpState;
 
 MtxF* recomp_model_instance_setup_absolute_matrices(ModelInstance *modelInst, s32 count);

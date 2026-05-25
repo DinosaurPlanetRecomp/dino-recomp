@@ -45,7 +45,7 @@ RECOMP_PATCH void mmInit(void) {
         while ((u32)mem < PATCH_RAM_END)
             *mem++ = -1;
     
-        mmInitPool((void *)startAddr, PATCH_RAM_END - startAddr, 3000);
+        mmInitPool((void *)startAddr, PATCH_RAM_END - startAddr, 4000);
     }
 
     mmSetDelay(2);

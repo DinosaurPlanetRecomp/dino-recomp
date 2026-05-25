@@ -112,7 +112,7 @@ typedef struct {
     u8 skipInterpolation;
 } RecompBlockInterpState;
 
-#define RECOMP_RENDER_LIST_LENGTH (MAX_RENDER_LIST_LENGTH * 8)
+#define RECOMP_RENDER_LIST_LENGTH (MAX_RENDER_LIST_LENGTH * 6)
 
 static u32 recomp_RenderList[RECOMP_RENDER_LIST_LENGTH];
 static RecompBlockInterpState recomp_blockInterpStates[MAX_BLOCKS];
