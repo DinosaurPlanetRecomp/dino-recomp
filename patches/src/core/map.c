@@ -113,7 +113,25 @@ typedef struct {
 } RecompBlockInterpState;
 
 #define RECOMP_RENDER_LIST_LENGTH (MAX_RENDER_LIST_LENGTH * 6)
+// 180 -> 500 (note: must fit in render list bitfield)
+#define RECOMP_MAX_VISIBLE_OBJECTS 500
 
+/**
+ * @recomp: The new render list uses an updated bitfield that packs the draw order number
+ * into just 16-bits instead of 18-bits.
+ *
+ * -- vanilla (max of 180 objects, 40 blocks, 400 shapes per block)
+ * opaque shapes   183600 - 200000 (16400)
+ * opaque objects  149820 - 150000 (180)
+ * transp shapes    83400 - 100000 (16600)  // +200 for render flag 0x2000
+ * transp objects   50000 -  50180 (180)
+ * 
+ * -- recomp (max of 500 objects, 60 blocks, 400 shapes per block)
+ * opaque shapes    35800 - 60000 (24000)
+ * opaque objects   34500 - 35000 (500)
+ * transp shapes    9800  - 34000 (24200)   // +200 for render flag 0x2000
+ * transp objects   8500  - 9000  (500)
+ */
 static u32 recomp_RenderList[RECOMP_RENDER_LIST_LENGTH];
 static RecompBlockInterpState recomp_blockInterpStates[MAX_BLOCKS];
 
@@ -160,7 +178,9 @@ RECOMP_PATCH void init_maps(void) {
     bzero(sBlockTexScrollTable, sizeof(BlockTextureScroller) * MAX_TEXTURE_SCROLLERS);
     // @recomp: Use custom render list
     bzero(recomp_RenderList, sizeof(u32) * RECOMP_RENDER_LIST_LENGTH);
-    recomp_RenderList[0] = -0x4000;
+    // @recomp: Updated render list bitfield (this is all draw order bits set)
+    recomp_RenderList[0] = -0x10000;
+    //gRenderList[0] = -0x4000;
 }
 
 RECOMP_PATCH void block_load(s32 id, s32 param_2, s32 globalMapIdx, u8 queue) {
@@ -450,7 +470,9 @@ RECOMP_PATCH void track_draw_main(void) {
     s32 x;
     s8* sp230;
     u8 blockVisibilities[BLOCKS_GRID_TOTAL_CELLS];
-    s8 objVisibilities[MAX_VISIBLE_OBJECTS];
+    // @recomp: Make static to avoid dramatically increasing stack size
+    // @recomp: Use increased max visible object size
+    static s8 objVisibilities[RECOMP_MAX_VISIBLE_OBJECTS];
     Mtx* rspMtxs;
 
     dl_add_debug_info(gMainDL, 0, "track/track.c", 1323);
@@ -636,7 +658,8 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
     gDLL_57->vtbl->func2(&spE0, &spDC, &spD8, &spD4, &spD0, &spCC);
     for (i = 1; i < gRenderListLength; i++) {
         // @recomp: Use custom render list
-        idx = shapeIdx = (recomp_RenderList[i] & 0x3F80) >> 7;
+        // @recomp: Use updated mask for object indices
+        idx = shapeIdx = (recomp_RenderList[i] & 0xFF80) >> 7;
         if (recomp_RenderList[i] & 0x40) {
             obj = objList[idx];
             track_draw_object(obj, visibilities[idx]);
@@ -1033,18 +1056,22 @@ RECOMP_PATCH void block_add_to_render_list(Block *block, f32 x, f32 z) {
     for (i = 0; i < block->shapeCount; i++) {
         // @recomp: Use new render list max length
         if ((block->shapes[i].flags & RENDER_SHAPE_VISIBLE) && gRenderListLength < RECOMP_RENDER_LIST_LENGTH) {
+            // @recomp: Use modified render list bitfield
             if (block->shapes[i].flags & RENDER_SEMI_TRANSPARENT) {
-                param = 100000 - (gBlocksToDrawIdx * 400) - i;
+                param = 34000 - (gBlocksToDrawIdx * 400) - i;
+                //param = 100000 - (gBlocksToDrawIdx * 400) - i;
 
                 if (block->shapes[i].flags & RENDER_UNK2000) {
                     param -= 200;
                 }
             } else {
-                param = 200000 - (gBlocksToDrawIdx * 400) - i;
+                param = 60000 - (gBlocksToDrawIdx * 400) - i;
+                //param = 200000 - (gBlocksToDrawIdx * 400) - i;
             }
 
             // @recomp: Use custom render list
-            recomp_RenderList[gRenderListLength] = (param << 14) | (i << 7) | gBlocksToDrawIdx;
+            recomp_RenderList[gRenderListLength] = (param << 16) | (i << 7) | gBlocksToDrawIdx;
+            //gRenderList[gRenderListLength] = (param << 14) | (i << 7) | gBlocksToDrawIdx;
             gRenderListLength++;
         }
     }
@@ -1087,10 +1114,11 @@ RECOMP_PATCH void track_add_visible_objects(s8* objVisibilities) {
     objects = get_world_objects(NULL, NULL);
     // Separate invisible objects from visible objects
     visibleStartIdx = obj_visibility_sort_objects(&numObjs);
-    if (numObjs > MAX_VISIBLE_OBJECTS) {
+    // @recomp: Use increased max visible object size
+    if (numObjs > RECOMP_MAX_VISIBLE_OBJECTS) {
         // @recomp: Restore print
         recomp_eprintf("depthSortObjects: MAX_VISIBLE_OBJECTS exceeded\n");
-        numObjs = MAX_VISIBLE_OBJECTS;
+        numObjs = RECOMP_MAX_VISIBLE_OBJECTS;
     }
     // Depth sort just the visible objects
     obj_depth_sort_objects(visibleStartIdx, numObjs - 1);
@@ -1110,15 +1138,20 @@ RECOMP_PATCH void track_add_visible_objects(s8* objVisibilities) {
             }
             // @recomp: Use new render list max length
             if (gRenderListLength < RECOMP_RENDER_LIST_LENGTH) {
+                // @recomp: Use modified render list bitfield
                 if (object->def->flags & OBJDEF_FORCE_OPAQUE_DRAW_ORDER) {
-                    var_v0 = 150000 - i;
+                    var_v0 = 35000 - i;
                 } else if ((object->opacityWithFade == 0xFF) && !(object->srt.flags & OBJFLAG_FORCE_TRANSPARENT_DRAW_ORDER)) {
-                    var_v0 = 150000 - i;
+                    var_v0 = 35000 - i;
                 } else {
-                    var_v0 = i + 50000;
+                    var_v0 = i + 8500;
                 }
                 // @recomp: Use custom render list
-                recomp_RenderList[gRenderListLength] = (var_v0 << 14) | (i << 7) | 0x40;
+                // @recomp: Give more room for object indicies (max of 127 -> 511)
+                //          Note: this fixes a vanilla bug where objects would stop rendering if more than 127 were
+                //          visibile, despite MAX_VISIBLE_OBJECTS being 180.
+                recomp_RenderList[gRenderListLength] = (var_v0 << 16) | (i << 7) | 0x40;
+                //gRenderList[gRenderListLength] = (var_v0 << 14) | (i << 7) | 0x40;
                 gRenderListLength += 1;
             }
             /* default.dol

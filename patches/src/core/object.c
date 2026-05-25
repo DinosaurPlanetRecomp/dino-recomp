@@ -17,8 +17,17 @@
 #include "sys/objtype.h"
 #include "sys/objhits.h"
 #include "sys/newshadows.h"
+#include "sys/objlib.h"
 #include "macros.h"
 #include "dll.h"
+
+enum ObjFreeMode {
+    OBJFREEMODE_FREE_ALL = 0,
+    OBJFREEMODE_IMMEDIATE = 1, // unused
+    OBJFREEMODE_DEFERRED = 2
+};
+
+extern s32 sObjFreeMode;
 
 extern s16 sObjListVisibleStartIdx;
 extern s16* D_800B18E4;
@@ -49,16 +58,18 @@ extern void obj_init_object(Object *obj, ObjSetup *setup, s32 reset);
 extern void obj_free_objdef(s32 tabIdx);
 extern void func_8002272C(Object *obj);
 
+// 180 -> 500
+#define RECOMP_MAX_OBJECTS 500
+
 enum RecompObjInterpConfig {
     RECOMP_OBJINTERP_DISABLE = (1 << 0)
 };
 
-static Object* recomp_objMatrixGroupList[1000];
-static RecompObjInterpState recomp_objInterpStates[1000];
+// Note: leave a little overhead for objects that are created but arent added to the world obj list
+static Object* recomp_objMatrixGroupList[RECOMP_MAX_OBJECTS + 100];
+static RecompObjInterpState recomp_objInterpStates[RECOMP_MAX_OBJECTS + 100];
 static U32ValueHashmapHandle recomp_objMatrixGroupMap;
 static u32 recomp_objMatrixGroupNext;
-
-// TODO: increase max objects
 
 static void recomp_obj_interp_init(void) {
     recomp_objMatrixGroupMap = recomputil_create_u32_value_hashmap();
@@ -213,7 +224,8 @@ RECOMP_PATCH void init_objects(void) {
     recomp_obj_interp_init();
 
     //allocate some buffers
-    gObjDeferredFreeList = mmAlloc(sizeof(Object*) * 180, ALLOC_TAG_OBJECTS_COL, ALLOC_NAME("obj:dellist"));
+    // @recomp: Use increased max object count
+    gObjDeferredFreeList = mmAlloc(sizeof(Object*) * RECOMP_MAX_OBJECTS, ALLOC_TAG_OBJECTS_COL, ALLOC_NAME("obj:dellist"));
     sObjLockList = mmAlloc(sizeof(Object*) * 24, ALLOC_TAG_OBJECTS_COL, ALLOC_NAME("obj:locklist"));
     D_800B18E4 = mmAlloc(0x10, ALLOC_TAG_OBJECTS_COL, ALLOC_NAME("obj:contnobuf"));
 
@@ -240,7 +252,8 @@ RECOMP_PATCH void init_objects(void) {
     while(gFile_TABLES_TAB[gNumTablesTabEntries] != -1) gNumTablesTabEntries++;
 
     //allocate global object list and some other buffers
-    gObjList = mmAlloc(sizeof(Object*) * 180, ALLOC_TAG_OBJECTS_COL, ALLOC_NAME("obj:ObjList"));
+    // @recomp: Use increased max object count
+    gObjList = mmAlloc(sizeof(Object*) * RECOMP_MAX_OBJECTS, ALLOC_TAG_OBJECTS_COL, ALLOC_NAME("obj:ObjList"));
     objhits_init();
     obj_clear_all();
 }
@@ -307,7 +320,7 @@ RECOMP_PATCH void obj_add_object(Object *obj, u32 initFlags) {
         }
         */
         // @recomp: Restore print
-        if (gNumObjs > 180) {
+        if (gNumObjs > RECOMP_MAX_OBJECTS) {
             recomp_eprintf("Failed assertion ObjListSize<MAX_OBJECTS\n");
         }
 
@@ -474,4 +487,84 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
     }
 
     mmFree(obj);
+}
+
+RECOMP_PATCH void obj_destroy_object(Object *obj) {
+    s32 i;
+    s32 k;
+
+    if (obj == NULL) {
+        // "Failed assertion obj" (default.dol)
+        // @recomp: Restore printf
+        recomp_eprintf("obj_destroy_object: failed assertion obj\n");
+        *((volatile s8*)NULL) = 0;
+        return;
+    }
+
+    if (!(obj->stateFlags & OBJSTATE_DESTROYED)) {
+        if (obj->unkD9 != 0) {
+            func_8003273C(obj);
+        }
+
+        if (obj->stateFlags & OBJSTATE_STANDALONE) {
+            for (i = 0; i < gNumObjs; i++) {
+                if (obj == gObjList[i]) {
+                    break;
+                }
+            }
+
+            if (i < gNumObjs) {
+                gNumObjs--;
+
+                for (k = i; k < gNumObjs; k++) {
+                    gObjList[k] = gObjList[k + 1];
+                }
+            }
+
+            obj_free_tick(obj);
+            obj_mark_visibility_sort_dirty();
+        }
+
+        obj->stateFlags |= OBJSTATE_DESTROYED;
+
+        if (obj->freeLock != 0) {
+            for (i = 0; i < sObjLockListCount; i++) {
+                if (obj == sObjLockList[i]) {
+                    break;
+                }
+            }
+
+            if (i == sObjLockListCount) {
+                sObjLockList[sObjLockListCount] = obj;
+                sObjLockListCount += 1;
+            } else {
+                // @recomp: Restore printf
+                recomp_printf("objFreeTick %08x locked %d,already on list\n", obj, obj->freeLock);
+            }
+        } else if (sObjFreeMode == OBJFREEMODE_DEFERRED) {
+            i = gObjDeferredFreeListCount;
+
+            if (gObjDeferredFreeListCount != 0) {
+                for (i = 0; i < gObjDeferredFreeListCount; i++) {
+                    if (obj == gObjDeferredFreeList[i]) {
+                        break;
+                    }
+                }
+            }
+
+            if (i == gObjDeferredFreeListCount) {
+                gObjDeferredFreeList[gObjDeferredFreeListCount] = obj;
+                gObjDeferredFreeListCount++;
+                
+                // @recomp: Use increased max object count
+                if (gObjDeferredFreeListCount == RECOMP_MAX_OBJECTS) {
+                    // @recomp: Restore printf
+                    recomp_eprintf("objFreeObject: delete list size overrun\n");
+                    gObjDeferredFreeListCount--;
+                }
+            }
+        } else {
+            obj_free_object(obj, /*onlySelf*/sObjFreeMode == OBJFREEMODE_FREE_ALL);
+        }
+    }
 }

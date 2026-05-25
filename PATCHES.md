@@ -52,6 +52,8 @@ The full list of game patches applied by base Dinosaur Planet: Recompiled.
 - Support loading uncompressed blocks.
 - Matrix group patches for frame interpolation.
 - Replace CPU backface culling with RSP backface culling (fixes vanilla issues, is more accurate, and is necessary for frame interpolation).
+- Adjusted render list bitfield to support up to 511 visible objects (up from 127).
+- Increased max visible objects from 180 -> 500 (matches object.c patch).
 
 ### memory
 - Add new 4th memory pool that takes up the remainder of recomp patch memory. Allocations fallback to this.
@@ -68,6 +70,7 @@ The full list of game patches applied by base Dinosaur Planet: Recompiled.
 
 ### object
 - Matrix group patches for frame interpolation.
+- Increased max objects from 180 -> 500.
 
 ### objprint
 - Matrix group patches for frame interpolation.
