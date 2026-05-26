@@ -58,6 +58,7 @@ typedef struct {
     u8 skipInterp;
     u8 skipNextInterp;
     s32 lastKeyframes[19];
+    f32 keyframeVelocities[19];
     u8 config;
 } RecompObjInterpState;
 

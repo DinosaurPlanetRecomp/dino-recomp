@@ -126,6 +126,7 @@ static void recomp_obj_update_matrix_group_state(Object *obj, RecompObjInterpSta
     if ((obj->seqSlot == SEQSLOT_NONE) && !(obj->stateFlags & OBJSTATE_IN_SEQ)) {
         for (s32 i = 0; i < 19; i++) {
             state->lastKeyframes[i] = 0;
+            state->keyframeVelocities[i] = 0.0f;
         }
         state->lastSeqTime = 0;
     }

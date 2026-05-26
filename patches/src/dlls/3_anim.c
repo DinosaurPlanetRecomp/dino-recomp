@@ -5,9 +5,10 @@
 #include "game/objects/object_id.h"
 #include "sys/gfx/animseq.h"
 #include "sys/camera.h"
-#include "sys/segment_1460.h"
 #include "macros.h"
 #include "dll.h"
+
+#define ABS(x) ((x) < 0 ? -(x) : (x))
 
 #include "recomp/dlls/engine/3_ANIM_recomp.h"
 
@@ -180,10 +181,19 @@ static _Bool recomp_anim_stepped_interp_channel_check(Object* actor, AnimObj_Dat
             stepped = TRUE;
         }
         
-        if (timeOffsetDiff < 2 && valueDiff > 0.0f) {
+        if (timeOffsetDiff <= 1 && ABS(valueDiff - interpState->keyframeVelocities[channel]) > 5.0f) {
             // Sharp value change in 1 frame, this is sometimes done instead of a stepped keyframe
+            // recomp_printf("[%d] [%s] ! sharp change on channel %d: %f -> %f (%f)\n", st->time, actor->def->name,
+            //     channel, interpState->keyframeVelocities[channel], valueDiff,
+            //     ABS(valueDiff - interpState->keyframeVelocities[channel]));
             stepped = TRUE;
-        }
+        }/* else if (timeOffsetDiff <= 1 && ABS(valueDiff - interpState->keyframeVelocities[channel]) > 0.0f) {
+            recomp_printf("[%d] [%s] NOT sharp change on channel %d: %f -> %f (%f)\n", st->time, actor->def->name,
+                channel, interpState->keyframeVelocities[channel], valueDiff,
+                ABS(valueDiff - interpState->keyframeVelocities[channel]));
+        }*/
+
+        interpState->keyframeVelocities[channel] = timeOffsetDiff == 0 ? 0.0f : (valueDiff / (f32)timeOffsetDiff);
     }
 
     interpState->lastKeyframes[channel] = nextKf;
