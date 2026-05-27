@@ -136,7 +136,7 @@
                                 data-checked="minimap_mode"
                                 value="Default"
                                 id="minimap_mode_always"
-                                style="nav-up: #hud_mode_always; nav-down: #sixty_fps_enabled"
+                                style="nav-up: #hud_mode_always; nav-down: #dinomod_check_enabled"
                             />
                             <label class="config-option__tab-label" for="minimap_mode_always">Always</label>
 
@@ -148,7 +148,7 @@
                                 data-checked="minimap_mode"
                                 value="Hold"
                                 id="minimap_mode_hold"
-                                style="nav-up: #hud_mode_default; nav-down: #sixty_fps_disabled"
+                                style="nav-up: #hud_mode_default; nav-down: #dinomod_check_disabled"
                             />
                             <label class="config-option__tab-label" for="minimap_mode_hold">Hold</label>
 
@@ -160,68 +160,37 @@
                                 data-checked="minimap_mode"
                                 value="Hidden"
                                 id="minimap_mode_hidden"
-                                style="nav-up: #hud_mode_default; nav-down: #sixty_fps_disabled"
+                                style="nav-up: #hud_mode_default; nav-down: #dinomod_check_disabled"
                             />
                             <label class="config-option__tab-label" for="minimap_mode_hidden">Hidden</label>
                         </div>
                     </div>
 
-                    <!-- 60 fps -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(6)" id="conf-general__sixty-fps">
-                        <label class="config-option__title">60 Hz Gameplay <small class="experimental">(⚠EXPERIMENTAL⚠)</small></label>
-                        <div class="config-option__list">
-                            <input
-                                type="radio"
-                                data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(6)"
-                                name="sixty_fps"
-                                data-checked="sixty_fps"
-                                value="1"
-                                id="sixty_fps_enabled"
-                                style="nav-up: #minimap_mode_always; nav-down: #dinomod_check_enabled"
-                            />
-                            <label class="config-option__tab-label" for="sixty_fps_enabled">On</label>
-
-                            <input
-                                type="radio"
-                                data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(6)"
-                                name="sixty_fps"
-                                data-checked="sixty_fps"
-                                value="0"
-                                id="sixty_fps_disabled"
-                                style="nav-up: #minimap_mode_hold; nav-down: #dinomod_check_disabled"
-                            />
-                            <label class="config-option__tab-label" for="sixty_fps_disabled">Off</label>
-                            <div class="config-option__details" data-if="sixty_fps">Some gameplay will run faster than intended! Consider using the Framerate option in the Graphics menu instead.</div>
-                        </div>
-                    </div>
-
                     <!-- Dinomod check -->
-                    <div class="config-option" data-event-mouseover="set_cur_config_index(7)" id="conf-general__dinomod-check">
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(6)" id="conf-general__dinomod-check">
                         <label class="config-option__title">Dinomod Enhanced Check</label>
                         <div class="config-option__list">
                             <input
                                 type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(7)"
+                                data-event-focus="set_cur_config_index(6)"
                                 name="dinomod_check"
                                 data-checked="dinomod_check"
                                 value="1"
                                 id="dinomod_check_enabled"
-                                style="nav-up: #sixty_fps_enabled;"
+                                style="nav-up: #minimap_mode_always;"
                             />
                             <label class="config-option__tab-label" for="dinomod_check_enabled">On</label>
 
                             <input
                                 type="radio"
                                 data-event-blur="set_cur_config_index(-1)"
-                                data-event-focus="set_cur_config_index(7)"
+                                data-event-focus="set_cur_config_index(6)"
                                 name="dinomod_check"
                                 data-checked="dinomod_check"
                                 value="0"
                                 id="dinomod_check_disabled"
-                                style="nav-up: #sixty_fps_disabled;"
+                                style="nav-up: #minimap_mode_hold;"
                             />
                             <label class="config-option__tab-label" for="dinomod_check_disabled">Off</label>
                         </div>
@@ -273,15 +242,6 @@
                         <b>Hidden</b>: Never shown.
                     </p>
                     <p data-if="cur_config_index == 6">
-                        Enables gameplay code to run at its full speed (60 Hz) instead of the normal speed (30 Hz). Running at 60 Hz will reduce input lag at the cost of increased CPU load.
-                        <br/>
-                        <br/>
-                        If the <b>Framerate</b> option under the Graphics settings is set to <b>Original</b>, then turning this option on will also make the game render at 60 FPS without frame interpolation.
-                        <br/>
-                        <br/>
-                        <i>Warning:</i> Running at 60 Hz will cause certain gameplay elements to run faster than normal. This option may need to be disabled to complete some parts of the game. These problems may be patched out over time.
-                    </p>
-                    <p data-if="cur_config_index == 7">
                         Whether recomp should check if the 'Dinomod Enhanced' mod is installed and enabled before starting the game.
                         <br/>
                         <br/>

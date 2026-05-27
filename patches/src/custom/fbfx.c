@@ -1,5 +1,6 @@
 #include "patches.h"
 #include "recomp_funcs.h"
+#include "recomp_scheduler.h"
 #include "patches/fake_frame.h"
 
 #include "PR/ultratypes.h"

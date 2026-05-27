@@ -53,7 +53,7 @@ extern "C" void recomp_get_hud_ratio_mode(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, hr);
 }
 
-extern "C" void recomp_get_refresh_rate(uint8_t* rdram, recomp_context* ctx) {
+extern "C" void recomp_get_refresh_rate_internal(uint8_t* rdram, recomp_context* ctx) {
     ultramodern::renderer::RefreshRate rr = ultramodern::renderer::get_graphics_config().rr_option;
 
     switch (rr) {
@@ -65,7 +65,7 @@ extern "C" void recomp_get_refresh_rate(uint8_t* rdram, recomp_context* ctx) {
             break;
         case ultramodern::renderer::RefreshRate::Original:
         default:
-            _return<int>(ctx, dino::config::get_sixty_fps_enabled() ? 60 : 30);
+            _return<int>(ctx, 30);
             break;
     }
 }
@@ -126,10 +126,6 @@ extern "C" void recomp_time_us(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, static_cast<u32>(std::chrono::duration_cast<std::chrono::microseconds>(ultramodern::time_since_start()).count()));
 }
 
-extern "C" void recomp_get_60fps_enabled(uint8_t* rdram, recomp_context* ctx) {
-    _return(ctx, dino::config::get_sixty_fps_enabled() ? 1 : 0);
-}
-
 extern "C" void recomp_get_hud_mode(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, static_cast<int>(dino::config::get_hud_mode()));
 }
@@ -160,7 +156,6 @@ namespace dino::recomp_api {
         REGISTER_EXPORT(recomp_get_aspect_ratio_mode);
         REGISTER_EXPORT(recomp_get_aspect_ratio);
         REGISTER_EXPORT(recomp_get_hud_ratio_mode);
-        REGISTER_EXPORT(recomp_get_refresh_rate);
         REGISTER_EXPORT(recomp_is_frame_interp_active);
         REGISTER_EXPORT(recomp_high_precision_fb_enabled);
         REGISTER_EXPORT(recomp_error_message_box);
@@ -168,7 +163,6 @@ namespace dino::recomp_api {
         REGISTER_EXPORT(recomp_exit);
         REGISTER_EXPORT(recomp_powf);
         REGISTER_EXPORT(recomp_time_us);
-        REGISTER_EXPORT(recomp_get_60fps_enabled);
         REGISTER_EXPORT(recomp_get_hud_mode);
         REGISTER_EXPORT(recomp_get_minimap_mode);
         REGISTER_EXPORT(recomp_get_bgm_volume);

@@ -1,5 +1,5 @@
 #include "patches.h"
-#include "recomp_funcs.h"
+#include "recomp_scheduler.h"
 
 #include "dlls/objects/210_player.h"
 #include "dlls/objects/common/vehicle.h"

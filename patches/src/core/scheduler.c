@@ -1,5 +1,6 @@
 #include "patches.h"
 #include "recomp_funcs.h"
+#include "recomp_scheduler.h"
 
 #include "sys/scheduler.h"
 
@@ -8,6 +9,25 @@ extern s32 gRetraceCounter32;
 extern s32 gCurRSPTaskCounter;
 extern s32 gCurRDPTaskCounter;
 extern u64 gRetraceCounter64;
+
+static _Bool recomp_is60FPSEnabled = FALSE;
+
+RECOMP_EXPORT void recomp_set_60fps_enabled(int enabled) {
+    recomp_is60FPSEnabled = enabled ? 1 : 0;
+}
+
+RECOMP_EXPORT int recomp_get_60fps_enabled(void) {
+    return recomp_is60FPSEnabled;
+}
+
+RECOMP_EXPORT int recomp_get_refresh_rate(void) {
+    int rr = recomp_get_refresh_rate_internal();
+    if (rr == 30 && recomp_is60FPSEnabled) {
+        return 60;
+    } else {
+        return rr;
+    }
+}
 
 RECOMP_PATCH void __scHandleRetrace(OSSched *sc) {
     OSScTask *rspTask = NULL;
@@ -47,7 +67,7 @@ RECOMP_PATCH void __scHandleRetrace(OSSched *sc) {
     gRetraceCounter64++;
     gRetraceCounter32++;
     // @recomp: Skip 2 frame minimum if 60fps is enabled
-    sc->frameCount += recomp_get_60fps_enabled() ? 2 : 1;
+    sc->frameCount += recomp_is60FPSEnabled ? 2 : 1;
 
     if ((sc->unkTask) && (sc->frameCount >= 2)) {
         unkTask = sc->unkTask;

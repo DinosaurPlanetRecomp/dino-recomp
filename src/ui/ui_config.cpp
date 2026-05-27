@@ -230,7 +230,6 @@ struct ControlOptionsContext {
     dino::config::CameraInvertMode camera_invert_mode;
     dino::config::AnalogCamMode analog_cam_mode;
     dino::config::CameraInvertMode analog_camera_invert_mode;
-	std::atomic<int> sixty_fps_enabled = 0;
 	std::atomic<int> dinomod_check = 0;
 	dino::config::HUDMode hud_mode;
 	dino::config::MinimapMode minimap_mode;
@@ -363,17 +362,6 @@ void dino::config::set_analog_camera_invert_mode(dino::config::CameraInvertMode 
     if (general_model_handle) {
         general_model_handle.DirtyVariable("analog_camera_invert_mode");
     }
-}
-
-bool dino::config::get_sixty_fps_enabled() {
-	return (bool)control_options_context.sixty_fps_enabled.load();
-}
-
-void dino::config::set_sixty_fps_enabled(bool enabled) {
-	control_options_context.sixty_fps_enabled.store((int)enabled);
-	if (general_model_handle) {
-		general_model_handle.DirtyVariable("sixty_fps");
-	}
 }
 
 bool dino::config::get_dinomod_check() {
@@ -947,7 +935,6 @@ public:
         bind_option(constructor, "camera_invert_mode", &control_options_context.camera_invert_mode);
         bind_option(constructor, "analog_cam_mode", &control_options_context.analog_cam_mode);
         bind_option(constructor, "analog_camera_invert_mode", &control_options_context.analog_camera_invert_mode);
-        bind_atomic(constructor, general_model_handle, "sixty_fps", &control_options_context.sixty_fps_enabled);
         bind_option(constructor, "hud_mode", &control_options_context.hud_mode);
         bind_option(constructor, "minimap_mode", &control_options_context.minimap_mode);
         bind_atomic(constructor, general_model_handle, "dinomod_check", &control_options_context.dinomod_check);

@@ -4,6 +4,7 @@
 #include "patches/map.h"
 #include "patches/vi.h"
 #include "recomp_funcs.h"
+#include "recomp_scheduler.h"
 
 #include "sys/camera.h"
 #include "sys/main.h"
@@ -203,6 +204,10 @@ static void video_tab(void) {
         gViUpdateRateTarget = updateRateTarget;
     }
     dbgui_pop_item_width();
+    s32 is60fps = recomp_get_60fps_enabled();
+    if (dbgui_checkbox("60 Hz Mode", &is60fps)) {
+        recomp_set_60fps_enabled(is60fps);
+    }
     dbgui_textf("gViBlackTimer: %d", gViBlackTimer);
     dbgui_textf("gAspectRatio: %f", gAspectRatio);
     dbgui_textf("gViHeightRatio: %f", gViHeightRatio);

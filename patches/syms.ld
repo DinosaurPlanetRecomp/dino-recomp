@@ -66,7 +66,7 @@ recomp_run_ui_callbacks = 0x8F000154;
 recomp_get_window_resolution = 0x8F000158;
 recomp_get_aspect_ratio_mode = 0x8F00015C;
 recomp_get_hud_ratio_mode = 0x8F000160;
-recomp_get_refresh_rate = 0x8F000164;
+recomp_get_refresh_rate_internal = 0x8F000164;
 recomp_get_aspect_ratio = 0x8F000168;
 dbgui_input_int_ext = 0x8F00016C;
 dbgui_input_float_ext = 0x8F000170;
@@ -74,7 +74,7 @@ dbgui_same_line = 0x8F000174;
 dbgui_separator = 0x8F000178;
 recomp_error_message_box = 0x8F00017C;
 recomp_exit_with_error = 0x8F000180;
-recomp_get_60fps_enabled = 0x8F000184;
+
 recomp_get_bgm_volume = 0x8F000188;
 recomp_get_sfx_volume = 0x8F00018C;
 recomp_get_dialog_volume = 0x8F000190;

@@ -108,9 +108,6 @@ namespace dino::config {
     AnalogCamMode get_analog_cam_mode();
     void set_analog_cam_mode(AnalogCamMode mode);
 
-    bool get_sixty_fps_enabled();
-    void set_sixty_fps_enabled(bool enabled);
-
     bool get_dinomod_check();
     void set_dinomod_check(bool enabled);
 

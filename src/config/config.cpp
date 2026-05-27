@@ -224,7 +224,6 @@ bool save_general_config(const std::filesystem::path& path) {
 
     dino::config::to_json(config_json["targeting_mode"], get_targeting_mode());
     dino::input::to_json(config_json["background_input_mode"], dino::input::get_background_input_mode());
-    config_json["_config_version"] = 2;
     config_json["rumble_strength"] = dino::input::get_rumble_strength();
     config_json["gyro_sensitivity"] = dino::input::get_gyro_sensitivity();
     config_json["mouse_sensitivity"] = dino::input::get_mouse_sensitivity();
@@ -234,7 +233,6 @@ bool save_general_config(const std::filesystem::path& path) {
     config_json["camera_invert_mode"] = get_camera_invert_mode();
     config_json["analog_cam_mode"] = get_analog_cam_mode();
     config_json["analog_camera_invert_mode"] = get_analog_camera_invert_mode();
-    config_json["sixty_fps"] = get_sixty_fps_enabled();
     config_json["dinomod_check"] = get_dinomod_check();
     config_json["hud_mode"] = get_hud_mode();
     config_json["minimap_mode"] = get_minimap_mode();
@@ -257,21 +255,12 @@ void set_general_settings_from_json(const nlohmann::json& config_json) {
     set_camera_invert_mode(from_or_default(config_json, "camera_invert_mode", CameraInvertMode::InvertY));
     set_analog_cam_mode(from_or_default(config_json, "analog_cam_mode", AnalogCamMode::Off));
     set_analog_camera_invert_mode(from_or_default(config_json, "analog_camera_invert_mode", CameraInvertMode::InvertNone));
-    set_sixty_fps_enabled(from_or_default(config_json, "sixty_fps", false));
     set_dinomod_check(from_or_default(config_json, "dinomod_check", true));
     set_hud_mode(from_or_default(config_json, "hud_mode", HUDMode::Default));
     set_minimap_mode(from_or_default(config_json, "minimap_mode", MinimapMode::Default));
     set_debug_dll_logging_enabled(from_or_default(config_json, "debug_dll_logging", false));
     set_debug_diprintf_enabled(from_or_default(config_json, "debug_diprintf", false));
     set_debug_reasset_loglevel(from_or_default(config_json, "debug_reasset_loglevel", 0));
-
-    // Migrate users to new defaults
-    int config_version = from_or_default(config_json, "_config_version", 1);
-    if (config_version == 1) {
-        // Kick users off of 60 Hz mode just once. This option really isn't safe at the time of writing and
-        // we should encourage users to migrate to frame interpolation instead.
-        set_sixty_fps_enabled(false);
-    }
 }
 
 bool load_general_config(const std::filesystem::path& path) {
