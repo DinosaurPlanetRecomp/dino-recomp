@@ -178,6 +178,8 @@ static void determine_maction_links(RecompFlashData *flash, ExtensionSet *extens
 
 static void determine_map_object_links(RecompFlashData *flash, ExtensionSet *extensions, List *mapObjLinks) {
     ReAssetResolveMap mapResolveMap = reasset_maps_get_resolve_map();
+    ReAssetResolveMap mapObjGlobalResolveMap = reasset_map_objects_get_global_resolve_map();
+    
     for (s32 i = 0; i < flash->base.asSave.file.numSavedObjects; i++) {
         SavedObject *savedObj = &flash->base.asSave.file.savedObjects[i];
 
@@ -211,6 +213,30 @@ static void determine_map_object_links(RecompFlashData *flash, ExtensionSet *ext
             MapObjIDLink link = { 
                 .resolvedIdentifier = savedObj->uID, 
                 .mapID = savedObj->mapID,
+                .idData = objIDData
+            };
+            list_add_copy(mapObjLinks, &link);
+        }
+    }
+
+    for (s32 i = 0; i < flash->base.asSave.file.timeSaveCount; i++) {
+        TimeSave *timeSave = &flash->base.asSave.file.timeSaves[i];
+
+        // Save info about custom map objects that are in use
+        ReAssetIDData *objIDData;
+        if (reasset_resolve_map_id_data_of(mapObjGlobalResolveMap, timeSave->uid, &objIDData) 
+                && objIDData->namespace != REASSET_BASE_NAMESPACE) {
+            if (objIDData->identifier == -1) {
+                // Cannot save map objects with auto IDs
+                recomp_eprintf("[recompsave] WARN: Time save %d (UID 0x%X) is defined as a ReAsset auto ID and thus cannot be a time save!\n",
+                    i, timeSave->uid);
+                continue;
+            }
+
+            extension_set_add(extensions, objIDData->namespace);
+            MapObjIDLink link = { 
+                .resolvedIdentifier = timeSave->uid, 
+                .mapID = -1,
                 .idData = objIDData
             };
             list_add_copy(mapObjLinks, &link);
@@ -404,6 +430,34 @@ static void remove_invalid_saved_objects(Savegame *savegame, U32List *invalidLis
     }
 }
 
+static void remove_invalid_time_saves(Savegame *savegame, U32List *invalidList) {
+    s32 count = u32list_get_length(invalidList);
+    for (s32 i = 0; i < count; i++) {
+        u32 invalidIdx = u32list_get(invalidList, i);
+
+        TimeSave *invalid = &savegame->file.timeSaves[invalidIdx];
+        recomp_printf("[recompsave] Removing invalid time save %d (UID 0x%X)\n", 
+            invalidIdx, invalid->uid);
+
+        for (s32 k = invalidIdx; k < (MAX_TIMESAVES - 1); k++) {
+            TimeSave *curr = &savegame->file.timeSaves[k];
+            TimeSave *next = &savegame->file.timeSaves[k + 1];
+
+            curr->uid = next->uid;
+            curr->time = next->time;
+        }
+
+        for (s32 j = 0; j < count; j++) {
+            u32 idx = u32list_get(invalidList, j);
+            if (idx > invalidIdx) {
+                u32list_set(invalidList, j, idx - 1);
+            }
+        }
+
+        savegame->file.timeSaveCount--;
+    }
+}
+
 void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
     if (!bInitialized) recomp_savedata_init();
 
@@ -555,8 +609,10 @@ void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
 
     // Load map objects
     ReAssetResolveMap mapResolveMap = reasset_maps_get_resolve_map();
+    ReAssetResolveMap mapObjGlobalResolveMap = reasset_map_objects_get_global_resolve_map();
     IterableSet mapObjMaps;
     iterable_set_init(&mapObjMaps, sizeof(U32ValueHashmapHandle));
+    U32ValueHashmapHandle mapObjGlobalMap = recomputil_create_u32_value_hashmap();
     for (s32 i = 0; i < header->numMapObjects && ptr < flashEndPtr; i++) {
         ptr = (u8*)mmAlign4((u32)ptr);
 
@@ -571,30 +627,44 @@ void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
         ReAssetNamespace namespace = extNamespaces[link->extension];
         ReAssetID assetID = reasset_id(namespace, link->localID);
 
-        // TODO: when we save map links, we'll need to go through that here
-        ReAssetID mapID;
-        if (!reasset_resolve_map_id_of(mapResolveMap, link->mapID, &mapID)) {
-            // Not a map we know about
-            continue;
-        }
+        if (link->mapID == (u16)-1) {
+            // Map object without map ID
 
-        ReAssetResolveMap mapObjResolveMap = reasset_map_objects_get_resolve_map(mapID);
+            s32 newResolvedIdentifier = reasset_resolve_map_lookup(mapObjGlobalResolveMap, assetID);
+            if (newResolvedIdentifier == -1) {
+                // Not a map object we know about
+                continue;
+            }
 
-        s32 newResolvedIdentifier = reasset_resolve_map_lookup(mapObjResolveMap, assetID);
-        if (newResolvedIdentifier == -1) {
-            // Not a map object we know about
-            continue;
-        }
-
-        U32ValueHashmapHandle objMap;
-        U32ValueHashmapHandle *objMapPtr;
-        if (iterable_set_get(&mapObjMaps, link->mapID, (void**)&objMapPtr)) {
-            objMap = *objMapPtr; // ughhhhh
+            recomputil_u32_value_hashmap_insert(mapObjGlobalMap, link->resolvedUID, newResolvedIdentifier);
         } else {
-            objMap = recomputil_create_u32_value_hashmap();
-            iterable_set_add(&mapObjMaps, link->mapID, &objMap);
+            // Map object with map ID
+
+            // TODO: when we save map links, we'll need to go through that here
+            ReAssetID mapID;
+            if (!reasset_resolve_map_id_of(mapResolveMap, link->mapID, &mapID)) {
+                // Not a map we know about
+                continue;
+            }
+
+            ReAssetResolveMap mapObjResolveMap = reasset_map_objects_get_resolve_map(mapID);
+
+            s32 newResolvedIdentifier = reasset_resolve_map_lookup(mapObjResolveMap, assetID);
+            if (newResolvedIdentifier == -1) {
+                // Not a map object we know about
+                continue;
+            }
+
+            U32ValueHashmapHandle objMap;
+            U32ValueHashmapHandle *objMapPtr;
+            if (iterable_set_get(&mapObjMaps, link->mapID, (void**)&objMapPtr)) {
+                objMap = *objMapPtr; // ughhhhh
+            } else {
+                objMap = recomputil_create_u32_value_hashmap();
+                iterable_set_add(&mapObjMaps, link->mapID, &objMap);
+            }
+            recomputil_u32_value_hashmap_insert(objMap, link->resolvedUID, newResolvedIdentifier);
         }
-        recomputil_u32_value_hashmap_insert(objMap, link->resolvedUID, newResolvedIdentifier);
     }
     U32List invalidSavedObjs;
     u32list_init(&invalidSavedObjs, 0);
@@ -629,13 +699,34 @@ void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
         }
     }
     remove_invalid_saved_objects(savegame, &invalidSavedObjs);
+    U32List invalidTimeSaves;
+    u32list_init(&invalidTimeSaves, 0);
+    for (s32 i = 0; i < savegame->file.timeSaveCount; i++) {
+        TimeSave *timeSave = &savegame->file.timeSaves[i];
+
+        if (reasset_map_objects_is_base_global_uid(timeSave->uid)) {
+            continue;
+        }
+
+        // Remap to the new identifier of the original asset, if a mod is still providing it
+        s32 newResolvedIdentifier;
+        if (recomputil_u32_value_hashmap_get(mapObjGlobalMap, timeSave->uid, (u32*)&newResolvedIdentifier)) {
+            recomp_printf("[recompsave] Remapping time save %d UID 0x%X -> 0x%X\n", i, timeSave->uid, newResolvedIdentifier);
+            timeSave->uid = newResolvedIdentifier;
+        } else {
+            u32list_add(&invalidTimeSaves, i);
+        }
+    }
+    remove_invalid_time_saves(savegame, &invalidTimeSaves);
 
     if (ptr > flashEndPtr) {
         recomp_eprintf("[recompsave] Overflow when reading recomp savedata! Savefile slot %d may be corrupt.", slotno);
     }
 
     // Clean up
+    u32list_free(&invalidTimeSaves);
     u32list_free(&invalidSavedObjs);
+    recomputil_destroy_u32_value_hashmap(mapObjGlobalMap);
     {
         List *mapObjMapsList = iterable_set_get_list(&mapObjMaps);
         s32 numMapObjMaps = list_get_length(mapObjMapsList);
