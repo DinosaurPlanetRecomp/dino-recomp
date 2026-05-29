@@ -40,7 +40,6 @@ typedef struct {
         List list; // list[MapObjectEntry]
         U32List idList; // list[ReAssetID]
         U32ValueHashmapHandle map; // ReAssetID -> object list index
-        s32 maxUID;
     } objects;
     Buffer gridB1;
     BinPtr gridB1Ptr;
@@ -63,9 +62,13 @@ static U32ValueHashmapHandle mapMap; // ReAssetID -> map list index
 static ReAssetResolveMap mapResolveMap;
 static U32ValueHashmapHandle mapObjectResolveMapMap; // ReAssetID -> ReAssetResolveMap
 static U32ValueHashmapHandle mapObjectOriginalSetMap; // ReAssetID -> U32HashsetHandle (ReAssetID)
+static ReAssetResolveMap mapObjectGlobalResolveMap;
+static U32HashsetHandle mapObjectGlobalOriginalSet; // set[ReAssetID]
 static ReAssetResolveMap curveResolveMap;
 static U32HashsetHandle curveOriginalSet; // set[ReAssetID] (curves and checkpoints)
-static s32 maxCurveUID = 0;
+static U32HashsetHandle inUseUIDs; // set[s32]
+static s32 maxUID = 0;
+static s32 minUID = 0;
 
 static void map_object_list_element_free(void *element) {
     MapObjectEntry *patch = element;
@@ -198,8 +201,11 @@ void reasset_maps_init(void) {
     mapResolveMap = reasset_resolve_map_create("Map");
     mapObjectResolveMapMap = recomputil_create_u32_value_hashmap();
     mapObjectOriginalSetMap = recomputil_create_u32_value_hashmap();
+    mapObjectGlobalResolveMap = reasset_resolve_map_create("MapObject (Global)");
+    mapObjectGlobalOriginalSet = recomputil_create_u32_hashset();
     curveResolveMap = reasset_resolve_map_create("Curve/Checkpoint");
     curveOriginalSet = recomputil_create_u32_hashset();
+    inUseUIDs = recomputil_create_u32_hashset();
 
     // Add base maps (preserving order)
     Buffer objectSubfileTempBuffer = {0};
@@ -231,8 +237,6 @@ void reasset_maps_init(void) {
         idx = tabIndex + 4;
         buffer_load_from_file(&objectSubfileTempBuffer, MAPS_BIN, mapOriginalTab[idx], mapOriginalTab[idx + 1] - mapOriginalTab[idx]);
 
-        entry->objects.maxUID = 0;
-
         u32 objSubfileSize;
         void *objSubfile = buffer_get(&objectSubfileTempBuffer, &objSubfileSize);
         u32 objoffset = 0;
@@ -249,11 +253,13 @@ void reasset_maps_init(void) {
 
             // Check for duplicate UIDs. This map repacker requires unique UIDs within a map and globally unique 
             // curve/checkpoint UIDs. If we have a duplicate, use an auto ReAssetID but keep the UID the same.
+            _Bool isDupe = FALSE;
             if (recomputil_u32_hashset_contains(originalObjectSet, setupID) ||
                 ((setup->objId == OBJ_curve || setup->objId == OBJ_checkpoint4) && 
                     recomputil_u32_hashset_contains(curveOriginalSet, setupID))
             ) {
                 setupID = reasset_auto_base_id();
+                isDupe = TRUE;
 
                 reasset_log_warning("[reasset] WARN: Map %d contains a duplicate object UID 0x%X (obj ID: 0x%X)! Map object will be unavailable via the ReAsset API (but kept in the map).\n",
                     i, setup->uID, setup->objId);
@@ -263,18 +269,22 @@ void reasset_maps_init(void) {
 
             buffer_set_base(&objectEntry->object, MAPS_BIN, mapOriginalTab[idx] + objoffset, setupSize);
 
-            if (setup->uID > entry->objects.maxUID) {
-                entry->objects.maxUID = setup->uID;
-            }
+            if (!isDupe) {
+                recomputil_u32_hashset_insert(inUseUIDs, setup->uID);
 
-            recomputil_u32_hashset_insert(originalObjectSet, setupID);
-
-            if (setup->objId == OBJ_curve || setup->objId == OBJ_checkpoint4) {
-                if (setup->uID > maxCurveUID) {
-                    maxCurveUID = setup->uID;
+                if (setup->uID > maxUID) {
+                    maxUID = setup->uID;
+                }
+                if (setup->uID < minUID) {
+                    minUID = setup->uID;
                 }
 
-                recomputil_u32_hashset_insert(curveOriginalSet, setupID);
+                if (setup->objId == OBJ_curve || setup->objId == OBJ_checkpoint4) {
+                    recomputil_u32_hashset_insert(curveOriginalSet, setupID);
+                } else {
+                    recomputil_u32_hashset_insert(originalObjectSet, setupID);
+                    recomputil_u32_hashset_insert(mapObjectGlobalOriginalSet, setupID);
+                }
             }
 
             objoffset += setupSize;
@@ -289,6 +299,42 @@ void reasset_maps_init(void) {
 
     buffer_free(&objectSubfileTempBuffer);
     recomp_free(mapOriginalTab);
+}
+
+static s32 alloc_unique_obj_uid(s32 uid) {
+    s32 startUID = uid;
+    s32 iterations = 1;
+    while (recomputil_u32_hashset_contains(inUseUIDs, uid)) {
+        uid--;
+        iterations++;
+    }
+
+    recomputil_u32_hashset_insert(inUseUIDs, uid);
+
+    if (iterations > 100) {
+        reasset_log_warning("[reasset] WARN: alloc_unique_obj_uid took %d iterations for UID range 0x%X -> 0x%X\n",
+            iterations, startUID, uid);
+    }
+    
+    return uid;
+}
+
+static s32 alloc_unique_curve_uid(s32 uid) {
+    s32 startUID = uid;
+    s32 iterations = 1;
+    while (recomputil_u32_hashset_contains(inUseUIDs, uid)) {
+        uid++;
+        iterations++;
+    }
+
+    recomputil_u32_hashset_insert(inUseUIDs, uid);
+    
+    if (iterations > 100) {
+        reasset_log_warning("[reasset] WARN: alloc_unique_curve_uid took %d iterations for UID range 0x%X -> 0x%X\n",
+            iterations, startUID, uid);
+    }
+
+    return uid;
 }
 
 void reasset_maps_repack(void) {
@@ -324,7 +370,8 @@ void reasset_maps_repack(void) {
     bzero(newBin, newBinSize);
 
     // Rebuild
-    s32 nextCurveUID = maxCurveUID + 1;
+    s32 nextCurveUID = maxUID + 1;
+    s32 nextObjUID = minUID - 1;
     U32List objSetupLists[1 + MAX_OBJ_GROUPS + 1] = {0};
     for (u32 i = 0; i < ARRAYCOUNT(objSetupLists); i++) {
         u32list_init(&objSetupLists[i], 0);
@@ -427,7 +474,6 @@ void reasset_maps_repack(void) {
 
         // Objects
         newTab[tabIndex + 4] = offset;
-        s32 nextUID = MAX(entry->objects.maxUID + 1, nextCurveUID); // avoid overlap with curve UIDs
         ReAssetResolveMap objResolveMap;
         reasset_assert(recomputil_u32_value_hashmap_get(mapObjectResolveMapMap, entry->id, &objResolveMap),
             "[reasset] bug! Map %d object resolve map hashmap get failed.", i);
@@ -449,26 +495,20 @@ void reasset_maps_repack(void) {
                 ReAssetIDData *objIDData = reasset_id_lookup_data(objEntry->id);
                 if (objIDData->namespace != REASSET_BASE_NAMESPACE) {
                     if (setup->objId == OBJ_curve || setup->objId == OBJ_checkpoint4) {
-                        setup->uID = nextCurveUID;
-                        nextCurveUID += 1;
-
-                        if (nextUID < nextCurveUID) {
-                            nextUID = nextCurveUID;
-                        }
+                        setup->uID = alloc_unique_curve_uid(nextCurveUID);
+                        nextCurveUID = setup->uID + 1;
                     } else {
-                        setup->uID = nextUID;
-                        nextUID += 1;
-
-                        if (nextCurveUID < nextUID) {
-                            nextCurveUID = nextUID;
-                        }
+                        setup->uID = alloc_unique_obj_uid(nextObjUID);
+                        nextObjUID = setup->uID - 1;
                     }
                 }
 
                 // Resolve object setup
-                reasset_resolve_map_resolve_id(objResolveMap, objEntry->id, objEntry->owner, setup->uID);
                 if (setup->objId == OBJ_curve || setup->objId == OBJ_checkpoint4) {
                     reasset_resolve_map_resolve_id(curveResolveMap, objEntry->id, objEntry->owner, setup->uID);
+                } else {
+                    reasset_resolve_map_resolve_id(objResolveMap, objEntry->id, objEntry->owner, setup->uID);
+                    reasset_resolve_map_resolve_id(mapObjectGlobalResolveMap, objEntry->id, objEntry->owner, setup->uID);
                 }
 
                 offset += setupSize;
@@ -607,7 +647,7 @@ void reasset_maps_patch(void) {
                         s32 resolvedID = reasset_resolve_map_lookup(curveResolveMap, reasset_id(mapObj->owner, linkUID));
                         if (resolvedID != -1) {
                             curve->links[linkno] = resolvedID;
-                        } else if (linkUID > maxCurveUID) { // if not base curve UID
+                        } else if (!recomputil_u32_hashset_contains(curveOriginalSet, linkUID)) { // if not base curve UID
                             reasset_log_warning("[reasset] WARN: Failed to patch curve (%s:%d) link %d UID 0x%X. Curve was not defined!",
                                 namespaceName, identifier, linkno, linkUID);
                         }
@@ -641,6 +681,7 @@ void reasset_maps_cleanup(void) {
     list_free(&mapList);
     u32list_free(&mapIDList);
     recomputil_destroy_u32_value_hashmap(mapMap);
+    recomputil_destroy_u32_hashset(inUseUIDs);
 }
 
 // MARK: Maps
@@ -847,13 +888,19 @@ RECOMP_EXPORT ReAssetResolveMap reasset_maps_get_resolve_map(void) {
 _Bool reasset_map_objects_is_base_uid(ReAssetID mapID, s32 uid) {
     ReAssetID id = reasset_base_id(uid);
 
-    if (recomputil_u32_hashset_contains(curveOriginalSet, id)) {
-        return TRUE;
-    }
-
     U32HashsetHandle originalObjectSet;
     if (recomputil_u32_value_hashmap_get(mapObjectOriginalSetMap, mapID, &originalObjectSet)) {
         return recomputil_u32_hashset_contains(originalObjectSet, id);
+    }
+
+    return FALSE;
+}
+
+_Bool reasset_map_objects_is_base_global_uid(s32 uid) {
+    ReAssetID id = reasset_base_id(uid);
+
+    if (recomputil_u32_hashset_contains(mapObjectGlobalOriginalSet, id)) {
+        return TRUE;
     }
 
     return FALSE;
@@ -966,6 +1013,12 @@ RECOMP_EXPORT ReAssetResolveMap reasset_map_objects_get_resolve_map(ReAssetID ma
         "[reasset] bug! Map object resolve map hashmap get failed in get resolve map call.");
 
     return objResolveMap;
+}
+
+RECOMP_EXPORT ReAssetResolveMap reasset_map_objects_get_global_resolve_map(void) {
+    reasset_assert_stage_get_resolve_map_call("reasset_map_objects_get_global_resolve_map");
+
+    return mapObjectGlobalResolveMap;
 }
 
 RECOMP_EXPORT ReAssetResolveMap reasset_map_objects_get_curve_resolve_map(void) {

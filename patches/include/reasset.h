@@ -19,6 +19,13 @@ void read_from_rom(u32 romAddr, u8* dst, s32 size);
 #define MIN(a, b)				((a) < (b) ? (a) : (b))
 #endif
 
+#ifndef INT32_MIN
+#define INT32_MIN		(-2147483647-1)
+#endif
+#ifndef INT32_MAX
+#define INT32_MAX		(2147483647)
+#endif
+
 typedef int ReAssetBool;
 
 typedef enum {
