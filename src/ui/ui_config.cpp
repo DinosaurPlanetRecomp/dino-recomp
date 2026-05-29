@@ -485,6 +485,7 @@ struct DebugContext {
 	std::atomic<int> debug_dll_logging_enabled = 0;
 	std::atomic<int> debug_diprintf_enabled = 0;
 	std::atomic<int> debug_reasset_loglevel = 0;
+	std::atomic<int> debug_recompsave_enabled = 0;
 };
 
 DebugContext debug_context;
@@ -970,6 +971,7 @@ public:
 		bind_atomic(constructor, debug_context.model_handle, "debug_dll_logging_enabled", &debug_context.debug_dll_logging_enabled);
 		bind_atomic(constructor, debug_context.model_handle, "debug_diprintf_enabled", &debug_context.debug_diprintf_enabled);
 		bind_atomic(constructor, debug_context.model_handle, "debug_reasset_loglevel", &debug_context.debug_reasset_loglevel);
+		bind_atomic(constructor, debug_context.model_handle, "debug_recompsave_enabled", &debug_context.debug_recompsave_enabled);
 		
 		// Register the array type for string vectors.
 		constructor.RegisterArray<std::vector<std::string>>();
@@ -1021,6 +1023,17 @@ void dino::config::set_debug_reasset_loglevel(int level) {
 	debug_context.debug_reasset_loglevel.store(level);
 	if (debug_context.model_handle) {
 		debug_context.model_handle.DirtyVariable("debug_reasset_loglevel");
+	}
+}
+
+bool dino::config::get_debug_recompsave_enabled() {
+	return (bool)debug_context.debug_recompsave_enabled.load();
+}
+
+void dino::config::set_debug_recompsave_enabled(bool enabled) {
+	debug_context.debug_recompsave_enabled.store((int)enabled);
+	if (debug_context.model_handle) {
+		debug_context.model_handle.DirtyVariable("debug_recompsave_enabled");
 	}
 }
 

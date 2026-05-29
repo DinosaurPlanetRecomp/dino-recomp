@@ -144,6 +144,17 @@ static _Bool custom_data_list_get(ReAssetNamespace namespace, void **outData, u3
     return TRUE;
 }
 
+static void recompsave_log_debug(const char *fmt, ...) {
+    va_list args;
+	va_start(args, fmt);
+
+    if (recomp_get_debug_recompsave_enabled()) {
+        recomp_vprintf(fmt, args);
+    }
+
+    va_end(args);
+}
+
 static void recomp_savedata_init(void) {
     if (bInitialized) return;
 
@@ -394,7 +405,7 @@ void recomp_savedata_save(RecompFlashData *flash, s32 slotno) {
     extension_set_free(&extensions);
     list_free(&packedBitNamespaces);
 
-    //recomp_printf("[recompsave] Wrote recomp savedata (slot %d).\n", slotno);
+    recompsave_log_debug("[recompsave] Wrote recomp savedata (slot %d).\n", slotno);
     recomp_savedata_on_saved(slotno);
 }
 
@@ -404,7 +415,7 @@ static void remove_invalid_saved_objects(Savegame *savegame, U32List *invalidLis
         u32 invalidIdx = u32list_get(invalidList, i);
 
         SavedObject *invalid = &savegame->file.savedObjects[invalidIdx];
-        recomp_printf("[recompsave] Removing invalid saved object %d (UID 0x%X, map %d)\n", 
+        recompsave_log_debug("[recompsave] Removing invalid saved object %d (UID 0x%X, map %d)\n", 
             invalidIdx, invalid->uID, invalid->mapID);
 
         for (s32 k = invalidIdx; k < (100 - 1); k++) {
@@ -436,7 +447,7 @@ static void remove_invalid_time_saves(Savegame *savegame, U32List *invalidList) 
         u32 invalidIdx = u32list_get(invalidList, i);
 
         TimeSave *invalid = &savegame->file.timeSaves[invalidIdx];
-        recomp_printf("[recompsave] Removing invalid time save %d (UID 0x%X)\n", 
+        recompsave_log_debug("[recompsave] Removing invalid time save %d (UID 0x%X)\n", 
             invalidIdx, invalid->uid);
 
         for (s32 k = invalidIdx; k < (MAX_TIMESAVES - 1); k++) {
@@ -473,7 +484,7 @@ void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
     RecompSaveDataHeader *header = &flash->recomp;
     if (header->magic[0] != 'R' || header->magic[1] != 'C') {
         // Missing or invalid recomp savedata
-        //recomp_printf("[recompsave] Recomp savedata not found in slot %d (this is OK).\n", slotno);
+        recompsave_log_debug("[recompsave] Recomp savedata not found in slot %d (this is OK).\n", slotno);
         recomp_savedata_on_loaded(slotno);
         return;
     }
@@ -692,7 +703,7 @@ void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
         // Remap to the new identifier of the original asset, if a mod is still providing it
         s32 newResolvedIdentifier;
         if (recomputil_u32_value_hashmap_get(*objMapPtr, savedObj->uID, (u32*)&newResolvedIdentifier)) {
-            recomp_printf("[recompsave] Remapping saved object %d UID 0x%X -> 0x%X\n", i, savedObj->uID, newResolvedIdentifier);
+            recompsave_log_debug("[recompsave] Remapping saved object %d UID 0x%X -> 0x%X\n", i, savedObj->uID, newResolvedIdentifier);
             savedObj->uID = newResolvedIdentifier;
         } else {
             u32list_add(&invalidSavedObjs, i);
@@ -711,7 +722,7 @@ void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
         // Remap to the new identifier of the original asset, if a mod is still providing it
         s32 newResolvedIdentifier;
         if (recomputil_u32_value_hashmap_get(mapObjGlobalMap, timeSave->uid, (u32*)&newResolvedIdentifier)) {
-            recomp_printf("[recompsave] Remapping time save %d UID 0x%X -> 0x%X\n", i, timeSave->uid, newResolvedIdentifier);
+            recompsave_log_debug("[recompsave] Remapping time save %d UID 0x%X -> 0x%X\n", i, timeSave->uid, newResolvedIdentifier);
             timeSave->uid = newResolvedIdentifier;
         } else {
             u32list_add(&invalidTimeSaves, i);
@@ -743,7 +754,7 @@ void recomp_savedata_load(RecompFlashData *flash, s32 slotno) {
         recomp_free(extNamespaces);
     }
 
-    //recomp_printf("[recompsave] Loaded recomp savedata from slot %d.\n", slotno);
+    recompsave_log_debug("[recompsave] Loaded recomp savedata from slot %d.\n", slotno);
     recomp_savedata_on_loaded(slotno);
 }
 

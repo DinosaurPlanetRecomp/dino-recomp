@@ -239,6 +239,7 @@ bool save_general_config(const std::filesystem::path& path) {
     config_json["debug_dll_logging"] = get_debug_dll_logging_enabled();
     config_json["debug_diprintf"] = get_debug_diprintf_enabled();
     config_json["debug_reasset_loglevel"] = get_debug_reasset_loglevel();
+    config_json["debug_recompsave"] = get_debug_recompsave_enabled();
     
     return save_json_with_backups(path, config_json);
 }
@@ -261,6 +262,7 @@ void set_general_settings_from_json(const nlohmann::json& config_json) {
     set_debug_dll_logging_enabled(from_or_default(config_json, "debug_dll_logging", false));
     set_debug_diprintf_enabled(from_or_default(config_json, "debug_diprintf", false));
     set_debug_reasset_loglevel(from_or_default(config_json, "debug_reasset_loglevel", 0));
+    set_debug_recompsave_enabled(from_or_default(config_json, "debug_recompsave", false));
 }
 
 bool load_general_config(const std::filesystem::path& path) {

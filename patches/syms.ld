@@ -3,7 +3,7 @@ __start = 0x80000000;
 /* Dummy addresses that get recompiled into function calls */
 recomp_puts = 0x8F000000;
 recomp_high_precision_fb_enabled = 0x8F000004;
-
+recomp_get_debug_recompsave_enabled = 0x8F000008;
 bzero_recomp = 0x8F00000C;
 
 osInvalICache_recomp = 0x8F000014;

@@ -12,6 +12,7 @@ DECLARE_FUNC(void, recomp_eputs, const char* data, u32 size);
 DECLARE_FUNC(s32, recomp_get_diprintf_enabled, void);
 DECLARE_FUNC(s32, recomp_get_debug_dll_logging_enabled, void);
 DECLARE_FUNC(s32, recomp_get_debug_reasset_loglevel, void);
+DECLARE_FUNC(s32, recomp_get_debug_recompsave_enabled, void);
 
 typedef enum {
     RECOMP_ASPECT_ORIGINAL,

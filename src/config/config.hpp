@@ -138,4 +138,7 @@ namespace dino::config {
 
     int get_debug_reasset_loglevel();
     void set_debug_reasset_loglevel(int level);
+
+    bool get_debug_recompsave_enabled();
+    void set_debug_recompsave_enabled(bool enabled);
 }

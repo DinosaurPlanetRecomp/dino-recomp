@@ -32,3 +32,7 @@ extern "C" void recomp_get_debug_dll_logging_enabled(uint8_t* rdram, recomp_cont
 extern "C" void recomp_get_debug_reasset_loglevel(uint8_t* rdram, recomp_context* ctx) {
     _return<s32>(ctx, dino::config::get_debug_reasset_loglevel());
 }
+
+extern "C" void recomp_get_debug_recompsave_enabled(uint8_t* rdram, recomp_context* ctx) {
+    _return<s32>(ctx, dino::config::get_debug_recompsave_enabled() ? 1 : 0);
+}
