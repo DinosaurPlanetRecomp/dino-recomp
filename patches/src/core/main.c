@@ -11,6 +11,7 @@
 #include "ui_funcs.h"
 
 #include "libnaudio/n_unkfuncs.h"
+#include "game/gamebits.h"
 #include "sys/audio.h"
 #include "sys/asset_thread.h"
 #include "sys/dl_debug.h"
@@ -25,6 +26,7 @@
 #include "sys/map.h"
 #include "sys/menu.h"
 #include "sys/vi.h"
+#include "sys/joypad.h"
 #include "types.h"
 #include "dll.h"
 
@@ -46,6 +48,7 @@ extern Triangle *gCurPol;
 
 extern u8 gFrameBufIdx;
 extern s8 gPauseState;
+extern s8 D_8008C94C;
 
 extern u8 D_8008CA30;
 extern s32 gMainMapChangeNextMenu;
@@ -53,6 +56,8 @@ extern s8 gMainDoMapChange;
 
 extern void func_80013D80(void);
 extern void main_handle_map_change(void);
+extern s8 func_800143FC(void);
+extern void update_PlayerPosBuffer();
 
 u32 recomp_tickCounter;
 
@@ -286,6 +291,77 @@ RECOMP_PATCH void main_handle_map_change(void) {
 
         mmSetDelay(2);
         D_8008CA30 = 1;
+    }
+}
+
+RECOMP_PATCH void func_80013D80(void) {
+    s32 button;
+
+    joy_disable_buttons(0, U_JPAD | R_JPAD);
+    gDLL_2_Camera->vtbl->lock_icon_tick();
+    gDLL_22_Subtitles->vtbl->func_4C0();
+
+    if (menu_update1() == 0) {
+        button = joy_get_pressed(0);
+
+        if (gPauseState != 0) {
+            draw_pause_screen_freeze_frame(&gCurGfx);
+        }
+
+        if (gPauseState == 0) {
+            update_objects();
+            track_tick(0);
+
+            if ((camera_is_alternate_active() == 0) 
+                    && (D_8008C94C == 0) 
+                    && (func_800143FC() == 0) 
+                    && ((button & START_BUTTON) != 0) 
+                    && (main_get_bits(BIT_44F) == 0)) {
+                gPauseState = 1;
+                joy_disable_buttons(0, START_BUTTON);
+                // @recomp: Don't switch to pause menu immediately so we include the current menu
+                //          in the pause screen snapshot. Note: This is only an issue because of the
+                //          changes recomp makes to how the pause screen snapshot is taken.
+                //menu_set(MENU_PAUSE);
+            }
+
+            gDLL_29_Gplay->vtbl->tick();
+        } else {
+            update_obj_models();
+        }
+
+        if (gPauseState == 0) {
+            update_PlayerPosBuffer();
+        }
+
+        menu_update2();
+        func_800591EC();
+        func_8004A67C();
+        map_update_streaming();
+        func_800210DC();
+
+        gDLL_4_Race->vtbl->func14();
+
+        // @recomp: Still draw track if we're paused but haven't taken the screen snapshot yet. Otherwise,
+        //          the snapshot will be blank in cases where the color framebuffer was cleared at the
+        //          start of the frame.
+        if (gPauseState != 2) {
+            track_draw(&gCurGfx, &gCurMtx, &gCurVtx, &gCurPol, &gCurVtx, &gCurPol);
+        }
+
+        gDLL_20_Screens->vtbl->draw(&gCurGfx);
+        menu_draw(&gCurGfx, &gCurMtx, &gCurVtx, &gCurPol);
+
+        // @recomp: Do the switch to the pause menu down here instead
+        if (gPauseState == 1) {
+            menu_set(MENU_PAUSE);
+        }
+
+        D_8008C94C -= gUpdateRate;
+
+        if ((s32)D_8008C94C < 0) {
+            D_8008C94C = 0;
+        }
     }
 }
 

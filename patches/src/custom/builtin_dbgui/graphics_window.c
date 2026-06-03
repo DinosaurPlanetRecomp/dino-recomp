@@ -13,6 +13,8 @@
 #include "sys/vi.h"
 #include "types.h"
 
+extern u32 gTrackFlags;
+
 extern OSViMode gTvViMode;
 extern f32 gViHeightRatio;
 extern s32 gVideoMode;
@@ -91,6 +93,7 @@ void graphics_window_check_buffer_sizes(void) {
 }
 
 static void general_tab(void) {
+    dbgui_textf("gTrackFlags: 0x%X\n", gTrackFlags);
     dbgui_textf("gBlocksToDrawLength: %d/%d", gBlocksToDrawIdx, MAX_BLOCKS);
     dbgui_textf("gRenderListLength: %d/%d\t(%f%%)", renderListLength, RECOMP_RENDER_LIST_LENGTH, 
         ((f32)renderListLength / (f32)RECOMP_RENDER_LIST_LENGTH) * 100.0f);
