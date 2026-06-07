@@ -147,6 +147,10 @@ static void dump_object_info(const CrashPrintContext* log_context) {
 }
 
 static void common_crash_handler(const CrashPrintContext* log_context) {
+    if (rdram != nullptr) {
+        crash_printf(log_context, "RDRAM: %p\n", rdram);
+    }
+
     dump_object_info(log_context);
     dump_game_callstack(log_context);
     dump_mips_context(log_context);
