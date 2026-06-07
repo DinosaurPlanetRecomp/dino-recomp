@@ -76,6 +76,7 @@ static void dump_mips_context(void) {
 #include <cstdio>
 #include <execinfo.h>
 #include <link.h>
+#include <sys/prctl.h>
 
 static constexpr size_t MAX_STACKTRACE_DEPTH = 64;
 
@@ -96,6 +97,11 @@ static void fatal_signal_handler(int signal) {
             break;
     }
     fprintf(stderr, "Signal %d (%s)\n", signal, signame);
+
+    char thread_name[16] = {0};
+    if (prctl(PR_GET_NAME, thread_name) == 0) {
+        fprintf(stderr, "Thread %s\n", thread_name);
+    }
 
     void* trace[MAX_STACKTRACE_DEPTH];
     size_t trace_depth = backtrace(trace, MAX_STACKTRACE_DEPTH);
@@ -159,9 +165,7 @@ void crash_setup_handler() {
 #include <dbghelp.h>
 #pragma comment(lib, "dbghelp.lib")
 
-namespace dino::runtime {
-
-LONG WINAPI unhandled_exception_handler(EXCEPTION_POINTERS *ep) {
+static LONG WINAPI unhandled_exception_handler(EXCEPTION_POINTERS *ep) {
     EXCEPTION_RECORD *ex = ep->ExceptionRecord;
 
     fprintf(stderr, "Crash! Code 0x%08lX", ex->ExceptionCode);
@@ -303,6 +307,8 @@ LONG WINAPI unhandled_exception_handler(EXCEPTION_POINTERS *ep) {
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
+namespace dino::runtime {
+
 void crash_setup_handler() {
     SetUnhandledExceptionFilter(unhandled_exception_handler);
 }
@@ -315,8 +321,7 @@ namespace dino::runtime {
 
 void crash_setup_handler() {
     fprintf(stderr, "Failed to setup crash handler! (unsupported platform)\n");
-    
-}
+    }
 
 }
 
