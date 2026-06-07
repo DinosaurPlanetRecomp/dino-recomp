@@ -150,11 +150,174 @@ void crash_setup_handler() {
 
 }
 
+#elif defined(_WIN32) /* --------------- Windows --------------- */
+
+#include <config/config.hpp>
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <dbghelp.h>
+#pragma comment(lib, "dbghelp.lib")
+
+namespace dino::runtime {
+
+LONG WINAPI unhandled_exception_handler(EXCEPTION_POINTERS *ep) {
+    EXCEPTION_RECORD *ex = ep->ExceptionRecord;
+
+    fprintf(stderr, "Crash! Code 0x%08lX", ex->ExceptionCode);
+
+    const char *name = nullptr;
+    switch (ex->ExceptionCode) {
+        case EXCEPTION_ACCESS_VIOLATION:
+            name = "EXCEPTION_ACCESS_VIOLATION";
+            break;
+
+        case EXCEPTION_ILLEGAL_INSTRUCTION:
+            name = "EXCEPTION_ILLEGAL_INSTRUCTION";
+            break;
+
+        case EXCEPTION_INT_DIVIDE_BY_ZERO:
+            name = "EXCEPTION_INT_DIVIDE_BY_ZERO";
+            break;
+
+        case EXCEPTION_STACK_OVERFLOW:
+            name = "EXCEPTION_STACK_OVERFLOW";
+            break;
+
+        default: break;
+    }
+
+    if (name) {
+        fprintf(stderr, " (%s)", name);
+    }
+
+    if (ex->ExceptionCode == EXCEPTION_ACCESS_VIOLATION)
+    {
+        ULONG_PTR type = ex->ExceptionInformation[0];
+        ULONG_PTR addr = ex->ExceptionInformation[1];
+
+        fprintf(stderr, " @ 0x%llx [%s]",
+            addr,
+            type == 0 ? "read" :
+            type == 1 ? "write" :
+            type == 8 ? "execute" :
+            "unknown"
+        );
+    }
+
+    fprintf(stderr, "\n");
+
+    PWSTR thread = nullptr;
+    GetThreadDescription(GetCurrentThread(), &thread);
+    if (thread && wcslen(thread) != 0) {
+        fprintf(stderr, "Thread %ls\n", thread);
+    }
+
+    if (SymInitialize(GetCurrentProcess(), nullptr, TRUE)) {
+        SymSetOptions(SYMOPT_LOAD_LINES);
+
+        CONTEXT context {};
+        context.ContextFlags = CONTEXT_FULL;
+        RtlCaptureContext(&context);
+
+        STACKFRAME frame {};
+        frame.AddrPC.Offset = context.Rip;
+        frame.AddrPC.Mode = AddrModeFlat;
+        frame.AddrFrame.Offset = context.Rbp;
+        frame.AddrFrame.Mode = AddrModeFlat;
+        frame.AddrStack.Offset = context.Rsp;
+        frame.AddrStack.Mode = AddrModeFlat;
+
+        fprintf(stderr, "**** BACKTRACE START ****\n");
+
+        while (StackWalk(
+            IMAGE_FILE_MACHINE_AMD64,
+            GetCurrentProcess(),
+            GetCurrentThread(),
+            &frame,
+            &context,
+            nullptr,
+            SymFunctionTableAccess,
+            SymGetModuleBase,
+            nullptr)
+        ) {
+            char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME];
+            auto *symbol = reinterpret_cast<SYMBOL_INFO *>(buffer);
+
+            IMAGEHLP_MODULE module {};
+            module.SizeOfStruct = sizeof(IMAGEHLP_MODULE);
+            if (SymGetModuleInfo(GetCurrentProcess(), frame.AddrPC.Offset, &module)) {
+                fprintf(stderr, "%s", module.ImageName);
+            }
+
+            symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+            symbol->MaxNameLen = MAX_SYM_NAME;
+
+            DWORD64 diff = 0;
+            if (SymFromAddr(GetCurrentProcess(), frame.AddrPC.Offset, &diff, symbol)) {
+                fprintf(stderr, "(%s+0x%llx) [0x%llx]", symbol->Name, diff, frame.AddrPC.Offset);
+            } else {
+                fprintf(stderr, "(unknown) [0x%llx]", frame.AddrPC.Offset);
+            }
+
+            fprintf(stderr, "\n");
+        }
+
+        fprintf(stderr, "**** BACKTRACE END ****\n");
+    }
+
+    dump_mips_context();
+
+    auto path = dino::config::get_app_folder_path() / "crash.dmp";
+    HANDLE file = CreateFileW(
+        path.c_str(),
+        GENERIC_WRITE,
+        0,
+        nullptr,
+        CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr
+    );
+
+    if (file != INVALID_HANDLE_VALUE) {
+        MINIDUMP_EXCEPTION_INFORMATION dump {};
+        dump.ThreadId = GetCurrentThreadId();
+        dump.ExceptionPointers = ep;
+        dump.ClientPointers = FALSE;
+
+        MiniDumpWriteDump(
+            GetCurrentProcess(),
+            GetCurrentProcessId(),
+            file,
+            MiniDumpNormal,
+            &dump,
+            nullptr,
+            nullptr
+        );
+
+        CloseHandle(file);
+    }
+
+    fprintf(stderr, "Crash dump written to: %ls\n", path.c_str());
+
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
+void crash_setup_handler() {
+    SetUnhandledExceptionFilter(unhandled_exception_handler);
+}
+
+}
+
 #else /* --------------- Unsupported --------------- */
 
-void setup_crash_handler() {
+namespace dino::runtime {
+
+void crash_setup_handler() {
     fprintf(stderr, "Failed to setup crash handler! (unsupported platform)\n");
     
+}
+
 }
 
 #endif
