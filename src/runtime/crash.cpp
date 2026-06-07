@@ -1,21 +1,54 @@
 #include "crash.hpp"
 
 #include <map>
+#include <stack>
 #include <thread>
 
 #include "recomp.h"
 
+struct GameFunc {
+    const char* name;
+    gpr address;
+};
+
 static uint8_t *rdram = nullptr;
 static std::map<std::thread::id, recomp_context*> thread_context_map;
+thread_local static std::stack<GameFunc> game_func_stack;
+
+extern "C" void recomp_enter_function(const char* name, gpr address) {
+    game_func_stack.push({name, address});
+}
+
+extern "C" void recomp_exit_function(void) {
+    game_func_stack.pop();
+}
 
 namespace dino::runtime {
-    void crash_register_rdram(uint8_t *_rdram) {
-        rdram = _rdram;
+
+void crash_register_rdram(uint8_t *_rdram) {
+    rdram = _rdram;
+}
+
+void crash_register_thread_context(std::thread::id id, recomp_context *ctx) {
+    thread_context_map.emplace(id, ctx);
+}
+
+}
+
+static void dump_game_stack(void) {
+    fprintf(stderr, "**** GAME BACKTRACE START ****\n");
+
+    while (!game_func_stack.empty()) {
+        GameFunc& func = game_func_stack.top();
+        if (func.name != nullptr) {
+            fprintf(stderr, "0x%08lx %s\n", func.address, func.name);
+        } else {
+            fprintf(stderr, "0x%08lx\n", func.address);
+        }
+        game_func_stack.pop();
     }
 
-    void crash_register_thread_context(std::thread::id id, recomp_context *ctx) {
-        thread_context_map.emplace(id, ctx);
-    }
+    fprintf(stderr, "**** GAME BACKTRACE END ****\n");
 }
 
 static void dump_mips_context(void) {
@@ -143,6 +176,7 @@ static void fatal_signal_handler(int signal) {
 
     fprintf(stderr, "**** BACKTRACE END ****\n");
 
+    dump_game_stack();
     dump_mips_context();
 }
 
@@ -321,7 +355,7 @@ namespace dino::runtime {
 
 void crash_setup_handler() {
     fprintf(stderr, "Failed to setup crash handler! (unsupported platform)\n");
-    }
+}
 
 }
 
