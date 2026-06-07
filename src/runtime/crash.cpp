@@ -46,7 +46,7 @@ struct CrashPrintContext {
 static void crash_print_init_context(CrashPrintContext* context) {
     assert(context != nullptr);
 
-    std::string path = dino::config::get_app_folder_path() / "crash.log";
+    auto path = dino::config::get_app_folder_path() / "crash.log";
     context->log_file = fopen(path.c_str(), "w");
 }
 
