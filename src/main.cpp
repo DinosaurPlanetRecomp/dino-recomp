@@ -45,13 +45,13 @@ static void custom_recomp_entrypoint(uint8_t *rdram, recomp_context *ctx) {
     printf("Initialized RDRAM at %p\n", rdram);
     
     dino::runtime::crash_register_rdram(rdram);
-    dino::runtime::crash_register_thread_context(std::this_thread::get_id(), ctx);
+    dino::runtime::crash_register_thread_context(ctx);
 
     recomp_entrypoint(rdram, ctx);
 }
 
 static void custom_thread_create_callback(uint8_t* rdram, recomp_context* ctx) {
-    dino::runtime::crash_register_thread_context(std::this_thread::get_id(), ctx);
+    dino::runtime::crash_register_thread_context(ctx);
 }
 
 // array of supported GameEntry objects

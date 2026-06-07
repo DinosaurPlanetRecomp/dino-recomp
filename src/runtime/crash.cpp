@@ -1,9 +1,11 @@
 #include "crash.hpp"
 
-#include <map>
+#include <inttypes.h>
+#include <cstdio>
 #include <stack>
-#include <thread>
+#include <stdarg.h>
 
+#include "config/config.hpp"
 #include "recomp.h"
 
 struct GameFunc {
@@ -12,7 +14,7 @@ struct GameFunc {
 };
 
 static uint8_t *rdram = nullptr;
-static std::map<std::thread::id, recomp_context*> thread_context_map;
+thread_local static recomp_context* thread_context = nullptr;
 thread_local static std::stack<GameFunc> game_func_stack;
 
 extern "C" void recomp_enter_function(const char* name, gpr address) {
@@ -25,63 +27,102 @@ extern "C" void recomp_exit_function(void) {
 
 namespace dino::runtime {
 
-void crash_register_rdram(uint8_t *_rdram) {
-    rdram = _rdram;
+void crash_register_rdram(uint8_t *rdram_) {
+    assert(rdram == nullptr);
+    rdram = rdram_;
 }
 
-void crash_register_thread_context(std::thread::id id, recomp_context *ctx) {
-    thread_context_map.emplace(id, ctx);
+void crash_register_thread_context(recomp_context *ctx) {
+    assert(thread_context == nullptr);
+    thread_context = ctx;
 }
 
 }
 
-static void dump_game_stack(void) {
-    fprintf(stderr, "**** GAME BACKTRACE START ****\n");
+struct CrashPrintContext {
+    FILE* log_file;
+};
 
-    while (!game_func_stack.empty()) {
-        GameFunc& func = game_func_stack.top();
-        if (func.name != nullptr) {
-            fprintf(stderr, "0x%08lx %s\n", func.address, func.name);
-        } else {
-            fprintf(stderr, "0x%08lx\n", func.address);
-        }
-        game_func_stack.pop();
+static void crash_print_init_context(CrashPrintContext* context) {
+    assert(context != nullptr);
+
+    std::string path = dino::config::get_app_folder_path() / "crash.log";
+    context->log_file = fopen(path.c_str(), "w");
+}
+
+static void crash_print_deinit_context(CrashPrintContext* context) {
+    assert(context != nullptr);
+
+    if (context->log_file != nullptr) {
+        fclose(context->log_file);
+        context->log_file = nullptr;
+    }
+}
+
+static void crash_printf(const CrashPrintContext* context, const char *format, ...) {
+    va_list args, args2;
+    va_start(args, format);
+    va_copy(args2, args);
+
+    vfprintf(stderr, format, args);
+    if (context->log_file != nullptr) {
+        vfprintf(context->log_file, format, args2);
     }
 
-    fprintf(stderr, "**** GAME BACKTRACE END ****\n");
+    va_end(args2);
+    va_end(args);
 }
 
-static void dump_mips_context(void) {
-    auto ctx_find_it = thread_context_map.find(std::this_thread::get_id());
-    if (ctx_find_it != thread_context_map.end()) {
-        recomp_context* ctx = ctx_find_it->second;
+static void dump_game_callstack(const CrashPrintContext* log_context) {
+    if (!game_func_stack.empty()) {
+        crash_printf(log_context, "**** GAME CALLSTACK START ****\n");
 
-        fprintf(stderr, "**** MIPS START ****\n");
+        while (!game_func_stack.empty()) {
+            GameFunc& func = game_func_stack.top();
+            if (func.name != nullptr) {
+                crash_printf(log_context, "0x%08" PRIx32 " %s\n", (uint32_t)func.address, func.name);
+            } else {
+                crash_printf(log_context, "0x%08" PRIx32 "\n", (uint32_t)func.address);
+            }
+            game_func_stack.pop();
+        }
+
+        crash_printf(log_context, "**** GAME CALLSTACK END ****\n");
+    }
+}
+
+static void dump_mips_context(const CrashPrintContext* log_context) {
+    if (thread_context != nullptr) {
+        recomp_context* ctx = thread_context;
+
+        crash_printf(log_context, "**** MIPS START ****\n");
 
         gpr* gregs = &ctx->r0;
         for (int i = 0; i < 32; i++) {
-            fprintf(stderr, "r%-2d = 0x%-16lx ", i, gregs[i]);
+            crash_printf(log_context, "r%-2d = 0x%-16" PRIx32 " ", i, (uint32_t)gregs[i]);
 
             if (((i + 1) % 4) == 0) {
-                fprintf(stderr, "\n");
+                crash_printf(log_context, "\n");
             }
         }
         fpr* fregs = &ctx->f0;
         for (int i = 0; i < 32; i++) {
-            fprintf(stderr, "f%-2d = %-19f", i, fregs[i].fl);
+            crash_printf(log_context, "f%-2d = %-19f", i, fregs[i].fl);
 
             if (((i + 1) % 4) == 0) {
-                fprintf(stderr, "\n");
+                crash_printf(log_context, "\n");
             }
         }
-        fprintf(stderr, "hi = 0x%lx\n", ctx->hi);
-        fprintf(stderr, "lo = 0x%lx\n", ctx->lo);
-        fprintf(stderr, "status_reg = 0x%x\n", ctx->status_reg);
-        fprintf(stderr, "mips3_float_mode = %d\n", ctx->mips3_float_mode);
+        crash_printf(log_context, "hi = 0x%" PRIx32 "\n", (uint32_t)ctx->hi);
+        crash_printf(log_context, "lo = 0x%" PRIx32 "\n", (uint32_t)ctx->lo);
+        crash_printf(log_context, "status_reg = 0x%" PRIx32 "\n", ctx->status_reg);
+        crash_printf(log_context, "mips3_float_mode = %d\n", ctx->mips3_float_mode);
 
-        fprintf(stderr, "**** MIPS END ****\n");
+        crash_printf(log_context, "**** MIPS END ****\n");
     }
+}
 
+static void dump_object_info(const CrashPrintContext* log_context) {
     if (rdram != NULL) {
         static gpr gPiManagerArray_addr = 0x800bfd40 + 0xFFFFFFFF00000000;
         static const char* objInterfaceFuncNames[] = {
@@ -95,17 +136,21 @@ static void dump_mips_context(void) {
         for (int i = 0; i < 5; i++) {
             int32_t objID = MEM_W(gPiManagerArray_addr, i * 4);
             if (objID != -1) {
-                fprintf(stderr, "Fault in object: (%s) (%d)\n", objInterfaceFuncNames[i], objID);
+                crash_printf(log_context, "Fault in object: (%s) (%" PRId32 ")\n", objInterfaceFuncNames[i], objID);
             }
         }
     }
+}
 
-    
+static void common_crash_handler(const CrashPrintContext* log_context) {
+    dump_object_info(log_context);
+    dump_game_callstack(log_context);
+    dump_mips_context(log_context);
 }
 
 #if defined(__linux__) /* --------------- Linux --------------- */
 
-#include <csignal>
+#include <signal.h>
 #include <cstdio>
 #include <execinfo.h>
 #include <link.h>
@@ -113,86 +158,128 @@ static void dump_mips_context(void) {
 
 static constexpr size_t MAX_STACKTRACE_DEPTH = 64;
 
-static void fatal_signal_handler(int signal) {
-    std::signal(signal, SIG_DFL);
+static void fatal_signal_handler(int signo, siginfo_t* info, void* extra) {
+    // Restore default handler so we don't handle additional errors after this point
+    signal(signo, SIG_DFL);
 
-    fprintf(stderr, "Crash! ");
+    CrashPrintContext log_context;
+    crash_print_init_context(&log_context);
+
+    crash_printf(&log_context, "Crash! ");
     const char* signame = "";
-    switch (signal) {
+    const char* reason = nullptr;
+    switch (signo) {
         case SIGSEGV:
             signame = "SIGSEGV";
+            switch (info->si_code) {
+                case SEGV_MAPERR:
+                    reason = "SEGV_MAPERR";
+                    break;
+                case SEGV_ACCERR:
+                    reason = "SEGV_ACCERR";
+                    break;
+                case SEGV_BNDERR:
+                    reason = "SEGV_BNDERR";
+                    break;
+            }
             break;
         case SIGFPE:
             signame = "SIGFPE";
+            switch (info->si_code) {
+                case FPE_INTDIV:
+                    reason = "FPE_INTDIV";
+                    break;
+                case FPE_FLTDIV:
+                    reason = "FPE_FLTDIV";
+                    break;
+            }
             break;
         case SIGILL:
             signame = "SIGILL";
             break;
+        case SIGBUS:
+            signame = "SIGBUS";
+            switch (info->si_code) {
+                case BUS_ADRALN:
+                    reason = "BUS_ADRALN";
+                    break;
+                case BUS_ADRERR:
+                    reason = "BUS_ADRERR";
+                    break;
+            }
+            break;
     }
-    fprintf(stderr, "Signal %d (%s)\n", signal, signame);
+    if (reason != nullptr) {
+        crash_printf(&log_context, "Signal %d (%s) @ %p [%s]\n", signo, signame, info->si_addr, reason);
+    } else {
+        crash_printf(&log_context, "Signal %d (%s) @ %p [%d]\n", signo, signame, info->si_addr, info->si_code);
+    }
 
     char thread_name[16] = {0};
     if (prctl(PR_GET_NAME, thread_name) == 0) {
-        fprintf(stderr, "Thread %s\n", thread_name);
+        crash_printf(&log_context, "Thread: %s\n", thread_name);
     }
 
     void* trace[MAX_STACKTRACE_DEPTH];
     size_t trace_depth = backtrace(trace, MAX_STACKTRACE_DEPTH);
-    fprintf(stderr, "**** BACKTRACE START ****\n");
+    crash_printf(&log_context, "**** BACKTRACE START ****\n");
     //backtrace_symbols_fd(trace, trace_depth, STDERR_FILENO);
     // Adapted from backtrace_symbols_fd
     for (int i = 0; i < trace_depth; i++) {
         Dl_info info = {};
         link_map* linkMap;
         if (dladdr1(trace[i], &info, (void**)&linkMap, RTLD_DL_LINKMAP) && info.dli_fname && info.dli_fname[0] != '\0') {
-            fprintf(stderr, "%s", info.dli_fname);
+            crash_printf(&log_context, "%s", info.dli_fname);
 
             if (info.dli_sname != NULL || linkMap->l_addr != 0) {
-                fprintf(stderr, "(");
+                crash_printf(&log_context, "(");
 
                 if (info.dli_sname != NULL) {
-                    fprintf(stderr, "%s", info.dli_sname);
+                    crash_printf(&log_context, "%s", info.dli_sname);
                 } else {
                     info.dli_saddr = (void*)linkMap->l_addr;
                 }
 
                 size_t diff;
                 if (trace[i] >= (void*)info.dli_saddr) {
-                    fprintf(stderr, "+0x");
+                    crash_printf(&log_context, "+0x");
                     diff = (uintptr_t)trace[i] - (uintptr_t)info.dli_saddr;
                 } else {
-                    fprintf(stderr, "-0x");
+                    crash_printf(&log_context, "-0x");
                     diff = (uintptr_t)info.dli_saddr - (uintptr_t)trace[i];
                 }
 
-                fprintf(stderr, "%lx)", diff);
+                crash_printf(&log_context, "%lx)", diff);
             }
 
-            fprintf(stderr, " [0x%lx]\n", (uintptr_t)trace[i]);
+            crash_printf(&log_context, " [0x%lx]\n", (uintptr_t)trace[i]);
         } else {
-            fprintf(stderr, "(unknown) [0x%lx]\n", (uintptr_t)trace[i]);
+            crash_printf(&log_context, "(unknown) [0x%lx]\n", (uintptr_t)trace[i]);
         }
     }
 
-    fprintf(stderr, "**** BACKTRACE END ****\n");
+    crash_printf(&log_context, "**** BACKTRACE END ****\n");
 
-    dump_game_stack();
-    dump_mips_context();
+    common_crash_handler(&log_context);
+
+    crash_print_deinit_context(&log_context);
 }
 
 namespace dino::runtime {
 
 void crash_setup_handler() {
-    std::signal(SIGSEGV, fatal_signal_handler);
-    std::signal(SIGFPE, fatal_signal_handler);
-    std::signal(SIGILL, fatal_signal_handler);
+    struct sigaction action = {0};
+    action.sa_flags = SA_SIGINFO; // include siginfo arg
+    action.sa_sigaction = fatal_signal_handler;
+    sigaction(SIGSEGV, &action, nullptr);
+    sigaction(SIGFPE, &action, nullptr);
+    sigaction(SIGILL, &action, nullptr);
+    sigaction(SIGBUS, &action, nullptr);
 }
 
 }
 
 #elif defined(_WIN32) /* --------------- Windows --------------- */
-
-#include <config/config.hpp>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -202,7 +289,10 @@ void crash_setup_handler() {
 static LONG WINAPI unhandled_exception_handler(EXCEPTION_POINTERS *ep) {
     EXCEPTION_RECORD *ex = ep->ExceptionRecord;
 
-    fprintf(stderr, "Crash! Code 0x%08lX", ex->ExceptionCode);
+    CrashPrintContext log_context;
+    crash_print_init_context(&log_context);
+
+    crash_printf(&log_context, "Crash! Code 0x%08lX", ex->ExceptionCode);
 
     const char *name = nullptr;
     switch (ex->ExceptionCode) {
@@ -226,7 +316,7 @@ static LONG WINAPI unhandled_exception_handler(EXCEPTION_POINTERS *ep) {
     }
 
     if (name) {
-        fprintf(stderr, " (%s)", name);
+        crash_printf(&log_context, " (%s)", name);
     }
 
     if (ex->ExceptionCode == EXCEPTION_ACCESS_VIOLATION)
@@ -234,7 +324,7 @@ static LONG WINAPI unhandled_exception_handler(EXCEPTION_POINTERS *ep) {
         ULONG_PTR type = ex->ExceptionInformation[0];
         ULONG_PTR addr = ex->ExceptionInformation[1];
 
-        fprintf(stderr, " @ 0x%llx [%s]",
+        crash_printf(&log_context, " @ 0x%llx [%s]",
             addr,
             type == 0 ? "read" :
             type == 1 ? "write" :
@@ -243,12 +333,12 @@ static LONG WINAPI unhandled_exception_handler(EXCEPTION_POINTERS *ep) {
         );
     }
 
-    fprintf(stderr, "\n");
+    crash_printf(&log_context, "\n");
 
     PWSTR thread = nullptr;
     GetThreadDescription(GetCurrentThread(), &thread);
     if (thread && wcslen(thread) != 0) {
-        fprintf(stderr, "Thread %ls\n", thread);
+        crash_printf(&log_context, "Thread: %ls\n", thread);
     }
 
     if (SymInitialize(GetCurrentProcess(), nullptr, TRUE)) {
@@ -266,7 +356,7 @@ static LONG WINAPI unhandled_exception_handler(EXCEPTION_POINTERS *ep) {
         frame.AddrStack.Offset = context.Rsp;
         frame.AddrStack.Mode = AddrModeFlat;
 
-        fprintf(stderr, "**** BACKTRACE START ****\n");
+        crash_printf(&log_context, "**** BACKTRACE START ****\n");
 
         while (StackWalk(
             IMAGE_FILE_MACHINE_AMD64,
@@ -285,7 +375,7 @@ static LONG WINAPI unhandled_exception_handler(EXCEPTION_POINTERS *ep) {
             IMAGEHLP_MODULE module {};
             module.SizeOfStruct = sizeof(IMAGEHLP_MODULE);
             if (SymGetModuleInfo(GetCurrentProcess(), frame.AddrPC.Offset, &module)) {
-                fprintf(stderr, "%s", module.ImageName);
+                crash_printf(&log_context, "%s", module.ImageName);
             }
 
             symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
@@ -293,18 +383,20 @@ static LONG WINAPI unhandled_exception_handler(EXCEPTION_POINTERS *ep) {
 
             DWORD64 diff = 0;
             if (SymFromAddr(GetCurrentProcess(), frame.AddrPC.Offset, &diff, symbol)) {
-                fprintf(stderr, "(%s+0x%llx) [0x%llx]", symbol->Name, diff, frame.AddrPC.Offset);
+                crash_printf(&log_context, "(%s+0x%llx) [0x%llx]", symbol->Name, diff, frame.AddrPC.Offset);
             } else {
-                fprintf(stderr, "(unknown) [0x%llx]", frame.AddrPC.Offset);
+                crash_printf(&log_context, "(unknown) [0x%llx]", frame.AddrPC.Offset);
             }
 
-            fprintf(stderr, "\n");
+            crash_printf(&log_context, "\n");
         }
 
-        fprintf(stderr, "**** BACKTRACE END ****\n");
+        crash_printf(&log_context, "**** BACKTRACE END ****\n");
     }
 
-    dump_mips_context();
+    common_crash_handler(&log_context);
+
+    crash_print_deinit_context(&log_context);
 
     auto path = dino::config::get_app_folder_path() / "crash.dmp";
     HANDLE file = CreateFileW(
