@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cassert>
 #include <cstdlib>
+#include <thread>
 #include <vector>
 
 #include "nfd.h"
@@ -24,6 +25,7 @@
 #include "ui/recomp_ui.h"
 
 #include "runtime/audio.hpp"
+#include "runtime/crash.hpp"
 #include "runtime/gfx.hpp"
 #include "runtime/mods.hpp"
 #include "runtime/overlays.hpp"
@@ -41,7 +43,15 @@ gpr get_entrypoint_address();
 
 static void custom_recomp_entrypoint(uint8_t *rdram, recomp_context *ctx) {
     printf("Initialized RDRAM at %p\n", rdram);
+    
+    dino::runtime::crash_register_rdram(rdram);
+    dino::runtime::crash_register_thread_context(std::this_thread::get_id(), ctx);
+
     recomp_entrypoint(rdram, ctx);
+}
+
+static void custom_thread_create_callback(uint8_t* rdram, recomp_context* ctx) {
+    dino::runtime::crash_register_thread_context(std::this_thread::get_id(), ctx);
 }
 
 // array of supported GameEntry objects
@@ -59,6 +69,7 @@ std::vector<recomp::GameEntry> supported_games = {
         .has_compressed_code = true,
         .entrypoint_address = get_entrypoint_address(),
         .entrypoint = custom_recomp_entrypoint,
+        .thread_create_callback = custom_thread_create_callback,
     },
 };
 
@@ -75,6 +86,9 @@ static ultramodern::renderer::WindowHandle create_window(ultramodern::gfx_callba
 }
 
 int main(int argc, char** argv) {
+    // Setup crash handler
+    dino::runtime::crash_setup_handler();
+
     // Parse CLI args
     for (int i = 1; i < argc; i++) {
         char *arg = argv[i];
