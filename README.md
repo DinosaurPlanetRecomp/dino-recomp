@@ -1,4 +1,6 @@
 # Dinosaur Planet: Recompiled
+[![](https://img.shields.io/badge/Discord-Dinosaur%20Planet%20Community-5865F2?logo=discord)](https://discord.gg/SUrA4aV7UW) 
+
 Dinosaur Planet: Recompiled is a project that uses [N64: Recompiled](https://github.com/N64Recomp/N64Recomp) to **statically recompile** [Dinosaur Planet](https://www.rarewiki.com/wiki/Dinosaur_Planet) (the December 2000 prototype) into a native port with enhancements and extensive mod support. This project uses [RT64](https://github.com/rt64/rt64) as the rendering engine to provide graphical enhancements.
 
 > **[Check out the latest release here](https://github.com/DinosaurPlanetRecomp/dino-recomp/releases).**
