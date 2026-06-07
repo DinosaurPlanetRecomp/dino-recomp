@@ -47,7 +47,11 @@ static void crash_print_init_context(CrashPrintContext* context) {
     assert(context != nullptr);
 
     auto path = dino::config::get_app_folder_path() / "crash.log";
+#if defined(_WIN32)
+    context->log_file = _wfopen(path.c_str(), L"w");
+#else
     context->log_file = fopen(path.c_str(), "w");
+#endif
 }
 
 static void crash_print_deinit_context(CrashPrintContext* context) {
