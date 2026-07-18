@@ -821,7 +821,7 @@ RECOMP_PATCH void trackDrawRenderList(Mtx* rspMtxs, s8* visibilities) {
                 gSP1TriangleBlock(gMainDL, var_s2->d0);
                 gMainDL++;
             }
-            gDLBuilder->needsPipeSync = 1;
+            gDLBuilder->needsPipeSync = TRUE;
             if ((renderFlags & (RENDER_FOG_ACTIVE | RENDER_DECAL_SIMPLE | RENDER_DECAL)) == (RENDER_FOG_ACTIVE | RENDER_DECAL_SIMPLE | RENDER_DECAL)) {
                 temp_s0_2 = gMainDL - temp_s5;
                 dlSetGeometryMode(&gMainDL, G_FOG);
@@ -847,7 +847,7 @@ RECOMP_PATCH void trackDrawRenderList(Mtx* rspMtxs, s8* visibilities) {
                 }
                 bcopy(temp_s5, gMainDL, temp_s0_2 * sizeof(Gfx));
                 gMainDL += temp_s0_2;
-                gDLBuilder->needsPipeSync = 1;
+                gDLBuilder->needsPipeSync = TRUE;
             }
         }
     }

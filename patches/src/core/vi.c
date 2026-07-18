@@ -5,9 +5,7 @@
 #include "sys/main.h"
 #include "sys/joypad.h"
 #include "sys/vi.h"
-
-#define FRAMEBUFFER_ADDRESS_NO_EXP_PAK 0x802d4000
-#define FRAMEBUFFER_ADDRESS_EXP_PAK 0x80119000
+#include "memory_regions.h"
 
 typedef struct VideoResolution {
     u32 h;
@@ -58,21 +56,21 @@ RECOMP_PATCH void viInitFramebuffers(int someBool, s32 width, s32 height) {
     gCurrentResolutionV[0] = vRes;
     gCurrentResolutionV[1] = vRes;
 
-    if (osMemSize != 0x800000) {
+    if (osMemSize != EXPANSION_RAM_SIZE) {
         // No expansion pack detected
-        gFramebufferPointers[0] = (u16*)(FRAMEBUFFER_ADDRESS_NO_EXP_PAK);
-        gFramebufferPointers[1] = (u16*)(FRAMEBUFFER_ADDRESS_NO_EXP_PAK + ((width * height) * 2));
+        gFramebufferPointers[0] = (u16*)(COLOR_BUFFERS_ADDR_NO_EXP_PAK);
+        gFramebufferPointers[1] = (u16*)(COLOR_BUFFERS_ADDR_NO_EXP_PAK + ((width * height) * 2));
         
-        gDepthBuffer = (u16*)(FRAMEBUFFER_ADDRESS_NO_EXP_PAK);
+        gDepthBuffer = (u16*)(COLOR_BUFFERS_ADDR_NO_EXP_PAK); // dummy depth buffer
         return;
     }
     
     if (height == 480) {
-        // PAL framebuffer height
-        // gFramebufferPointers[0] = (u16*)(FRAMEBUFFER_ADDRESS_EXP_PAK);
-        // gFramebufferPointers[1] = (u16*)(FRAMEBUFFER_ADDRESS_EXP_PAK + ((width * height) * 2));
+        // High resolution (menus, 640x480)
+        // gFramebufferPointers[0] = (u16*)(COLOR_BUFFERS_ADDR_EXP_PAK);
+        // gFramebufferPointers[1] = (u16*)(COLOR_BUFFERS_ADDR_EXP_PAK + ((width * height) * 2));
         
-        // gDepthBuffer = (u16*)(FRAMEBUFFER_ADDRESS_EXP_PAK);
+        // gDepthBuffer = (u16*)(COLOR_BUFFERS_ADDR_EXP_PAK); // dummy depth buffer
         
         // @recomp: Use custom addresses for the 640x480 framebuffers to avoid triggering a bug in RT64.
         // If the 640x480 and 320x260 framebuffers share the same address space, RT64 gets confused and thinks
@@ -84,12 +82,12 @@ RECOMP_PATCH void viInitFramebuffers(int someBool, s32 width, s32 height) {
         
         gDepthBuffer = gFramebufferPointers[0];
     } else {
-        // NTSC/M-PAL framebuffer height
-        gFramebufferPointers[0] = (u16*)(FRAMEBUFFER_ADDRESS_EXP_PAK);
-        gFramebufferPointers[1] = (u16*)(FRAMEBUFFER_ADDRESS_EXP_PAK + ((width * height) * 2));
+        // Normal resolution (gameplay, 320x240)
+        gFramebufferPointers[0] = (u16*)(COLOR_BUFFERS_ADDR_EXP_PAK);
+        gFramebufferPointers[1] = (u16*)(COLOR_BUFFERS_ADDR_EXP_PAK + ((width * height) * 2));
         
-        gFramebufferEnd = (u16*)(((int) (FRAMEBUFFER_ADDRESS_EXP_PAK + ((width * height) * 2))) + ((width * height) * 2));
-        gDepthBuffer = (u16*)0x80200000;
+        gFramebufferEnd = (u16*)(((int) (COLOR_BUFFERS_ADDR_EXP_PAK + ((width * height) * 2))) + ((width * height) * 2));
+        gDepthBuffer = (u16*)DEPTH_BUFFER_ADDR;
     }
 }
 
@@ -180,7 +178,7 @@ RECOMP_PATCH s32 viFrameSync(s32 param1) {
             // Create pause screen screenshot
             mainSetPauseState(2);
             // @recomp: Don't copy framebuffer here, we handle this elsewhere in recomp
-            //bcopy(gBackFramebuffer, gFramebufferEnd, 0x25800);
+            //bcopy(gBackFramebuffer, gFramebufferEnd, (320 * 240 * sizeof(u16)));
         } else {
             osViSwapBuffer(gFrontFramebuffer);
         }

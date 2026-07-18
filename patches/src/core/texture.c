@@ -74,7 +74,7 @@ RECOMP_PATCH Texture* texLoadTextureActual(s32 id, u8 param2) {
         piRomLoadSection(binFileID, gTexLoadBuffer, offset, (numFrames + 1) << 3);
     } else {
         gTexLoadBuffer[0] = 0;
-        gTexLoadBuffer[1] = rarezipUncompressSizeROM(binFileID, offset, TRUE);
+        gTexLoadBuffer[1] = rarezipUncompressSizeROM(binFileID, offset, /*directLoad=*/TRUE);
         gTexLoadBuffer[2] = compressedSize;
     }
     

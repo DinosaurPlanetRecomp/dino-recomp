@@ -257,10 +257,11 @@ RECOMP_PATCH void anim_update_actor_transform(Object* animObj, Object* actor, An
         var_fv1 = _bss_28;
         var_fa0 = _bss_2C;
     }
+    
     temp_a1 = animObj->srt.pitch;
     temp_a3 = animObj->srt.roll;
     if (actor != animObj) {
-        if (st->unk7A & 1) {
+        if (st->unk7A & ANIM7AFLAG_OVERRIDE_POS) {
             // @recomp: Save previous position
             Vec3f prevPos;
             prevPos.x = actor->srt.transl.x;
@@ -290,16 +291,16 @@ RECOMP_PATCH void anim_update_actor_transform(Object* animObj, Object* actor, An
                 }
             }
         }
-        if (st->unk7A & 2) {
+        if (st->unk7A & ANIM7AFLAG_OVERRIDE_ROT) {
             // @recomp: Save previous rotation
             s16 prevRot[3];
             prevRot[0] = actor->srt.yaw;
             prevRot[1] = actor->srt.pitch;
             prevRot[2] = actor->srt.roll;
             if (st->unk62 == 2) {
-                actor->srt.yaw = var_v1 + (s16) ((f32) st->yawDiff * st->unk58);
-                actor->srt.pitch = temp_a1 + (s16) ((f32) st->pitchDiff * st->unk58);
-                actor->srt.roll = temp_a3 + (s16) ((f32) st->rollDiff * st->unk58);
+                actor->srt.yaw = var_v1 + (s16) (st->yawDiff * st->unk58);
+                actor->srt.pitch = temp_a1 + (s16) (st->pitchDiff * st->unk58);
+                actor->srt.roll = temp_a3 + (s16) (st->rollDiff * st->unk58);
             } else {
                 actor->srt.yaw = var_v1;
                 actor->srt.pitch = temp_a1;
