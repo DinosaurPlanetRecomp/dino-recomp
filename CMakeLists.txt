@@ -297,6 +297,9 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     find_package(Threads REQUIRED)
 
     target_link_libraries(DinosaurPlanetRecompiled PRIVATE "-latomic -static-libstdc++" ${CMAKE_DL_LIBS} Threads::Threads)
+
+    # Export symbols to the dynamic symbol table so backtraces work (when symbols aren't stripped)
+    target_link_options(DinosaurPlanetRecompiled PRIVATE -Wl,-export-dynamic)
 endif()
 
 target_link_libraries(DinosaurPlanetRecompiled PRIVATE

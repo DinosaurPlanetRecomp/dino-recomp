@@ -112,7 +112,8 @@ static CheatInventoryItem sabreItems[] = {
     { BIT_WC_Moon_Stone, FALSE, TYPE_BOOL, "WC Moon Stone" },
 
     { -1, FALSE, TYPE_SECTION, "Dragon Rock" },
-    { BIT_SpellStone_DR, TRUE, TYPE_BOOL, "DR SpellStone (activated)" }
+    { BIT_SpellStone_DR, TRUE, TYPE_BOOL, "DR SpellStone" },
+    { BIT_7CC, TRUE, TYPE_BOOL, "DR SpellStone (activated)" } // dependent on dinomod!
 };
 
 static CheatInventoryItem magicSpells[] = {
