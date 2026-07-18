@@ -316,7 +316,7 @@ RECOMP_PATCH void func_80013D80(void) {
                     && (D_8008C94C == 0) 
                     && (func_800143FC() == 0) 
                     && ((button & START_BUTTON) != 0) 
-                    && (main_get_bits(BIT_44F) == 0)) {
+                    && (main_get_bits(BIT_Menus_Selection_Blocked) == 0)) {
                 gPauseState = 1;
                 joy_disable_buttons(0, START_BUTTON);
                 // @recomp: Don't switch to pause menu immediately so we include the current menu

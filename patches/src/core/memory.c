@@ -7,6 +7,7 @@
 #include "sys/memory.h"
 #include "sys/interrupt_util.h"
 #include "macros.h"
+#include "memory_regions.h"
 
 extern s32 get_stack_();
 
@@ -18,34 +19,33 @@ s32 memMonVal3;
 
 RECOMP_PATCH void mmInit(void) {
     // Start pool memory at the end of .bss
-    u32 startAddr = (u32)&bss_end;
+    u32 bssEndAddr = (u32)&bss_end;
 
     // Clear to 0xFF
-    s32 *mem = (s32*)startAddr;
-    while ((u32)mem < osMemSize)
+    s32 *mem = (s32*)bssEndAddr;
+    while ((u32)mem < osMemSize) {
         *mem++ = -1;
+    }
 
     // Initialize memory pools
     gNumMemoryPools = 0;
 
-    if (osMemSize != EXPANSION_SIZE)
-    {
-        mmInitPool((void *)startAddr, MEM_POOL_AREA_NO_EXPANSION - startAddr, 1200);
-    }
-    else
-    {
-        mmInitPool((void *)MEM_POOL_AREA_00, RAM_END - MEM_POOL_AREA_00,          400);
-        mmInitPool((void *)MEM_POOL_AREA_01, MEM_POOL_AREA_00 - MEM_POOL_AREA_01, 800);
-        mmInitPool((void *)startAddr,        MEM_POOL_AREA_02 - startAddr,        1200);
+    if (osMemSize != EXPANSION_RAM_SIZE) {
+        mmInitPool((void *)bssEndAddr, COLOR_BUFFERS_ADDR_NO_EXP_PAK - bssEndAddr, 1200);
+    } else {
+        mmInitPool((void *)MEMORY_POOL_0_START, MEMORY_POOL_0_SIZE, 400);
+        mmInitPool((void *)MEMORY_POOL_1_START, MEMORY_POOL_1_SIZE, 800);
+        mmInitPool((void *)bssEndAddr, COLOR_BUFFERS_ADDR_EXP_PAK - bssEndAddr, 1200);
         
         // @recomp: New pool taking up the remainder of patch memory
-        startAddr = (u32)&PATCH_BSS_END;
+        bssEndAddr = (u32)&PATCH_BSS_END;
 
-        s32 *mem = (s32*)startAddr;
-        while ((u32)mem < PATCH_RAM_END)
+        s32 *mem = (s32*)bssEndAddr;
+        while ((u32)mem < PATCH_RAM_END) {
             *mem++ = -1;
+        }
     
-        mmInitPool((void *)startAddr, PATCH_RAM_END - startAddr, 4000);
+        mmInitPool((void *)bssEndAddr, PATCH_RAM_END - bssEndAddr, 4000);
     }
 
     mmSetDelay(2);
@@ -71,7 +71,7 @@ RECOMP_PATCH void *mmAlloc(s32 size, s32 tag, const char *name) {
         return ptr;
     }
 
-    if ((size >= 4500) || (osMemSize != EXPANSION_SIZE)) {
+    if ((size >= 4500) || (osMemSize != EXPANSION_RAM_SIZE)) {
         // >= 4500 bytes -> pool 0
         ptr = mmAllocR(0, size, tag, name);
         if (ptr == NULL) {
