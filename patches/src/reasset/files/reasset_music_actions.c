@@ -15,7 +15,7 @@
 
 #include "PR/ultratypes.h"
 #include "dlls/engine/5_amseq.h"
-#include "sys/fs.h"
+#include "sys/pi.h"
 
 typedef struct {
     ReAssetID id;

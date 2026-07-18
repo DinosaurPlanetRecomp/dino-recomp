@@ -6,7 +6,7 @@
 #include "sys/camera.h"
 #include "sys/math.h"
 #include "sys/rarezip.h"
-#include "sys/fs.h"
+#include "sys/pi.h"
 #include "sys/memory.h"
 
 RECOMP_DECLARE_EVENT(recomp_on_model_load(s32 *id));
@@ -26,7 +26,9 @@ extern s32 gNumModelsTabEntries;
 extern s32 gNumFreeModelSlots;
 extern s16* gAuxBuffer;
 
-extern void model_destroy(Model* model);
+extern ModelInstance* createModelInstance(Model* model, s32 flags, s32 arg2);
+extern s32 makeModelAnimation(Model* model, s32 id, u8* data);
+extern void freeModel(Model* model);
 
 typedef struct {
     MtxF *matrices[2];
@@ -75,7 +77,7 @@ static void recomp_free_obj_absolute_matrices(ModelInstance *modelInst) {
     recomputil_u32_value_hashmap_erase(recomp_objAbsoluteMatrixMap, (collection_key_t)modelInst);
 }
 
-RECOMP_PATCH ModelInstance* model_load_create_instance(s32 id, u32 flags) {
+RECOMP_PATCH ModelInstance* modLoadModelActual(s32 id, u32 flags) {
     s32 i;
     s32 sp50;
     s32 sp4C;
@@ -95,7 +97,7 @@ RECOMP_PATCH ModelInstance* model_load_create_instance(s32 id, u32 flags) {
     if (id < 0) {
         id = -id;
     } else {
-        read_file_region(MODELIND_BIN, gAuxBuffer, id * 2, 8);
+        piRomLoadSection(MODELIND_BIN, gAuxBuffer, id * 2, 8);
         id = gAuxBuffer[0];
     }
     // @recomp: Invoke event (let mods change the ID)
@@ -109,9 +111,9 @@ RECOMP_PATCH ModelInstance* model_load_create_instance(s32 id, u32 flags) {
         modelInst = createModelInstance(model, flags, 0);
         if (modelInst != NULL) {
             model->refCount++;
-            model_setup_anim_playback(modelInst, modelInst->animState0);
+            modSetupAnimPlayback(modelInst, modelInst->animState0);
             if (modelInst->animState1 != NULL) {
-                model_setup_anim_playback(modelInst, modelInst->animState1);
+                modSetupAnimPlayback(modelInst, modelInst->animState1);
             }
         }
         // @recomp: Invoke event
@@ -134,18 +136,18 @@ RECOMP_PATCH ModelInstance* model_load_create_instance(s32 id, u32 flags) {
     }
     sp4C = gFile_MODELS_TAB[id + 0];
     sp48 = gFile_MODELS_TAB[id + 1] - sp4C;
-    read_file_region(MODELS_BIN, gAuxBuffer, sp4C, 0x10);
+    piRomLoadSection(MODELS_BIN, gAuxBuffer, sp4C, 0x10);
     sp42 = gAuxBuffer[0];
     sp3E = gAuxBuffer[2];
     sp40 = ((u16)mmAlign8(gAuxBuffer[1]) & 0xFFFF) + 0x90;
-    uncompressedSize = rarezip_uncompress_size((u8*)gAuxBuffer + 8);
+    uncompressedSize = rarezipUncompressSize((u8*)gAuxBuffer + 8);
     // @recomp: Support uncompressed models
     _Bool isUncompressed = FALSE;
     if (uncompressedSize < 0) {
         isUncompressed = TRUE;
         uncompressedSize = (sp48 - 0xC);
     }
-    sp28 = model_load_anim_remap_table(id, sp3E, sp42);
+    sp28 = modLoadAnimRemapTable(id, sp3E, sp42);
     sp28 += uncompressedSize + 500;
     model = mmAlloc(sp28, 9, NULL);
     if (model == NULL) {
@@ -159,12 +161,12 @@ RECOMP_PATCH ModelInstance* model_load_create_instance(s32 id, u32 flags) {
     }
     // @recomp: Support uncompressed models (note: uncompressed data starts at +0xC instead of +0xD)
     if (isUncompressed) {
-        read_file_region(MODELS_BIN, model, sp4C + 0xC, uncompressedSize);
+        piRomLoadSection(MODELS_BIN, model, sp4C + 0xC, uncompressedSize);
     } else {
         temp = (((u32)model + sp28) - sp48) - 0x10;
         modelInst = (ModelInstance *) (temp - (temp % 16));
-        read_file_region(MODELS_BIN, (void*) modelInst, sp4C, sp48);
-        rarezip_uncompress((u8*)modelInst + 8, (u8*)model, sp28);
+        piRomLoadSection(MODELS_BIN, (void*) modelInst, sp4C, sp48);
+        rarezipUncompress((u8*)modelInst + 8, (u8*)model, sp28);
     }
     // @recomp: Invoke event
     recomp_on_model_loaded_rom(id, model);
@@ -216,7 +218,7 @@ RECOMP_PATCH ModelInstance* model_load_create_instance(s32 id, u32 flags) {
     }
     sp33 = 0;
     for (i = 0; i < model->textureCount; i++) {
-        model->materials[i].texture = tex_load(-((u32)model->materials[i].texture | 0x8000), 0);
+        model->materials[i].texture = texLoadTextureActual(-((u32)model->materials[i].texture | 0x8000), 0);
         if (model->materials[i].texture == NULL) {
             sp33 = 1;
         }
@@ -227,17 +229,17 @@ RECOMP_PATCH ModelInstance* model_load_create_instance(s32 id, u32 flags) {
                 goto bail;
             }
         }
-        patch_model_display_list_for_textures(model);
+        modPatchModelDisplayListForTextures(model);
         uncompressedSize += (u32)model;
         uncompressedSize = mmAlign8(uncompressedSize);
-        if (modanim_load(model, id, (u8*)uncompressedSize) == 0) {
+        if (makeModelAnimation(model, id, (u8*)uncompressedSize) == 0) {
             // @recomp: Invoke event
             recomp_on_model_loaded(id, model);
             modelInst = createModelInstance(model, flags, 1);
             if (modelInst != NULL) {
-                model_setup_anim_playback(modelInst, modelInst->animState0);
+                modSetupAnimPlayback(modelInst, modelInst->animState0);
                 if (modelInst->animState1 != NULL) {
-                    model_setup_anim_playback(modelInst, modelInst->animState1);
+                    modSetupAnimPlayback(modelInst, modelInst->animState1);
                 }
                 MODEL_SLOT_ID(gLoadedModels, sp50) = id;
                 MODEL_SLOT_MODEL(gLoadedModels, sp50) = (s32)model;
@@ -256,11 +258,11 @@ bail:
     if (isNewSlot) {
         gNumFreeModelSlots++;
     }
-    model_destroy(model);
+    freeModel(model);
     return NULL;
 }
 
-RECOMP_PATCH void destroy_model_instance(ModelInstance* modelInst) {
+RECOMP_PATCH void modFreeModel(ModelInstance* modelInst) {
     Model* sp1C;
     s32 i;
 
@@ -295,7 +297,7 @@ RECOMP_PATCH void destroy_model_instance(ModelInstance* modelInst) {
 
         MODEL_SLOT_ID(gLoadedModels, i) = -1;
         MODEL_SLOT_MODEL(gLoadedModels, i) = -1;
-        model_destroy(sp1C);
+        freeModel(sp1C);
     }
 }
 
@@ -310,9 +312,9 @@ MtxF* recomp_model_instance_setup_absolute_matrices(ModelInstance *modelInst, s3
     // Factor in the parent matrix for each joint matrix
     RecompObjAbsoluteMatrices *absMtxs = recomp_get_obj_absolute_matrices(modelInst);
     for (s32 i = 0; i < count; i++) {
-        matrix_concat_4x3(&modelInst->matrices[idx][i], recomp_objParentMtx, &absMtxs->matrices[idx][i]);
+        mathMtxCat4x3F(&modelInst->matrices[idx][i], recomp_objParentMtx, &absMtxs->matrices[idx][i]);
     }
-    add_matrix_to_pool(absMtxs->matrices[idx], count);
+    camAddMatrixToPool(absMtxs->matrices[idx], count);
 
     return absMtxs->matrices[idx];
 }

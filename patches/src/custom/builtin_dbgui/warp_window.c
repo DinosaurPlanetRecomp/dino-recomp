@@ -1,11 +1,10 @@
 #include "patches.h"
 #include "dbgui.h"
 
-#include "sys/fs.h"
+#include "sys/pi.h"
 #include "sys/main.h"
 #include "sys/map.h"
 #include "sys/memory.h"
-#include "sys/menu.h"
 
 struct WarpEntry {
     s32 idx;
@@ -80,8 +79,8 @@ static s32 loadedMaps = FALSE;
 
 static void load_maps(void) {
     if (!loadedMaps) {
-        numMaps = get_file_size(MAPINFO_BIN) / 0x20;
-        void *mapInfo = read_alloc_file(MAPINFO_BIN, 0);
+        numMaps = piRomGetFileSize(MAPINFO_BIN) / 0x20;
+        void *mapInfo =  piRomLoad(MAPINFO_BIN, 0);
         mapNames = recomp_alloc(numMaps * sizeof(const char*));
         for (s32 i = 0; i < numMaps; i++) {
             char *name = recomp_alloc(29 * sizeof(char));
@@ -92,7 +91,7 @@ static void load_maps(void) {
         }
         mmFree(mapInfo);
 
-        s16 *mapSetups = read_alloc_file(MAPSETUP_IND, 0);
+        s16 *mapSetups = piRomLoad(MAPSETUP_IND, 0);
         mapNumSetups = recomp_alloc(numMaps * sizeof(s32));
         for (s32 i = 0; i < numMaps; i++) {
             mapNumSetups[i] = mapSetups[i + 1] - mapSetups[i];
@@ -125,7 +124,7 @@ void dbgui_warp_window(s32 *open) {
         }
 
         if (dbgui_button("Warp")) {
-            warpPlayer(selectedWarpEntry->idx, /*fade*/FALSE);
+            mapWarpPlayer(selectedWarpEntry->idx, /*fade*/FALSE);
         }
 
         dbgui_separator();
@@ -162,7 +161,7 @@ void dbgui_warp_window(s32 *open) {
         }
 
         if (dbgui_button("Change Map")) {
-            main_change_map(mapID, setupID, playerNo, -1);
+            mainChangeMap(mapID, setupID, playerNo, -1);
         }
     }
     dbgui_end();

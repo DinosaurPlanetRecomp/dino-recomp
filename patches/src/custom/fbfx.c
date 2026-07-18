@@ -31,7 +31,7 @@ static s32 recomp_fps_aware_accum_alpha(s32 alpha, f32 targetFramerate) {
 }
 
 static void recomp_fbfx_snapshot_framebuffer(Gfx **gdl, u16 *src, u16 *dst) {
-    u32 viSize = vi_get_current_size();
+    u32 viSize = viGetCurrentSize();
     u32 viWidth = GET_VIDEO_WIDTH(viSize);
     u32 viHeight = GET_VIDEO_HEIGHT(viSize);
 
@@ -72,7 +72,7 @@ static void recomp_fbfx_3(void) {
 
         Gfx **gdl = &gCurGfx;
 
-        u32 viSize = vi_get_current_size();
+        u32 viSize = viGetCurrentSize();
         u32 viWidth = GET_VIDEO_WIDTH(viSize);
         u32 viHeight = GET_VIDEO_HEIGHT(viSize);
 
@@ -155,7 +155,7 @@ void recomp_fbfx(void) {
 void recomp_fbfx_snapshot(void) {
     Gfx **gdl = &gCurGfx;
 
-    u32 viSize = vi_get_current_size();
+    u32 viSize = viGetCurrentSize();
     u32 viWidth = GET_VIDEO_WIDTH(viSize);
     u32 viHeight = GET_VIDEO_HEIGHT(viSize);
 
@@ -193,7 +193,7 @@ void recomp_fbfx_motion_blur_tick(void) {
 
     Gfx **gdl = &gCurGfx;
 
-    u32 viSize = vi_get_current_size();
+    u32 viSize = viGetCurrentSize();
     u32 viWidth = GET_VIDEO_WIDTH(viSize);
     u32 viHeight = GET_VIDEO_HEIGHT(viSize);
 

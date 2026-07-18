@@ -49,7 +49,7 @@ extern s8 gMatrixIndex;
 extern MtxF MtxF_800a6a60;
 extern MtxF gAuxMtx2;
 
-extern f32 fexp(f32 x, u32 iterations);
+extern f32 cam_fexp(f32 x, u32 iterations);
 
 static MtxF recomp_viewWorldOffsetResetMtx = {
     .m = {
@@ -72,7 +72,7 @@ void recomp_skip_camera_interp(void) {
     recomp_skipCameraInterp = TRUE;
 }
 
-RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
+RECOMP_PATCH void camSetupRSPMatrices(Gfx **gdl, Mtx **rspMtxs) {
     s32 prevCameraSel;
     f32 x,y,z;
     s32 i;
@@ -88,7 +88,7 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
  
     camera = &gCameras[gCameraSelector];
 
-    update_camera_for_object(camera);
+    camUpdateCameraForObject(camera);
 
     if (gCameraSelector == 4) {
         map_func_80046B58(camera->tx, camera->ty, camera->tz);
@@ -113,10 +113,10 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
     }
     gCameraSRT.transl.z = -z;
 
-    matrix_from_srt_reversed(&gViewMtx, &gCameraSRT);
-    matrix_concat(&gViewMtx, &gProjectionMtx, &gViewProjMtx);
+    mathRpyXyzMtx(&gViewMtx, &gCameraSRT);
+    mathMtxCatF(&gViewMtx, &gProjectionMtx, &gViewProjMtx);
     // @recomp: Not using long version of combined ViewProjMtx
-    //matrix_f2l(&gViewProjMtx, *rspMtxs);
+    //mathMtxF2L(&gViewProjMtx, *rspMtxs);
 
     //gRSPMtxList = *rspMtxs;
 
@@ -125,8 +125,8 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
     // from here to RT64, m[0][2] and m[0][3], which are very small values, end up less precise. When
     // RT64 decomposes this matrix, this lack of precision is amplified greatly resulting in a very
     // wrong projection matrix on some frames.
-    matrix_f2l(&gProjectionMtx, *rspMtxs);
-    matrix_f2l(&gViewMtx, *rspMtxs + 1);
+    mathMtxF2L(&gProjectionMtx, *rspMtxs);
+    mathMtxF2L(&gViewMtx, *rspMtxs + 1);
 
     recomp_lastCamProjMtx = (*rspMtxs + 0);
     recomp_lastCamViewMtx = (*rspMtxs + 1);
@@ -152,7 +152,7 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
             .scale = 1.0f,
             .transl = { .x = gWorldX, .y = 0, .z = gWorldZ }
         };
-        matrix_from_srt((MtxF*)*rspMtxs, &recomp_viewWorldOffsetSRT);
+        mathYprXyzMtx((MtxF*)*rspMtxs, &recomp_viewWorldOffsetSRT);
         gEXSetViewMatrixFloat((*gdl)++, (MtxF*)(*rspMtxs)++);
     } else {
         // Disable for shadow ortho projection
@@ -171,8 +171,8 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
     }
     gCameraSRT.transl.z = z;
     
-    matrix_from_srt(&gViewMtx2, &gCameraSRT);
-    matrix_f2l(&gViewMtx2, &gRSPViewMtx2);
+    mathYprXyzMtx(&gViewMtx2, &gCameraSRT);
+    mathMtxF2L(&gViewMtx2, &gRSPViewMtx2);
 
     gCameraSelector = prevCameraSel;
 
@@ -182,7 +182,7 @@ RECOMP_PATCH void setup_rsp_camera_matrices(Gfx **gdl, Mtx **rspMtxs) {
     }
 }
 
-RECOMP_PATCH void camera_setup_object_srt_matrix(Gfx **gdl, Mtx **rspMtxs, SRT *srt, f32 yScale, f32 unused, MtxF *outMtx) {
+RECOMP_PATCH void camSetupObjectSRTMatrix(Gfx **gdl, Mtx **rspMtxs, SRT *srt, f32 yScale, f32 unused, MtxF *outMtx) {
     MtxF *mtx;
     Mtx *fallbackMtx;
 
@@ -192,31 +192,31 @@ RECOMP_PATCH void camera_setup_object_srt_matrix(Gfx **gdl, Mtx **rspMtxs, SRT *
     srt->transl.z -= gWorldZ;
 
     if (srt->transl.x > 32767.0f || -32767.0f > srt->transl.x || srt->transl.z > 32767.0f || -32767.0f > srt->transl.z) {
-        fallbackMtx = get_some_model_view_mtx();
+        fallbackMtx = mathIdentityMtxL();
         gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(fallbackMtx), G_MTX_LOAD | G_MTX_MODELVIEW);
 
         srt->transl.x += gWorldX;
         srt->transl.z += gWorldZ;
     } else {
-        matrix_from_srt(mtx, srt);
+        mathYprXyzMtx(mtx, srt);
         if (yScale != 1.0f) {
-            matrix_prescale_y(mtx, yScale);
+            mathSquashY(mtx, yScale);
         }
 
         // @recomp: Factor in parent matrix since we don't set it in the projection slot in recomp
         if (recomp_objParentMtx != NULL) {
-            matrix_concat_4x3(mtx, recomp_objParentMtx, mtx);
+            mathMtxCat4x3F(mtx, recomp_objParentMtx, mtx);
         }
 
         if (outMtx == NULL) {
-            matrix_f2l_4x3(mtx, *rspMtxs);
+            mathMtx4x3F2L(mtx, *rspMtxs);
             gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_LOAD | G_MTX_MODELVIEW);
         } else {
             // Output matrix was given, so don't add matrix to the global rsp matrix list but add to
             // the matrix pool so it still gets converted to the long format later before the display
             // list is processed.
             gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(outMtx), G_MTX_LOAD | G_MTX_MODELVIEW);
-            add_matrix_to_pool(outMtx, 1);
+            camAddMatrixToPool(outMtx, 1);
         }
 
         srt->transl.x += gWorldX;
@@ -224,8 +224,7 @@ RECOMP_PATCH void camera_setup_object_srt_matrix(Gfx **gdl, Mtx **rspMtxs, SRT *
     }
 }
 
-RECOMP_PATCH void setup_rsp_matrices_for_object(Gfx **gdl, Mtx **rspMtxs, Object *object)
-{
+RECOMP_PATCH void camSetupRSPMatricesForObject(Gfx **gdl, Mtx **rspMtxs, Object *object) {
     u8 ancestor;
     MtxF mtxf;
     Object *origObject;
@@ -251,10 +250,10 @@ RECOMP_PATCH void setup_rsp_matrices_for_object(Gfx **gdl, Mtx **rspMtxs, Object
             }
 
             if (!ancestor) {
-                matrix_from_srt(&MtxF_800a6a60, &object->srt);
+                mathYprXyzMtx(&MtxF_800a6a60, &object->srt);
             } else {
-                matrix_from_srt(&mtxf, &object->srt);
-                matrix_concat_4x3(&MtxF_800a6a60, &mtxf, &MtxF_800a6a60);
+                mathYprXyzMtx(&mtxf, &object->srt);
+                mathMtxCat4x3F(&MtxF_800a6a60, &mtxf, &MtxF_800a6a60);
             }
 
             object->srt.scale = oldScale;
@@ -268,12 +267,12 @@ RECOMP_PATCH void setup_rsp_matrices_for_object(Gfx **gdl, Mtx **rspMtxs, Object
             ancestor = TRUE;
         }
 
-        matrix_concat(&MtxF_800a6a60, &gViewProjMtx, &gAuxMtx2);
+        mathMtxCatF(&MtxF_800a6a60, &gViewProjMtx, &gAuxMtx2);
         // @recomp: Don't store matrix concat'd with view-projection, just store the parent model matrix
         if (recomp_frameInterpActive) {
             bcopy(&MtxF_800a6a60, *rspMtxs, sizeof(MtxF));
         } else {
-            matrix_f2l(&MtxF_800a6a60, *rspMtxs);
+            mathMtxF2L(&MtxF_800a6a60, *rspMtxs);
         }
         gRSPMatrices[origObject->matrixIdx] = *rspMtxs;
         (*rspMtxs)++;
@@ -293,8 +292,7 @@ RECOMP_PATCH void setup_rsp_matrices_for_object(Gfx **gdl, Mtx **rspMtxs, Object
     }
 }
 
-RECOMP_PATCH void camera_load_parent_projection(Gfx **gdl)
-{
+RECOMP_PATCH void camLoadParentProjection(Gfx **gdl) {
     if (recomp_frameInterpActive) {
         // @recomp: Don't change projection matrix, just clear the parent matrix
         recomp_objParentMtx = NULL;
@@ -308,9 +306,8 @@ RECOMP_PATCH void camera_load_parent_projection(Gfx **gdl)
     }
 }
 
-RECOMP_PATCH void viewport_get_full_rect(s32 *ulx, s32 *uly, s32 *lrx, s32 *lry)
-{
-    u32 wh = vi_get_current_size();
+RECOMP_PATCH void camViewportGetFullRect(s32 *ulx, s32 *uly, s32 *lrx, s32 *lry) {
+    u32 wh = viGetCurrentSize();
     u32 width = GET_VIDEO_WIDTH(wh);
     u32 height = GET_VIDEO_HEIGHT(wh);
 
@@ -321,8 +318,7 @@ RECOMP_PATCH void viewport_get_full_rect(s32 *ulx, s32 *uly, s32 *lrx, s32 *lry)
     *lry = height - gLetterboxSize;
 }
 
-RECOMP_PATCH void camera_apply_scissor(Gfx **gdl)
-{
+RECOMP_PATCH void camApplyScissor(Gfx **gdl) {
     s32 ulx, uly, lrx, lry;
     s32 wh;
     s32 centerX;
@@ -333,7 +329,7 @@ RECOMP_PATCH void camera_apply_scissor(Gfx **gdl)
     s32 padY;
     s32 mode;
     
-    wh = vi_get_current_size();
+    wh = viGetCurrentSize();
     height = GET_VIDEO_HEIGHT(wh) & 0xFFFF;
     width = GET_VIDEO_WIDTH(wh);
     
@@ -416,13 +412,13 @@ RECOMP_PATCH void camera_apply_scissor(Gfx **gdl)
     gDPSetScissor((*gdl)++, 0, ulx, uly, lrx, lry);
 }
 
-RECOMP_PATCH void camera_init(void) {
+RECOMP_PATCH void camInit(void) {
     s32 i;
     u32 stat;
 
     for (i = 0; i < 12; i++) {
         gCameraSelector = i;
-        camera_reset(200, 200, 200, 0, 0, 180);
+        camReset(200, 200, 200, 0, 0, 180);
     }
 
     gTriggerUseAlternateCamera = 0;
@@ -448,7 +444,7 @@ RECOMP_PATCH void camera_init(void) {
     gFovY = 60.0f;
 
     guPerspectiveF(gProjectionMtx.m, &gPerspNorm, gFovY, gAspect, gNearPlane, gFarPlane, 1.0f);
-    matrix_f2l(&gProjectionMtx, &gRSPProjectionMtx);
+    mathMtxF2L(&gProjectionMtx, &gRSPProjectionMtx);
 
     gProjectionScaleX = gProjectionMtx.m[0][0];
     gLetterboxSize = 0;
@@ -458,7 +454,7 @@ RECOMP_PATCH void camera_init(void) {
     recomp_matrixPool = recomp_alloc(sizeof(MatrixSlot) * 400); // 4x size
 }
 
-RECOMP_PATCH void add_matrix_to_pool(MtxF *mf, s32 count) {
+RECOMP_PATCH void camAddMatrixToPool(MtxF *mf, s32 count) {
     // @recomp: Use custom matrix pool
     recomp_matrixPool[gMatrixCount].mtx = (Mtx_MtxF*)mf;
     recomp_matrixPool[gMatrixCount++].count = count;
@@ -468,7 +464,7 @@ RECOMP_PATCH void add_matrix_to_pool(MtxF *mf, s32 count) {
     }
 }
 
-RECOMP_PATCH void camera_tick(void) {
+RECOMP_PATCH void camTick(void) {
     s32 pad;
     f32 lerpFactor;
     Camera *camera;
@@ -509,8 +505,8 @@ RECOMP_PATCH void camera_tick(void) {
             camera->shakeCooldown++;
         }
     } else if (camera->shakeMode == 1) {
-        dampFactor = fexp(-camera->shakeDamping * camera->shakeTime, 20);
-        lerpFactor = fcos16_precise(camera->shakeFrequency * 65535.0f * camera->shakeTime);
+        dampFactor = cam_fexp(-camera->shakeDamping * camera->shakeTime, 20);
+        lerpFactor = mathCosfInterp(camera->shakeFrequency * 65535.0f * camera->shakeTime);
         lerpFactor *= camera->shakeAmplitude * dampFactor;
 
         camera->dty = lerpFactor;
@@ -523,5 +519,6 @@ RECOMP_PATCH void camera_tick(void) {
         camera->shakeTime += gUpdateRateF / 60.0f;
     }
 
+    // @recomp: Reset camera interp skip
     recomp_skipCameraInterp = FALSE;
 }

@@ -17,7 +17,7 @@
 
 #include "PR/ultratypes.h"
 #include "game/objects/object_id.h"
-#include "sys/fs.h"
+#include "sys/pi.h"
 #include "sys/map.h"
 #include "sys/memory.h"
 #include "sys/curves.h"

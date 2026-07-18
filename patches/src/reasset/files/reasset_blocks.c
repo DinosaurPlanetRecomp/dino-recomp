@@ -15,7 +15,7 @@
 #include "reasset/bin_ptr.h"
 
 #include "PR/ultratypes.h"
-#include "sys/fs.h"
+#include "sys/pi.h"
 #include "sys/map.h"
 #include "sys/memory.h"
 #include "sys/rarezip.h"
@@ -310,7 +310,7 @@ static void block_decompress(Buffer *buffer) {
         return;
     }
 
-    s32 decompressedSize = rarezip_uncompress_size((u8*)data + 4);
+    s32 decompressedSize = rarezipUncompressSize((u8*)data + 4);
     if (decompressedSize <= 0) {
         // Already decompressed or zero size
         return;
@@ -324,7 +324,7 @@ static void block_decompress(Buffer *buffer) {
 
     bcopy(data, newData, 4); // header
     *((s32*)((u8*)newData + 0x4)) = -1; // decompressedSize
-    rarezip_uncompress((u8*)data + 4, (u8*)newData + newDataOffset, decompressedSize);
+    rarezipUncompress((u8*)data + 4, (u8*)newData + newDataOffset, decompressedSize);
 
     buffer_set(buffer, newData, newSize);
 
@@ -556,7 +556,7 @@ void reasset_blocks_patch(void) {
 
             void *blockBin = blockEntry->blockPtr.ptr;
             if (blockBin != NULL) {
-                reasset_assert(rarezip_uncompress_size((u8*)blockBin + 4) == -1,
+                reasset_assert(rarezipUncompressSize((u8*)blockBin + 4) == -1,
                     "[reasset] bug! Block needs to be uncompressed for the patch stage.");
                 
                 Block *block = (Block*)((u8*)blockBin + 0x8);

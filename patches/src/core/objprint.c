@@ -8,14 +8,13 @@
 #include "sys/map.h"
 #include "sys/segment_1D900.h"
 #include "sys/objprint.h"
-#include "sys/objhits.h"
 #include "sys/exception.h"
-#include "sys/dl_debug.h"
+#include "sys/di_rcp.h"
 #include "sys/objects.h"
 
-extern void func_80036890(Object* arg0, s32 arg1);
-extern void func_800357B4(Object*, ModelInstance*, Model*);
-extern void func_80036058(Object*, Object*, ModelInstance*, Gfx**, Mtx**, Vertex**);
+extern void objprint_func_800357B4(Object*, ModelInstance*, Model*);
+extern void objprint_func_80036890(Object*, s32);
+extern void objprint_func_80036058(Object*, Object*, ModelInstance*, Gfx**, Mtx**, Vertex**);
 
 extern MtxF *D_800B2E10;
 extern u8 BYTE_80091754;
@@ -42,7 +41,7 @@ static void recomp_push_obj_model_matrix_group(Model* model, Gfx** gdl, s32 id, 
     }
 }
 
-RECOMP_PATCH void objprint_func(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** tris, Object* obj, s8 visibility) {
+RECOMP_PATCH void objprintDrawObject(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** tris, Object* obj, s8 visibility) {
     if (obj->stateFlags & OBJSTATE_DESTROYED) {
         return;
     }
@@ -62,7 +61,7 @@ RECOMP_PATCH void objprint_func(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle**
     }
 
     update_pi_manager_array(2, obj->id);
-    dl_add_debug_info(*gdl, obj->id, "objects/objprint.c", 426);
+    diRcpTrace(*gdl, obj->id, "objects/objprint.c", 426);
     if (obj->dll != NULL) {
         if (!(obj->stateFlags & OBJSTATE_PRINT_DISABLED)) {
             // @recomp: Tag anything drawn from the print func not otherwise covered by other groups
@@ -76,24 +75,24 @@ RECOMP_PATCH void objprint_func(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle**
                     G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             }
             
-            obj->dll->vtbl->print(obj, gdl, mtxs, vtxs, tris, visibility);
+            obj->dll->vtbl->Print(obj, gdl, mtxs, vtxs, tris, visibility);
         } else if (visibility != 0) {
-            draw_object(obj, gdl, mtxs, vtxs, tris, 1.0f);
+            objprintDrawModel(obj, gdl, mtxs, vtxs, tris, 1.0f);
         }
     } else if (visibility != 0) {
-        draw_object(obj, gdl, mtxs, vtxs, tris, 1.0f);
+        objprintDrawModel(obj, gdl, mtxs, vtxs, tris, 1.0f);
     }
     if (obj->stateFlags & OBJSTATE_PENDING_MODEL_SWITCH) {
-        obj_handle_model_switch(obj, obj->modelInsts[obj->modelInstIdx], obj->modelInsts[obj->modelInstIdx]->model);
+        objHandleModelSwitch(obj, obj->modelInsts[obj->modelInstIdx], obj->modelInsts[obj->modelInstIdx]->model);
     }
     if (obj->linkedObject != NULL && (obj->linkedObject->stateFlags & OBJSTATE_PENDING_MODEL_SWITCH)) {
-        obj_handle_model_switch(obj->linkedObject, obj->linkedObject->modelInsts[obj->modelInstIdx], obj->linkedObject->modelInsts[obj->modelInstIdx]->model);
+        objHandleModelSwitch(obj->linkedObject, obj->linkedObject->modelInsts[obj->modelInstIdx], obj->linkedObject->modelInsts[obj->modelInstIdx]->model);
     }
-    dl_add_debug_info(*gdl, (u32) -obj->id, "objects/objprint.c", 489);
+    diRcpTrace(*gdl, (u32) -obj->id, "objects/objprint.c", 489);
     update_pi_manager_array(2, -1);
 }
 
-RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** tris, f32 yPrescale) {
+RECOMP_PATCH void objprintDrawModel(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** tris, f32 yPrescale) {
     s32 opacity;
     ModelInstance* modelInst;
     Model* model;
@@ -151,7 +150,7 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
         blendB = blendG = blendR = 0xFF;
     }
     if (obj->def->numAnimatedFrames > 0) {
-        func_80036890(obj, 2);
+        objprint_func_80036890(obj, 2);
     }
     if (BYTE_80091754 != 0) {
         var_v0 = (blendR * SHORT_800b2e14) >> 8;
@@ -181,7 +180,7 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
     }
     parentObj = obj->parent;
     if (parentObj != NULL) {
-        setup_rsp_matrices_for_object(&tempGdl, &tempMtxs, parentObj);
+        camSetupRSPMatricesForObject(&tempGdl, &tempMtxs, parentObj);
         spC4 = obj->srt.transl.f[0];
         spC0 = obj->srt.transl.f[1];
         spBC = obj->srt.transl.f[2];
@@ -213,10 +212,10 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
             gEXMatrixGroupSimpleNormal(tempGdl++, objMtxGroup + OBJ_SHADOW_MTX_GROUP_ID_START, 
                 G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
         }
-        camera_setup_object_srt_matrix(&tempGdl, &tempMtxs, &spDC, 1.0f, 0.0f, NULL);
+        camSetupObjectSRTMatrix(&tempGdl, &tempMtxs, &spDC, 1.0f, 0.0f, NULL);
         gSPDisplayList(tempGdl++, OS_PHYSICAL_TO_K0(obj->shadow->gdl));
-        dl_set_all_dirty();
-        tex_render_reset();
+        dlSetAllDirty();
+        texRenderReset();
         // @recomp: Pop shadow tag
         gEXPopMatrixGroup(tempGdl++, G_MTX_MODELVIEW);
     }
@@ -224,10 +223,10 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
         if (!(modelInst->unk34 & 8)) {
             if ((model->animCount != 0) && !(model->unk71 & 2)) {
                 if (PTR_DAT_800b2e1c == 0) {
-                    func_8001943C(obj, &sp78, yPrescale, 0.0f);
-                    func_80019730(modelInst, model, obj, &sp78);
+                    mod_func_8001943C(obj, &sp78, yPrescale, 0.0f);
+                    mod_func_80019730(modelInst, model, obj, &sp78);
                 } else {
-                    func_80019730(modelInst, model, obj, PTR_DAT_800b2e1c);
+                    mod_func_80019730(modelInst, model, obj, PTR_DAT_800b2e1c);
                 }
                 // @recomp: Factor parent matrix into joint model matrices
                 if (recomp_objParentMtx != NULL) {
@@ -239,11 +238,11 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
                 modelInst->unk34 ^= 1;
                 sp70 = modelInst->matrices[modelInst->unk34 & 1];
                 if (PTR_DAT_800b2e1c == 0) {
-                    func_8001943C(obj, sp70, yPrescale, 0.0f);
+                    mod_func_8001943C(obj, sp70, yPrescale, 0.0f);
                 } else {
                     bcopy((void* ) PTR_DAT_800b2e1c, sp70, 0x40);
                 }
-                add_matrix_to_pool(sp70, 1);
+                camAddMatrixToPool(sp70, 1);
                 // @recomp: Factor parent matrix into joint model matrices
                 if (recomp_objParentMtx != NULL) {
                     sp70 = recomp_model_instance_setup_absolute_matrices(modelInst, 1);
@@ -252,7 +251,7 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
             modelInst->unk34 ^= 2;
             if ((obj->def->flags & OBJDEF_FLAG10) || (model->blendshapes != NULL)) {
                 if (model->blendshapes != NULL) {
-                    func_8001B100(modelInst);
+                    mod_func_8001B100(modelInst);
                 }
                 if (obj->def->flags & OBJDEF_FLAG10) {
                     func_8001DF60(obj, modelInst);
@@ -265,10 +264,10 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
                 func_8001F094(modelInst);
             }
             if (obj->unk74 != NULL) {
-                func_80036438(obj);
+                objprintUpdateLockIconCoords(obj);
             }
             if (model->hitSphereCount != 0) {
-                func_8001A8EC(modelInst, model, obj, 0, obj);
+                mod_func_8001A8EC(modelInst, model, obj, 0, obj);
             } else if ((obj->objhitInfo != NULL) && (obj->objhitInfo->unk5A & 0x20)) {
                 if (obj->objhitInfo->unk9F != 0) {
                     obj->objhitInfo->unk9F--;
@@ -285,9 +284,9 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
             }
         }
         if (model->unk71 & 4) {
-            dl_set_env_color(&tempGdl, blendR, blendG, blendB, BYTE_800b2e23);
+            dlSetEnvColor(&tempGdl, blendR, blendG, blendB, BYTE_800b2e23);
         }
-        dl_set_prim_color(&tempGdl, blendR, blendG, blendB, opacity);
+        dlSetPrimColor(&tempGdl, blendR, blendG, blendB, opacity);
         if (!(obj->srt.flags & OBJFLAG_SKIP_MODEL_DL)) {
             // @recomp: Tag model draw
             recomp_push_obj_model_matrix_group(model, &tempGdl,
@@ -298,29 +297,29 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
             gSPSegment(tempGdl++, SEGMENT_5, modelInst->vertices[((s32) modelInst->unk34 >> 1) & 1]);
             if (opacity == 0xFF) {
                 if (modelInst->unk34 & 0x10) {
-                    load_model_display_list(model, modelInst);
+                    modLoadModelDisplayList(model, modelInst);
                     modelInst->unk34 ^= 0x10;
                 }
             } else {
                 if (!(modelInst->unk34 & 0x10)) {
-                    load_model_display_list2(model, modelInst);
+                    modLoadModelDisplayList2(model, modelInst);
                     modelInst->unk34 ^= 0x10;
                 }
             }
             gSPDisplayList(tempGdl++, OS_PHYSICAL_TO_K0(modelInst->displayList));
-            dl_set_all_dirty();
-            tex_render_reset();
+            dlSetAllDirty();
+            texRenderReset();
             // @recomp: Pop model tag
             gEXPopMatrixGroup(tempGdl++, G_MTX_MODELVIEW);
         }
         if (obj->linkedObject != NULL) {
             // Draw linked object
-            func_80035AF4(&tempGdl, &tempMtxs, &tempVtxs, &tempTris, obj, modelInst, &sp78, 0, 
+            objprintDrawChildModel(&tempGdl, &tempMtxs, &tempVtxs, &tempTris, obj, modelInst, &sp78, 0, 
                 obj->linkedObject, obj->stateFlags & OBJSTATE_UNK_ATTACH_INDEX_MASK, (u8)opacity);
         }
     }
     if ((obj->objhitInfo != NULL) && (obj->objhitInfo->unk5A & 0x20) && (modelInst->unk14 != NULL)) {
-        func_800357B4(obj, modelInst, modelInst->model);
+        objprint_func_800357B4(obj, modelInst, modelInst->model);
     }
     modelInst->unk34 |= 8;
     if (parentObj != NULL) {
@@ -328,7 +327,7 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
         obj->srt.transl.f[1] = spC0;
         obj->srt.transl.f[2] = spBC;
         obj->srt.yaw = spBA;
-        camera_load_parent_projection(&tempGdl);
+        camLoadParentProjection(&tempGdl);
     }
     *gdl = tempGdl;
     *mtxs = tempMtxs;
@@ -336,7 +335,7 @@ RECOMP_PATCH void draw_object(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs,
     *tris = tempTris;
 }
 
-RECOMP_PATCH ModelInstance *func_80035AF4(Gfx** arg0, Mtx** arg1, Vertex** arg2, Triangle** arg3, Object* arg4, ModelInstance* arg5, MtxF* arg6, MtxF* arg7, Object* arg8, s32 arg9, s32 arg10) {
+RECOMP_PATCH ModelInstance *objprintDrawChildModel(Gfx** arg0, Mtx** arg1, Vertex** arg2, Triangle** arg3, Object* arg4, ModelInstance* arg5, MtxF* arg6, MtxF* arg7, Object* arg8, s32 arg9, s32 arg10) {
     MtxF* sp74;
     s32 sp70;
     ModelInstance* modelInst;
@@ -353,7 +352,7 @@ RECOMP_PATCH ModelInstance *func_80035AF4(Gfx** arg0, Mtx** arg1, Vertex** arg2,
     D_800B2E10 = 0;
 
     if (arg8->def->numAnimatedFrames > 0) {
-        func_80036890(arg8, 2);
+        objprint_func_80036890(arg8, 2);
     }
     modelInst = arg8->modelInsts[arg8->modelInstIdx];
     if (modelInst != NULL && !(arg5->unk34 & 8)) {
@@ -367,16 +366,16 @@ RECOMP_PATCH ModelInstance *func_80035AF4(Gfx** arg0, Mtx** arg1, Vertex** arg2,
             sp4C.yaw = arg4->def->pAttachPoints[arg9].rot.s[0];
             sp4C.pitch = arg4->def->pAttachPoints[arg9].rot.s[1];
             sp4C.roll = arg4->def->pAttachPoints[arg9].rot.s[2];
-            matrix_from_srt(arg6, &sp4C);
-            matrix_concat_4x3(arg6, (MtxF*)&((f32*)arg5->matrices[arg5->unk34 & 1])[sp70 << 4], arg6);
+            mathYprXyzMtx(arg6, &sp4C);
+            mathMtxCat4x3F(arg6, (MtxF*)&((f32*)arg5->matrices[arg5->unk34 & 1])[sp70 << 4], arg6);
         } else {
             // required to match
         }
         if (sp64->animCount != 0) {
             D_800B2E10 = arg6;
-            func_80019730(modelInst, sp64, arg8, arg6);
+            mod_func_80019730(modelInst, sp64, arg8, arg6);
             sp74 = modelInst->matrices[modelInst->unk34 & 1];
-            func_80036058(arg8, arg4, modelInst, arg0, arg1, arg2);
+            objprint_func_80036058(arg8, arg4, modelInst, arg0, arg1, arg2);
             // @recomp: Factor parent matrix into joint model matrices
             if (recomp_objParentMtx != NULL) {
                 sp74 = recomp_model_instance_setup_absolute_matrices(modelInst, sp64->jointCount);
@@ -387,8 +386,8 @@ RECOMP_PATCH ModelInstance *func_80035AF4(Gfx** arg0, Mtx** arg1, Vertex** arg2,
             for (i = 0; i < 16; i++) {
                 ((f32*)arg7->m)[i] = ((f32*)arg6->m)[i];
             }
-            func_80036058(arg8, arg4, modelInst, arg0, arg1, arg2);
-            add_matrix_to_pool(arg7, 1);
+            objprint_func_80036058(arg8, arg4, modelInst, arg0, arg1, arg2);
+            camAddMatrixToPool(arg7, 1);
             D_800B2E10 = sp74 = arg7;
             // @recomp: Factor parent matrix into joint model matrices
             if (recomp_objParentMtx != NULL) {
@@ -398,7 +397,7 @@ RECOMP_PATCH ModelInstance *func_80035AF4(Gfx** arg0, Mtx** arg1, Vertex** arg2,
         modelInst->unk34 ^= 2;
         if ((arg8->def->flags & OBJDEF_FLAG10) || (sp64->blendshapes != NULL)) {
             if (sp64->blendshapes != NULL) {
-                func_8001B100(modelInst);
+                mod_func_8001B100(modelInst);
             }
             func_8001DF60(arg8, modelInst);
         }
@@ -406,7 +405,7 @@ RECOMP_PATCH ModelInstance *func_80035AF4(Gfx** arg0, Mtx** arg1, Vertex** arg2,
             func_8001F094(modelInst);
         }
         if (sp64->hitSphereCount != 0) {
-            func_8001A8EC(modelInst, sp64, arg8, arg7, arg4);
+            mod_func_8001A8EC(modelInst, sp64, arg8, arg7, arg4);
         }
         if (!(arg4->srt.flags & OBJFLAG_SKIP_MODEL_DL)) {
             // @recomp: Tag linked object model draw
@@ -417,16 +416,16 @@ RECOMP_PATCH ModelInstance *func_80035AF4(Gfx** arg0, Mtx** arg1, Vertex** arg2,
             gSPSegment((*arg0)++, SEGMENT_5, modelInst->vertices[(modelInst->unk34 >> 1) & 1]);
             if ((u8) arg10 == 0xFF) {
                 if (modelInst->unk34 & 0x10) {
-                    load_model_display_list(sp64, modelInst);
+                    modLoadModelDisplayList(sp64, modelInst);
                     modelInst->unk34 ^= 0x10;
                 }
             } else if (!(modelInst->unk34 & 0x10)) {
-                load_model_display_list2(sp64, modelInst);
+                modLoadModelDisplayList2(sp64, modelInst);
                 modelInst->unk34 ^= 0x10;
             }
             gSPDisplayList((*arg0)++, OS_PHYSICAL_TO_K0(modelInst->displayList));
-            dl_set_all_dirty();
-            tex_render_reset();
+            dlSetAllDirty();
+            texRenderReset();
             // @fake
             //if (D_800B2E10) {}
             // @recomp: Pop model tag
@@ -436,7 +435,7 @@ RECOMP_PATCH ModelInstance *func_80035AF4(Gfx** arg0, Mtx** arg1, Vertex** arg2,
         arg8->srt.transl.f[1] = D_800B2E10->m[3][1];
         arg8->srt.transl.f[2] = D_800B2E10->m[3][2];
         if (arg8->parent != NULL) {
-            transform_point_by_object(arg8->srt.transl.f[0], arg8->srt.transl.f[1], arg8->srt.transl.f[2], arg8->globalPosition.f, &arg8->globalPosition.f[1], &arg8->globalPosition.f[2], arg8->parent);
+            camTransformPointByObject(arg8->srt.transl.f[0], arg8->srt.transl.f[1], arg8->srt.transl.f[2], arg8->globalPosition.f, &arg8->globalPosition.f[1], &arg8->globalPosition.f[2], arg8->parent);
         } else {
             arg8->srt.transl.f[0] += gWorldX;
             arg8->srt.transl.f[2] += gWorldZ;
@@ -446,11 +445,11 @@ RECOMP_PATCH ModelInstance *func_80035AF4(Gfx** arg0, Mtx** arg1, Vertex** arg2,
         }
         if (arg8->def->numAttachPoints >= 2 && arg8->controlNo == OBJCONTROL_Weapon) {
             if (arg8->parent != NULL) {
-                camera_load_parent_projection(arg0);
+                camLoadParentProjection(arg0);
             }
             ((DLL_IGROUP_48 *)arg8->dll)->vtbl->func10(arg8, arg0, arg1, arg2, arg3);
             if (arg8->parent != NULL) {
-                setup_rsp_matrices_for_object(arg0, arg1, arg8->parent);
+                camSetupRSPMatricesForObject(arg0, arg1, arg8->parent);
             }
         }
     }
@@ -458,8 +457,7 @@ RECOMP_PATCH ModelInstance *func_80035AF4(Gfx** arg0, Mtx** arg1, Vertex** arg2,
     return modelInst;
 }
 
-RECOMP_PATCH void func_800359D0(Object *obj, Gfx **gdl, Mtx **rspMtxs, Vertex **vtxs, Triangle **pols, u32 param_6)
-{
+RECOMP_PATCH void objprintDrawShadowModel(Object *obj, Gfx **gdl, Mtx **rspMtxs, Vertex **vtxs, Triangle **pols, u32 param_6) {
     Gfx *mygdl;
     Mtx *outRspMtxs;
     void *d;
@@ -493,8 +491,8 @@ RECOMP_PATCH void func_800359D0(Object *obj, Gfx **gdl, Mtx **rspMtxs, Vertex **
     gSPSegment(mygdl++, SEGMENT_5, modelInst2->vertices[(modelInst2->unk34 >> 1) & 0x1]);
     gSPDisplayList(mygdl++, OS_K0_TO_PHYSICAL(modelInst2->displayList));
 
-    dl_set_all_dirty();
-    tex_render_reset();
+    dlSetAllDirty();
+    texRenderReset();
 
     // @recomp: Pop tag
     gEXPopMatrixGroup(mygdl++, G_MTX_MODELVIEW);

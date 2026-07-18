@@ -149,13 +149,13 @@ RECOMP_PATCH s32 dll_13_func_1080(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** v
     }
 
     for (i = 0; i < 30; i++) {
-        camera = get_camera();
-        dl_clear_geometry_mode(gdl, G_CULL_BACK);
+        camera = camGet();
+        dlClearGeometryMode(gdl, G_CULL_BACK);
         if ((_data_64 != 1 || i != 29) && (_bss_F0[i] == 0 || _data_3C[i] == 0)) {
             continue;
         }
 
-        dl_set_env_color(gdl, 0xFF, 0xFF, 0xFF, 0xFF);
+        dlSetEnvColor(gdl, 0xFF, 0xFF, 0xFF, 0xFF);
         var_s0 = _bss_0[i] - 1;
         for (j = 0; j < 30; j++) {
             var_s0 += 1;
@@ -221,7 +221,7 @@ RECOMP_PATCH s32 dll_13_func_1080(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** v
                         sp110.roll = var_s0->unk40.roll * gUpdateRateF;
                         sp110.pitch = var_s0->unk40.pitch * gUpdateRateF;
                         sp110.yaw = var_s0->unk40.yaw * gUpdateRateF;
-                        rotate_vec3(&sp110, var_s0->unk58.f);
+                        mathRotateRPY(&sp110, var_s0->unk58.f);
                     }
                     sp110.roll = 0;
                     sp110.pitch = 0;
@@ -247,7 +247,7 @@ RECOMP_PATCH s32 dll_13_func_1080(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** v
                     spFC.f[0] = var_s0->unk58.f[0];
                     spFC.f[1] = var_s0->unk58.f[1];
                     spFC.f[2] = var_s0->unk58.f[2];
-                    rotate_vec3(&sp110, spFC.f);
+                    mathRotateRPY(&sp110, spFC.f);
                     spEC.f[0] = 0.0f;
                     spEC.f[1] = 0.0f;
                     spEC.f[2] = 0.0f;
@@ -261,7 +261,7 @@ RECOMP_PATCH s32 dll_13_func_1080(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** v
                             spEC.f[1] = var_s0->unk40.transl.f[1];
                             spEC.f[2] = var_s0->unk40.transl.f[2];
                             if (temp_s4 != NULL) {
-                                transform_point_by_object_matrix(&var_s0->unk40.transl, &spEC, temp_s4->matrixIdx);
+                                camTransformPointByObjectMatrix(&var_s0->unk40.transl, &spEC, temp_s4->matrixIdx);
                             }
                         }
                     }
@@ -282,7 +282,7 @@ RECOMP_PATCH s32 dll_13_func_1080(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** v
                         // FAKE
                         //if (i){}
                         var_fv0 = temp_fs0 * 0.5f;
-                        sp110.scale = (var_fv0 / rand_next(1, 10)) + var_fv0;
+                        sp110.scale = (var_fv0 / mathRnd(1, 10)) + var_fv0;
                     } else {
                         sp110.scale = temp_fs0;
                     }
@@ -312,27 +312,27 @@ RECOMP_PATCH s32 dll_13_func_1080(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** v
                     //          We could also scope by object to really make sure it's unique but so far this seems fine.
                     gEXMatrixGroupDecomposedNormal((*gdl)++, var_s0->unk0[2].unk6 + EXPGFX_MTX_GROUP_ID_START, 
                         G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-                    camera_setup_object_srt_matrix(gdl, mtxs, &sp110, 1.0f, 0/*.0f*/, NULL);
+                    camSetupObjectSRTMatrix(gdl, mtxs, &sp110, 1.0f, 0/*.0f*/, NULL);
                     if ((temp_s3 != NULL) && (var_s0->unk80 & 0x80)) {
                         var_s2 = (temp_s3->opacity * var_s2) >> 8;
                     }
                     if (var_s0->unk80 & 0x01000000) {
-                        dl_set_prim_color(gdl, spCF, spCE, spCD, var_s2);
+                        dlSetPrimColor(gdl, spCF, spCE, spCD, var_s2);
                     } else if (var_s0->unk80 & 0x01000000) {
-                        dl_set_prim_color(gdl, spCA, spC8, spC6, var_s2);
+                        dlSetPrimColor(gdl, spCA, spC8, spC6, var_s2);
                     } else {
-                        dl_set_prim_color(gdl, 0xFF, 0xFF, 0xFF, var_s2);
+                        dlSetPrimColor(gdl, 0xFF, 0xFF, 0xFF, var_s2);
                     }
                     gSPGeometryMode(*gdl, 0xFFFFFF, G_SHADING_SMOOTH | G_SHADE | G_ZBUFFER);
-                    dl_apply_geometry_mode(gdl);
-                    tex_gdl_set_textures(gdl, spD4, NULL, 0, 0, 0, 0);
+                    dlApplyGeometryMode(gdl);
+                    texDPTextures(gdl, spD4, NULL, 0, 0, 0, 0);
                     if (var_s0->unk80 & 0x40) {
                         if (var_s0->unk80 & 0x20) {
                             gDPSetCombineLERP(*gdl, 1, 0, SHADE, 0, 0, 0, 0, 1, COMBINED, 0, PRIMITIVE, 0, COMBINED, 0, PRIMITIVE, 0);
-                            dl_apply_combine(gdl);
+                            dlApplyCombine(gdl);
                         } else {
                             gDPSetCombineLERP(*gdl, 1, 0, ENVIRONMENT, 0, 1, 0, ENVIRONMENT, 0, COMBINED, 0, PRIMITIVE, 0, COMBINED, 0, PRIMITIVE, 0);
-                            dl_apply_combine(gdl);
+                            dlApplyCombine(gdl);
                         }
                         if (var_s0->unk7C & 0x10) {
                             gDPSetOtherMode(
@@ -340,29 +340,29 @@ RECOMP_PATCH s32 dll_13_func_1080(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** v
                                 G_AD_PATTERN | G_CD_NOISE | G_CK_NONE | G_TC_FILT | G_TF_POINT | G_TT_NONE | G_TL_TILE | G_TD_CLAMP | G_TP_NONE | G_CYC_2CYCLE | G_PM_NPRIMITIVE,
                                 G_AC_NONE | G_ZS_PIXEL | G_RM_NOOP | G_RM_CLD_SURF2
                             );
-                            dl_apply_other_mode(gdl);
+                            dlApplyOtherMode(gdl);
                         } else if (var_s0->unk80 & 0x800000) {
                             gDPSetOtherMode(
                                 *gdl,
                                 G_AD_PATTERN | G_CD_NOISE | G_CK_NONE | G_TC_FILT | G_TF_POINT | G_TT_NONE | G_TL_TILE | G_TD_CLAMP | G_TP_NONE | G_CYC_2CYCLE | G_PM_NPRIMITIVE,
                                 G_AC_NONE | G_ZS_PRIM | G_RM_NOOP | G_RM_ZB_CLD_SURF2
                             );
-                            dl_apply_other_mode(gdl);
+                            dlApplyOtherMode(gdl);
                         } else {
                             gDPSetOtherMode(
                                 *gdl,
                                 G_AD_PATTERN | G_CD_NOISE | G_CK_NONE | G_TC_FILT | G_TF_POINT | G_TT_NONE | G_TL_TILE | G_TD_CLAMP | G_TP_NONE | G_CYC_2CYCLE | G_PM_NPRIMITIVE,
                                 G_AC_NONE | G_ZS_PIXEL | G_RM_NOOP | G_RM_ZB_CLD_SURF2
                             );
-                            dl_apply_other_mode(gdl);
+                            dlApplyOtherMode(gdl);
                         }
                     } else {
                         if (var_s0->unk80 & 0x20) {
                             gDPSetCombineMode(*gdl, G_CC_MODULATEIDECALA, G_CC_MODULATEIA_PRIM2);
-                            dl_apply_combine(gdl);
+                            dlApplyCombine(gdl);
                         } else {
                             gDPSetCombineLERP(*gdl, TEXEL0, 0, ENVIRONMENT, 0, 0, 0, 0, TEXEL0, COMBINED, 0, PRIMITIVE, 0, COMBINED, 0, PRIMITIVE, 0);
-                            dl_apply_combine(gdl);
+                            dlApplyCombine(gdl);
                         }
                         if (var_s0->unk7C & 0x10) {
                             gDPSetOtherMode(
@@ -370,25 +370,25 @@ RECOMP_PATCH s32 dll_13_func_1080(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** v
                                 G_AD_PATTERN | G_CD_NOISE | G_CK_NONE | G_TC_FILT | G_TF_BILERP | G_TT_NONE | G_TL_TILE | G_TD_CLAMP | G_TP_PERSP | G_CYC_2CYCLE | G_PM_NPRIMITIVE,
                                 G_AC_NONE | G_ZS_PIXEL | G_RM_NOOP | G_RM_CLD_SURF2
                             );
-                            dl_apply_other_mode(gdl);
+                            dlApplyOtherMode(gdl);
                         } else if (var_s0->unk80 & 0x800000) {
                             gDPSetOtherMode(
                                 *gdl,
                                 G_AD_PATTERN | G_CD_NOISE | G_CK_NONE | G_TC_FILT | G_TF_BILERP | G_TT_NONE | G_TL_TILE | G_TD_CLAMP | G_TP_PERSP | G_CYC_2CYCLE | G_PM_NPRIMITIVE,
                                 G_AC_NONE | G_ZS_PRIM | G_RM_NOOP | G_RM_ZB_CLD_SURF2
                             );
-                            dl_apply_other_mode(gdl);
+                            dlApplyOtherMode(gdl);
                         } else {
                             gDPSetOtherMode(
                                 *gdl,
                                 G_AD_PATTERN | G_CD_NOISE | G_CK_NONE | G_TC_FILT | G_TF_BILERP | G_TT_NONE | G_TL_TILE | G_TD_CLAMP | G_TP_PERSP | G_CYC_2CYCLE | G_PM_NPRIMITIVE,
                                 G_AC_NONE | G_ZS_PIXEL | G_RM_NOOP | G_RM_ZB_CLD_SURF2
                             );
-                            dl_apply_other_mode(gdl);
+                            dlApplyOtherMode(gdl);
                         }
                     }
                     gSPVertex((*gdl)++, OS_PHYSICAL_TO_K0(var_s0), 4, 0);
-                    dl_triangles(gdl, _data_70, 2);
+                    dlTriangles(gdl, _data_70, 2);
                     // @recomp: Pop matrix tag
                     gEXPopMatrixGroup((*gdl)++, G_MTX_MODELVIEW);
                 }

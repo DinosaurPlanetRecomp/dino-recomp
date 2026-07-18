@@ -6,15 +6,15 @@
 #include "PR/ultratypes.h"
 #include "PR/gbi.h"
 #include "sys/map.h"
-#include "sys/fs.h"
+#include "sys/pi.h"
 #include "sys/memory.h"
 #include "sys/rarezip.h"
-#include "sys/asset_thread.h"
+#include "sys/asset.h"
 #include "sys/objects.h"
 #include "sys/vi.h"
 #include "sys/menu.h"
 #include "sys/segment_1D900.h"
-#include "sys/dl_debug.h"
+#include "sys/di_rcp.h"
 #include "sys/newshadows.h"
 #include "sys/bitstream.h"
 #include "sys/main.h"
@@ -75,28 +75,28 @@ extern DLBuilder *gDLBuilder;
 extern u32 gTrackFlags;
 extern s8 D_80092B0C[16];
 
-extern HitsLine* block_load_hits(Block *block, s32 blockID, u8 unused, HitsLine* hits_ptr);
-extern void track_sort_render_list(u32* arg0, s32 arg1);
-extern void block_color_table_add_block(Block *block);
-extern u32 hits_get_size(s32 id);
-extern void block_setup_vertices(Block *block);
-extern void block_setup_gdl_groups(Block *block);
-extern s32 block_setup_texture_anims(Block *block);
-extern void block_setup_xz_bitmap(Block *block);
-extern void block_compute_vertex_colors(Block*,s32,s32,s32);
-extern void track_update_frustum(void);
-extern void block_color_table_tick(void);
-extern void track_draw_main(void);
-extern void map_check_block_grid(s32 gridX, s32 gridZ, s32* arg2, s32* arg3, s32* arg4, s32* arg5, s32 layer, s32 checkVis, s32 streamMapIdx);
-extern void block_add_to_render_list(Block *block, f32 x, f32 z);
-extern void track_draw_object(Object* obj, s32 visibility);
-extern void draw_render_list(Mtx *rspMtxs, s8 *visibilities);
-extern void block_calc_shape_visibility(Block*, s16, s16, s16);
-extern void track_add_visible_objects(s8* objVisibilities);
-extern s32 block_frustum_check(s32 xPos, s32 zPos, Block* block);
-extern void some_cell_func(BitStream* stream);
-extern BlockTextureScroller* block_texscroll_get(s32 id);
-extern s32 func_80045600(s32 arg0, BitStream *stream, s16 arg2, s16 arg3, s16 arg4);
+extern HitsLine* blockLoadHits(Block *block, s32 blockID, u8 fromAssetThread, HitsLine* hits_ptr);
+extern void trackSortRenderList(u32* arg0, s32 arg1);
+extern void blockColorTableAddBlock(Block *block);
+extern u32 blockHitsGetSize(s32 id);
+extern void blockSetupVertices(Block *block);
+extern void blockSetupDLGroups(Block *block);
+extern s32 blockSetupTextureAnims(Block *block);
+extern void blockSetupXZBitmap(Block* block);
+extern void blockComputeVertexColors(Block*,s32,s32,s32);
+extern void trackUpdateFrustum(void);
+extern void blockColorTableTick(void);
+extern void trackDrawMain(void);
+extern void mapCheckBlockGrid(s32 gridX, s32 gridZ, s32* arg2, s32* arg3, s32* arg4, s32* arg5, s32 layer, s32 checkVis, s32 streamMapIdx);
+extern void blockAddToRenderList(Block *block, f32 x, f32 z);
+extern void trackDrawObject(Object* obj, s32 visibility);
+extern void trackDrawRenderList(Mtx *rspMtxs, s8 *visibilities);
+extern void blockCalcShapeVisibility(Block*, s16, s16, s16);
+extern void trackAddVisibleObjects(s8* objVisibilities);
+extern s32 blockFrustumCheck(s32 xPos, s32 zPos, Block* block);
+extern void trackSomeCellFunc(BitStream* stream);
+extern BlockTextureScroller* blockTexscrollGet(s32 id);
+extern s32 map_func_80045600(s32 arg0, BitStream *stream, s16 arg2, s16 arg3, s16 arg4);
 
 typedef struct {
     s32 x;
@@ -137,7 +137,7 @@ static RecompBlockInterpState recomp_blockInterpStates[MAX_BLOCKS];
 
 s32 recomp_cpuBlockShapeCulling;
 
-RECOMP_PATCH void init_maps(void) {
+RECOMP_PATCH void trackInit(void) {
     s32 i;
 
     gTrackFlags = 0;
@@ -154,16 +154,16 @@ RECOMP_PATCH void init_maps(void) {
         gDecodedGlobalMap[i] = gDecodedGlobalMap[i - 1] + BLOCKS_GRID_TOTAL_CELLS;
         D_800B9700[i] = D_800B9700[i - 1] + BLOCKS_GRID_TOTAL_CELLS;
     }
-    queue_alloc_load_file((void **) &gFile_MAPS_TAB, MAPS_TAB);
-    queue_alloc_load_file((void** ) &gFile_HITS_TAB, HITS_TAB);
+    assetRomLoad((void **) &gFile_MAPS_TAB, MAPS_TAB);
+    assetRomLoad((void** ) &gFile_HITS_TAB, HITS_TAB);
     for (i = 0; i < 120; i++) { gLoadedMapsDataTable[i] = NULL; }
-    queue_alloc_load_file((void** ) &gFile_TRKBLK, TRKBLK_BIN);
+    assetRomLoad((void** ) &gFile_TRKBLK, TRKBLK_BIN);
     gNumTRKBLKEntries = 0;
     while (gFile_TRKBLK[gNumTRKBLKEntries] != 0xFFFF) {
         gNumTRKBLKEntries++;
     }
     gNumTRKBLKEntries--;
-    queue_alloc_load_file((void **) &gFile_BLOCKS_TAB, BLOCKS_TAB);
+    assetRomLoad((void **) &gFile_BLOCKS_TAB, BLOCKS_TAB);
     gNumTotalBlocks = 0;
     while (gFile_BLOCKS_TAB[gNumTotalBlocks] != -1) {
         gNumTotalBlocks++;
@@ -183,7 +183,7 @@ RECOMP_PATCH void init_maps(void) {
     //gRenderList[0] = -0x4000;
 }
 
-RECOMP_PATCH void block_load(s32 id, s32 param_2, s32 globalMapIdx, u8 queue) {
+RECOMP_PATCH void blockLoad(s32 id, s32 param_2, s32 globalMapIdx, u8 fromAssetThread) {
     s32 texIdx;
     s32 binOffset;
     s32 binSize;
@@ -200,9 +200,9 @@ RECOMP_PATCH void block_load(s32 id, s32 param_2, s32 globalMapIdx, u8 queue) {
 
     binOffset = gFile_BLOCKS_TAB[id];
     binSize = gFile_BLOCKS_TAB[id + 1] - binOffset;
-    read_file_region(BLOCKS_BIN, gMapReadBuffer, binOffset, 0x10);
+    piRomLoadSection(BLOCKS_BIN, gMapReadBuffer, binOffset, 0x10);
     size = ((s32*)gMapReadBuffer)[0];
-    size += hits_get_size(id) + 8;
+    size += blockHitsGetSize(id) + 8;
     block = mmAlloc(size, ALLOC_TAG_TRACK_COL, NULL);
     if (block == NULL) {
         return;
@@ -211,15 +211,15 @@ RECOMP_PATCH void block_load(s32 id, s32 param_2, s32 globalMapIdx, u8 queue) {
     //if (0) { if ((s32)&size) {} } // @fake
 
     // @recomp: Support uncompressed blocks
-    _Bool isUncompressed = rarezip_uncompress_size((u8*)gMapReadBuffer + 4) == -1;
+    _Bool isUncompressed = rarezipUncompressSize((u8*)gMapReadBuffer + 4) == -1;
     if (isUncompressed) {
         // Note: Uncompressed data starts at +0x8 instead of +0x9
-        read_file_region(BLOCKS_BIN, block, binOffset + 8, binSize - 8);
+        piRomLoadSection(BLOCKS_BIN, block, binOffset + 8, binSize - 8);
     } else {
         tempLoadAddr = (((u32)block + size) - binSize) - 0x10;
         tempLoadAddr -= tempLoadAddr % 16;
-        read_file_region(BLOCKS_BIN, (void*)tempLoadAddr, binOffset, binSize);
-        rarezip_uncompress(((u8*)tempLoadAddr) + 4, (u8*)block, size);
+        piRomLoadSection(BLOCKS_BIN, (void*)tempLoadAddr, binOffset, binSize);
+        rarezipUncompress(((u8*)tempLoadAddr) + 4, (u8*)block, size);
     }
     // @recomp: Invoke event
     recomp_on_block_loaded_rom(id, block);
@@ -228,18 +228,18 @@ RECOMP_PATCH void block_load(s32 id, s32 param_2, s32 globalMapIdx, u8 queue) {
     block->shapes = (BlockShape*)((u32)block->shapes + (u32)block);
     block->ptr_faceEdgeVectors = (s16*)((u32)block->ptr_faceEdgeVectors + (u32)block);
     block->materials = (BlocksMaterial*)((u32)block->materials + (u32)block);
-    tex_set_alloc_tag(ALLOC_TAG_TRACKTEX_COL);
+    texSetMemColour(ALLOC_TAG_TRACKTEX_COL);
     for (texIdx = 0; texIdx < block->materialCount; texIdx++) {
-        block->materials[texIdx].texture = tex_load(-((u32)block->materials[texIdx].texture | 0x8000), queue);
+        block->materials[texIdx].texture = texLoadTextureActual(-((u32)block->materials[texIdx].texture | 0x8000), fromAssetThread);
     }
-    tex_set_alloc_tag(ALLOC_TAG_TEX_COL);
-    block_setup_vertices(block);
+    texSetMemColour(ALLOC_TAG_TEX_COL);
+    blockSetupVertices(block);
     addr = (u32)block;
     addr += block->modelSize;
     block->gdlGroups = (Gfx*)addr;
-    block_setup_gdl_groups(block);
+    blockSetupDLGroups(block);
     addr += (3 * block->shapeCount * sizeof(Gfx));
-    block_color_table_add_block(block);
+    blockColorTableAddBlock(block);
     if (block->vtxFlags & 8) {
         addr = mmAlign8(addr);
         fileVerts = block->vertices;
@@ -286,12 +286,13 @@ RECOMP_PATCH void block_load(s32 id, s32 param_2, s32 globalMapIdx, u8 queue) {
     }
     addr = mmAlign4(addr);
     block->texAnims = (BlockTextureAnimInstance*)addr;
-    addr += block_setup_texture_anims(block);
+    addr += blockSetupTextureAnims(block);
     addr = mmAlign2(addr);
     block->xzBitmap = (s16*)addr;
     addr += block->unk34 * 2;
-    block_setup_xz_bitmap(block);
-    block_load_hits(block, id, queue, (HitsLine*)mmAlign8(addr));
+    blockSetupXZBitmap(block);
+    addr = mmAlign8(addr);
+    addr = (u32)blockLoadHits(block, id, fromAssetThread, (HitsLine*)addr);
 
     // @recomp: Restore printf
     // TODO: this trips for most blocks... is this calculation right?
@@ -304,14 +305,14 @@ RECOMP_PATCH void block_load(s32 id, s32 param_2, s32 globalMapIdx, u8 queue) {
     // @recomp: Invoke event
     recomp_on_block_loaded(id, block);
 
-    if (queue != 0) {
-        queue_block_emplace(1, (u32* ) block, (u8*) id, param_2, globalMapIdx);
+    if (fromAssetThread != 0) {
+        assetQueueCompletedLoad(1, (u32* ) block, (u8*) id, param_2, globalMapIdx);
     } else {
-        block_emplace(block, id, param_2, globalMapIdx);
+        blockEmplace(block, id, param_2, globalMapIdx);
     }
 }
 
-RECOMP_PATCH void block_emplace(Block *block, s32 id, s32 param_3, s32 globalMapIdx) {
+RECOMP_PATCH void blockEmplace(Block *block, s32 id, s32 param_3, s32 globalMapIdx) {
     s32 slot;
     s8 *ptr;
 
@@ -339,13 +340,13 @@ RECOMP_PATCH void block_emplace(Block *block, s32 id, s32 param_3, s32 globalMap
     recomp_blockInterpStates[slot].skipInterpolation = TRUE;
 
     if (block->unk3E != 0) {
-        block_compute_vertex_colors(block, 0, 0, 1);
+        blockComputeVertexColors(block, 0, 0, 1);
     }
 
     func_80058F3C();
 }
 
-RECOMP_PATCH void track_draw(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** pols, Vertex** vtxs2, Triangle** pols2) {
+RECOMP_PATCH void trackDraw(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** pols, Vertex** vtxs2, Triangle** pols2) {
     Mtx* mtx;
 
     gMainDL = *gdl;
@@ -357,39 +358,39 @@ RECOMP_PATCH void track_draw(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** po
         gTrackFlags &= ~TRACKFLAG_UNK1;
     }
     gSPTexture(gMainDL++, -1, -1, 3, 0, 1);
-    mtx = get_some_model_view_mtx();
+    mtx = mathIdentityMtxL();
     gSPMatrix(gMainDL++, OS_K0_TO_PHYSICAL(mtx), G_MTX_MODELVIEW | G_MTX_LOAD);
-    camera_setup_viewport_and_matrices(&gMainDL, 0);
+    camSetupViewportAndMatrices(&gMainDL, 0);
     // @recomp: Reset matrix tagging
     if (recomp_skipAllInterp) {
         gEXMatrixGroupSkipAll(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
     } else {
         gEXMatrixGroupSimpleNormalAuto(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
     }
-    track_update_frustum();
-    if (func_80010048() != 0) {
+    trackUpdateFrustum();
+    if (menu_func_80010048() != 0) {
         if (!(gTrackFlags & TRACKFLAG_UNK8)) {
             gTrackFlags |= TRACKFLAG_UNK8;
         }
-        camera_set_aspect(1.7777778f);
+        camSetAspect(1.7777778f);
     } else {
         if (gTrackFlags & TRACKFLAG_UNK8) {
             gTrackFlags &= ~TRACKFLAG_UNK8;
-            camera_set_aspect(1.3333334f);
+            camSetAspect(1.3333334f);
         }
     }
     if (gTrackFlags & TRACKFLAG_UNK10000) {
         if (gTrackFlags & TRACKFLAG_UNK8) {
-            camera_set_aspect(1.7777778f);
+            camSetAspect(1.7777778f);
         } else {
-            camera_set_aspect(1.3333334f);
+            camSetAspect(1.3333334f);
         }
-        viewport_disable(get_camera_selector(), 0U);
-        vi_some_video_setup(0);
+        camViewportDisable(camGetCameraSelector(), 0U);
+        viSomeVideoSetup(0);
         gTrackFlags &= ~TRACKFLAG_UNK10000;
     }
     if (gTrackFlags & TRACKFLAG_SKY) {
-        setup_rsp_camera_matrices(&gMainDL, &gWorldRSPMatrices);
+        camSetupRSPMatrices(&gMainDL, &gWorldRSPMatrices);
         gDLL_7_Newday->vtbl->func13(&gMainDL, &gWorldRSPMatrices);
 
         if (gTrackFlags & TRACKFLAG_SKY_OBJECTS) {
@@ -415,7 +416,7 @@ RECOMP_PATCH void track_draw(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** po
             gEXMatrixGroupSimpleNormalAuto(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
         }
     } else {
-        setup_rsp_camera_matrices(&gMainDL, &gWorldRSPMatrices);
+        camSetupRSPMatrices(&gMainDL, &gWorldRSPMatrices);
     }
     gDLL_11_Newlfx->vtbl->func2();
     gDLL_57->vtbl->func3();
@@ -427,9 +428,9 @@ RECOMP_PATCH void track_draw(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** po
     } else {
         gDLL_8->vtbl->func3(&gMainDL);
     }
-    D_800B51E4 = get_camera();
-    block_color_table_tick();
-    track_draw_main();
+    D_800B51E4 = camGet();
+    blockColorTableTick();
+    trackDrawMain();
     // @recomp: Tag newclouds matrices
     if (recomp_skipCameraInterp || recomp_skipAllInterp) {
         gEXMatrixGroupSkipAll(gMainDL++, NEWCLOUDS_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
@@ -443,7 +444,7 @@ RECOMP_PATCH void track_draw(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** po
     } else {
         gEXMatrixGroupSimpleNormalAuto(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
     }
-    camera_setup_fullscreen_viewport(&gMainDL);
+    camSetupFullscreenViewport(&gMainDL);
     *gdl = gMainDL;
     *mtxs = gWorldRSPMatrices;
     *vtxs = D_800B51D4;
@@ -454,7 +455,7 @@ RECOMP_PATCH void track_draw(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** po
     // diProfEnd("Trackdraw") (default.dol)
 }
 
-RECOMP_PATCH void track_draw_main(void) {
+RECOMP_PATCH void trackDrawMain(void) {
     s32 xIdx;
     Block* block;
     s32 gridIdx;
@@ -475,13 +476,13 @@ RECOMP_PATCH void track_draw_main(void) {
     static s8 objVisibilities[RECOMP_MAX_VISIBLE_OBJECTS];
     Mtx* rspMtxs;
 
-    dl_add_debug_info(gMainDL, 0, "track/track.c", 1323);
-    some_cell_func(&D_800B9780);
+    diRcpTrace(gMainDL, 0, "track/track.c", 1323);
+    trackSomeCellFunc(&D_800B9780);
     shadows_func_8004D9B8();
     shadows_func_8004DABC();
     gRenderListLength = 1;
     gBlocksToDrawIdx = 0;
-    dl_add_debug_info(gMainDL, 0, "track/track.c", 1341);
+    diRcpTrace(gMainDL, 0, "track/track.c", 1341);
     gDLL_9_Newclouds->vtbl->func6(&gMainDL, gUpdateRate, 0);
     // @recomp: Tag projgfx matrices
     if (recomp_skipAllInterp) {
@@ -505,7 +506,7 @@ RECOMP_PATCH void track_draw_main(void) {
     } else {
         gEXMatrixGroupSimpleNormalAuto(gMainDL++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
     }
-    dl_add_debug_info(gMainDL, 0, "track/track.c", 1349);
+    diRcpTrace(gMainDL, 0, "track/track.c", 1349);
     blockIdxMap = D_80092B0C;
     rspMtxs = gWorldRSPMatrices;
     layer = MAP_LAYER_COUNT;
@@ -513,7 +514,7 @@ RECOMP_PATCH void track_draw_main(void) {
         // Determine which blocks are visible from the current stream coords
         sp230 = gBlockIndices[layer];
         D_800B9714 = D_800B9700[layer];
-        map_check_block_grid(gMapCurrentStreamCoordsX + 7, gMapCurrentStreamCoordsZ + 7, 
+        mapCheckBlockGrid(gMapCurrentStreamCoordsX + 7, gMapCurrentStreamCoordsZ + 7, 
             sp274, sp264, sp254, sp244, layer, /*checkVis*/TRUE, D_800B4A54);
         for (gridIdx = 0; gridIdx < ARRAYCOUNT_S(blockVisibilities); gridIdx++) { blockVisibilities[gridIdx] = 0; }
         
@@ -558,17 +559,17 @@ RECOMP_PATCH void track_draw_main(void) {
                     }
                 }
                 // @recomp: Don't cull if frame interpolation is active
-                if (blockIdx < 0 || (!recomp_frameInterpActive && block_frustum_check(x, z, block) == FALSE)) {
+                if (blockIdx < 0 || (!recomp_frameInterpActive && blockFrustumCheck(x, z, block) == FALSE)) {
                     continue;
                 }
                 // Calculate visible shapes/triangles
                 D_800B97B8 = x * BLOCKS_GRID_UNIT_F;
                 D_800B97BC = z * BLOCKS_GRID_UNIT_F;
-                block_calc_shape_visibility(block, x, z, layer);
+                blockCalcShapeVisibility(block, x, z, layer);
                 // Update block lighting
                 if (gTrackFlags & TRACKFLAG_BLOCK_LIGHTING) {
                     if (block->unk3E != 0) {
-                        block_compute_vertex_colors(block, x, z, 0);
+                        blockComputeVertexColors(block, x, z, 0);
                     }
                     if ((block->numSphereMappedShapes != 0) && (gTrackFlags & TRACKFLAG_UNK100)) {
                         func_8001F4C0(block, x, z);
@@ -580,15 +581,15 @@ RECOMP_PATCH void track_draw_main(void) {
                 recomp_addBlockToRenderListGridInfo.layer = layer;
                 recomp_addBlockToRenderListGridInfo.blockIndex = blockIdx;
                 // Add to render list
-                block_add_to_render_list(block, D_800B97B8, D_800B97BC);
+                blockAddToRenderList(block, D_800B97B8, D_800B97BC);
             }
         }
     }
     // Add visible objects to render list
-    track_add_visible_objects(objVisibilities);
+    trackAddVisibleObjects(objVisibilities);
     // Draw blocks and objects
-    draw_render_list(rspMtxs, objVisibilities);
-    dl_add_debug_info(gMainDL, 0, "track/track.c", 1458);
+    trackDrawRenderList(rspMtxs, objVisibilities);
+    diRcpTrace(gMainDL, 0, "track/track.c", 1458);
     // @recomp: Tag projgfx matrices
     if (recomp_skipAllInterp) {
         gEXMatrixGroupSkipAll(gMainDL++, PROJGFX_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
@@ -617,10 +618,10 @@ RECOMP_PATCH void track_draw_main(void) {
     gDLL_59_Minimap->vtbl->func1(&gMainDL, &gWorldRSPMatrices);
     shadows_func_8004D974(0);
     D_800B1847 = 0;
-    dl_add_debug_info(gMainDL, 0, "track/track.c", 1478);
+    diRcpTrace(gMainDL, 0, "track/track.c", 1478);
 }
 
-RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
+RECOMP_PATCH void trackDrawRenderList(Mtx* rspMtxs, s8* visibilities) {
     BlockShape* shape;
     Vtx_t *tempVtx;
     s32 shapeIdx;
@@ -654,7 +655,7 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
     Object *obj;
 
     lastBlockIdx = -1;
-    objList = get_world_objects(NULL, NULL);
+    objList = objGetObjects(NULL, NULL);
     gDLL_57->vtbl->func2(&spE0, &spDC, &spD8, &spD4, &spD0, &spCC);
     for (i = 1; i < gRenderListLength; i++) {
         // @recomp: Use custom render list
@@ -662,7 +663,7 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
         idx = shapeIdx = (recomp_RenderList[i] & 0xFF80) >> 7;
         if (recomp_RenderList[i] & 0x40) {
             obj = objList[idx];
-            track_draw_object(obj, visibilities[idx]);
+            trackDrawObject(obj, visibilities[idx]);
             lastBlockMtx = 0;
         } else {
             // @fake
@@ -727,24 +728,24 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
             }
             if (shape->flags & RENDER_UNK2000) {
                 if (tex0->flags & (RENDER_COMPOSITE_BASE | RENDER_COMPOSITE_OVERLAY)) {
-                    dl_set_prim_color(&gMainDL, 0xFF, 0xFF, 0xFF, 0xA0);
+                    dlSetPrimColor(&gMainDL, 0xFF, 0xFF, 0xFF, 0xA0);
                 } else {
-                    dl_set_prim_color(&gMainDL, 0xFF, 0xFF, 0xFF, 0x64);
+                    dlSetPrimColor(&gMainDL, 0xFF, 0xFF, 0xFF, 0x64);
                 }
             } else {
                 if (shape->envColourMode == 0xFF) {
-                    dl_set_prim_color(&gMainDL, spE0, spDC, spD8, 0xFF);
+                    dlSetPrimColor(&gMainDL, spE0, spDC, spD8, 0xFF);
                 } else if (shape->envColourMode == 0xFE) {
-                    dl_set_prim_color(&gMainDL, 0xFF, 0xFF, 0xFF, 0xFF);
+                    dlSetPrimColor(&gMainDL, 0xFF, 0xFF, 0xFF, 0xFF);
                 } else if (shape->flags & (RENDER_UNK40000000 | RENDER_UNK4000000 | RENDER_UNK2000000 | RENDER_UNK800000 | RENDER_UNK400000)) {
-                    dl_set_prim_color(&gMainDL, 0xFF, 0xFF, 0xFF, 0xFF);
+                    dlSetPrimColor(&gMainDL, 0xFF, 0xFF, 0xFF, 0xFF);
                 } else {
                     func_8001F848(&gMainDL);
                 }
             }
             renderFlags = shape->flags;
             if (renderFlags & RENDER_SHAPE_ANIMATED) {
-                temp_v0_4 = block_texanim_get_instance(block, shape->animatorID);
+                temp_v0_4 = blockTexanimGetInstance(block, shape->animatorID);
                 if (temp_v0_4 != NULL) {
                     frameOptions = gBlockTexAnimTable[temp_v0_4->texanimID].unk4 << 8;
                     renderFlags |= gBlockTexAnimTable[temp_v0_4->texanimID].flags;
@@ -765,9 +766,9 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
             } else {
                 tex1 = NULL;
             }
-            tex_gdl_set_textures(&gMainDL, tex0, tex1, renderFlags, frameOptions, forceTexSet, FALSE);
+            texDPTextures(&gMainDL, tex0, tex1, renderFlags, frameOptions, forceTexSet, FALSE);
             if (shape->texScrollerID != 0xFF) {
-                texScroller = block_texscroll_get(shape->texScrollerID);
+                texScroller = blockTexscrollGet(shape->texScrollerID);
                 gDPSetTileSize(gMainDL++, 0, texScroller->uOffsetA, texScroller->vOffsetA, (tex0->width - 1) << 2, (tex0->height - 1) << 2);
                 if (tex1 != NULL) {
                     gDPSetTileSize(gMainDL++, 1, texScroller->uOffsetB, texScroller->vOffsetB, (tex1->width - 1) << 2, (tex1->height - 1) << 2);
@@ -786,14 +787,14 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
                 gMainDL->words.w1 |= G_CULL_BACK;
             }
             shapeIdx++;
-            dl_apply_geometry_mode(&gMainDL);
+            dlApplyGeometryMode(&gMainDL);
             gMainDL->words.w0 = block->gdlGroups[shapeIdx].words.w0;
             gMainDL->words.w1 = block->gdlGroups[shapeIdx].words.w1;
             shapeIdx++;
-            dl_apply_combine(&gMainDL);
+            dlApplyCombine(&gMainDL);
             gMainDL->words.w0 = block->gdlGroups[shapeIdx].words.w0;
             gMainDL->words.w1 = block->gdlGroups[shapeIdx].words.w1;
-            dl_apply_other_mode(&gMainDL);
+            dlApplyOtherMode(&gMainDL);
             tempVtx = block->vertices2[(block->vtxFlags & 1) ^ 1];
             var_a0 = block->encodedTris;
             var_a0 += shape->triBase;
@@ -823,26 +824,26 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
             gDLBuilder->needsPipeSync = 1;
             if ((renderFlags & (RENDER_FOG_ACTIVE | RENDER_DECAL_SIMPLE | RENDER_DECAL)) == (RENDER_FOG_ACTIVE | RENDER_DECAL_SIMPLE | RENDER_DECAL)) {
                 temp_s0_2 = gMainDL - temp_s5;
-                dl_set_geometry_mode(&gMainDL, G_FOG);
+                dlSetGeometryMode(&gMainDL, G_FOG);
                 if (renderFlags & (RENDER_UNK2000 | RENDER_SEMI_TRANSPARENT)) {
                     gDPSetCombineLERP(gMainDL, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1);
-                    dl_apply_combine(&gMainDL);
+                    dlApplyCombine(&gMainDL);
                     gDPSetOtherMode(
                         gMainDL, 
                         G_AD_PATTERN | G_CD_MAGICSQ | G_CK_NONE | G_TC_FILT | G_TF_POINT | G_TT_NONE | G_TL_TILE | G_TD_CLAMP | G_TP_PERSP | G_CYC_1CYCLE | G_PM_NPRIMITIVE, 
                         G_AC_NONE | G_ZS_PIXEL | Z_CMP | IM_RD | CVG_DST_FULL | ZMODE_XLU | FORCE_BL | GBL_c1(G_BL_CLR_FOG, G_BL_A_SHADE, G_BL_CLR_MEM, G_BL_1MA) | GBL_c2(G_BL_CLR_FOG, G_BL_A_SHADE, G_BL_CLR_MEM, G_BL_1MA)
                     );
-                    dl_apply_other_mode(&gMainDL);
+                    dlApplyOtherMode(&gMainDL);
                 } else {
                     gDPSetCombineLERP(gMainDL, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1);
-                    dl_apply_combine(&gMainDL);
+                    dlApplyCombine(&gMainDL);
                     
                     gDPSetOtherMode(
                         gMainDL, 
                         G_AD_PATTERN | G_CD_MAGICSQ | G_CK_NONE | G_TC_FILT | G_TF_POINT | G_TT_NONE | G_TL_TILE | G_TD_CLAMP | G_TP_PERSP | G_CYC_1CYCLE | G_PM_NPRIMITIVE, 
                         G_AC_NONE | G_ZS_PIXEL | AA_EN | Z_CMP | IM_RD | CLR_ON_CVG | CVG_DST_WRAP | ZMODE_DEC | FORCE_BL | GBL_c1(G_BL_CLR_FOG, G_BL_A_SHADE, G_BL_CLR_MEM, G_BL_1MA) | GBL_c2(G_BL_CLR_FOG, G_BL_A_SHADE, G_BL_CLR_MEM, G_BL_1MA)
                     );
-                    dl_apply_other_mode(&gMainDL);
+                    dlApplyOtherMode(&gMainDL);
                 }
                 bcopy(temp_s5, gMainDL, temp_s0_2 * sizeof(Gfx));
                 gMainDL += temp_s0_2;
@@ -858,7 +859,7 @@ RECOMP_PATCH void draw_render_list(Mtx* rspMtxs, s8* visibilities) {
     }
 }
 
-RECOMP_PATCH void block_calc_shape_visibility(Block* block, s16 arg1, s16 arg2, s16 arg3) {
+RECOMP_PATCH void blockCalcShapeVisibility(Block* block, s16 arg1, s16 arg2, s16 arg3) {
     BlockShape* shape;
     EncodedTri* triEnd;
     EncodedTri* tri;
@@ -923,7 +924,7 @@ RECOMP_PATCH void block_calc_shape_visibility(Block* block, s16 arg1, s16 arg2, 
 
         if ((D_800B9794 != 0) && 
             ((D_800B979C & 1) || !(shape->flags & (RENDER_UNK2000 | RENDER_DECAL_SIMPLE | RENDER_SEMI_TRANSPARENT))) && 
-            (func_80045600((shape - block->shapes), &D_800B9780, arg1, arg2, arg3) == 0)
+            (map_func_80045600((shape - block->shapes), &D_800B9780, arg1, arg2, arg3) == 0)
         ) {
             shape->flags &= ~RENDER_SHAPE_VISIBLE;
             shape++;
@@ -1042,7 +1043,7 @@ RECOMP_PATCH void block_calc_shape_visibility(Block* block, s16 arg1, s16 arg2, 
     }
 }
 
-RECOMP_PATCH void block_add_to_render_list(Block *block, f32 x, f32 z) {
+RECOMP_PATCH void blockAddToRenderList(Block *block, f32 x, f32 z) {
     s32 unused;
     s32 oldRenderListLength;
     s32 i;
@@ -1087,22 +1088,22 @@ RECOMP_PATCH void block_add_to_render_list(Block *block, f32 x, f32 z) {
         gBlocksToDraw[gBlocksToDrawIdx] = block;
         gBlocksToDrawIdx++;
 
-        matrix_translation(&mf, x, 0.0f, z);
-        matrix_f2l_4x3(&mf, gWorldRSPMatrices);
+        mathTranslateMtx(&mf, x, 0.0f, z);
+        mathMtx4x3F2L(&mf, gWorldRSPMatrices);
 
         gWorldRSPMatrices++;
 
         mf.m[3][1] = block->minY;
 
-        matrix_scaling(&mf2, 1.0f, 0.05f, 1.0f);
-        matrix_concat(&mf2, &mf, &mf);
-        matrix_f2l_4x3(&mf, gWorldRSPMatrices);
+        mathScaleMtx(&mf2, 1.0f, 0.05f, 1.0f);
+        mathMtxCatF(&mf2, &mf, &mf);
+        mathMtx4x3F2L(&mf, gWorldRSPMatrices);
 
         gWorldRSPMatrices++;
     }
 }
 
-RECOMP_PATCH void track_add_visible_objects(s8* objVisibilities) {
+RECOMP_PATCH void trackAddVisibleObjects(s8* objVisibilities) {
     Object* object;
     Object** objects;
     s32 numObjs;
@@ -1111,9 +1112,9 @@ RECOMP_PATCH void track_add_visible_objects(s8* objVisibilities) {
     s32 var_v0;
     s8* vis;
 
-    objects = get_world_objects(NULL, NULL);
+    objects = objGetObjects(NULL, NULL);
     // Separate invisible objects from visible objects
-    visibleStartIdx = obj_visibility_sort_objects(&numObjs);
+    visibleStartIdx = objVisibilitySortObjects(&numObjs);
     // @recomp: Use increased max visible object size
     if (numObjs > RECOMP_MAX_VISIBLE_OBJECTS) {
         // @recomp: Restore print
@@ -1121,7 +1122,7 @@ RECOMP_PATCH void track_add_visible_objects(s8* objVisibilities) {
         numObjs = RECOMP_MAX_VISIBLE_OBJECTS;
     }
     // Depth sort just the visible objects
-    obj_depth_sort_objects(visibleStartIdx, numObjs - 1);
+    objDepthSortObjects(visibleStartIdx, numObjs - 1);
     for (i = 0; i < numObjs; i++) {
         object = objects[i];
         vis = &objVisibilities[i];
@@ -1129,12 +1130,12 @@ RECOMP_PATCH void track_add_visible_objects(s8* objVisibilities) {
             // Object is always invisible due to its definition
             *vis = FALSE;
         } else {
-            *vis = track_obj_vis_check(object);
+            *vis = trackObjVisCheck(object);
             if (*vis && (object->shadow != NULL) && (object->def->shadowType == OBJ_SHADOW_GEOM)) {
-                shadows_update_obj_geom(object, 0, 0, gUpdateRate);
+                shadowsUpdateObjGeom(object, 0, 0, gUpdateRate);
             }
             if ((object->shadow != NULL) && (object->def->shadowType == OBJ_SHADOW_BOX))  {
-                shadows_update_obj_box(object);
+                shadowsUpdateObjBox(object);
             }
             // @recomp: Use new render list max length
             if (gRenderListLength < RECOMP_RENDER_LIST_LENGTH) {
@@ -1163,6 +1164,6 @@ RECOMP_PATCH void track_add_visible_objects(s8* objVisibilities) {
     }
     if (gRenderListLength >= 2) {
         // @recomp: Use custom render list
-        track_sort_render_list(recomp_RenderList, gRenderListLength);
+        trackSortRenderList(recomp_RenderList, gRenderListLength);
     }
 }

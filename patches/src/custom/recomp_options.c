@@ -42,7 +42,7 @@ void recomp_pull_game_options(void) {
     s32 recompSfxVol = (recomp_get_sfx_volume() / 100.0f) * 127;
     if (options->volumeAudio != recompSfxVol || b_firstCall) {
         options->volumeAudio = recompSfxVol;
-        gDLL_6_AMSFX->vtbl->func_7E4(recompSfxVol);
+        dll_amSfx->Func7E4(recompSfxVol);
     }
 
     s32 recompSubtitles = recomp_get_subtitles_enabled();
@@ -66,7 +66,7 @@ void recomp_pull_game_options(void) {
     s32 recompMinimapMode = recomp_get_minimap_mode();
     if (recomp_lastMinimapMode != recompMinimapMode || b_firstCall) {
         recomp_lastMinimapMode = recompMinimapMode;
-        main_set_bits(BIT_Hide_Minimap, recompMinimapMode == RECOMP_MINIMAP_Hidden ? 1 : 0);
+        mainSetBits(BIT_Hide_Minimap, recompMinimapMode == RECOMP_MINIMAP_Hidden ? 1 : 0);
         recomp_holdMinimapTimer = 0.0f;
     }
     
@@ -75,7 +75,7 @@ void recomp_pull_game_options(void) {
         if (recomp_cmdmenu_is_r_held()) {
             recomp_holdMinimapTimer = 90.0f;
         }
-        main_set_bits(BIT_Hide_Minimap, recomp_holdMinimapTimer > 0.0f ? 0 : 1);
+        mainSetBits(BIT_Hide_Minimap, recomp_holdMinimapTimer > 0.0f ? 0 : 1);
     }
 
     b_firstCall = FALSE;

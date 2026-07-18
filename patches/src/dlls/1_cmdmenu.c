@@ -368,7 +368,7 @@ RECOMP_PATCH void cmdmenu_print(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
     s32 screenX;
     s32 screenY;
 
-    player = get_player();
+    player = objGetPlayer();
     if (player == NULL) {
         return;
     }
@@ -378,8 +378,8 @@ RECOMP_PATCH void cmdmenu_print(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
 
     //Draw Spell reticle when aiming (@bug: x coord not adjusted in widescreen)
     if (((DLL_210_Player*)player->dll)->vtbl->func77(player, &screenX, &screenY)) {
-        tex_animate(sCrosshairTex, &sCrosshairAnimRenderFlags, &sCrosshairAnimProgress);
-        rcp_screen_full_write(
+        texAnimateTexture(sCrosshairTex, &sCrosshairAnimRenderFlags, &sCrosshairAnimProgress);
+        rcpScreenFullWrite(
             gdl, 
             sCrosshairTex, 
             screenX - (AIMING_RETICLE_WIDTH/2), 
@@ -393,7 +393,7 @@ RECOMP_PATCH void cmdmenu_print(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
 
     cmdmenu_draw_player_stats(gdl, mtxs, vtxs);
 
-    viSize = vi_get_current_size();
+    viSize = viGetCurrentSize();
     gDPSetScissor((*gdl)++, G_SC_NON_INTERLACE, 
         0, 
         0, 
@@ -413,7 +413,7 @@ RECOMP_PATCH void cmdmenu_print(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
     cmdmenu_draw_info_scroll(gdl, mtxs, vtxs);
     cmdmenu_draw_tutorial_textbox(gdl, mtxs, vtxs);
     cmdmenu_draw_main(gdl, mtxs, vtxs);
-    camera_apply_scissor(gdl);
+    camApplyScissor(gdl);
 
     // @recomp: Reset scissor align
     gEXSetScissorAlign((*gdl)++, G_EX_ORIGIN_NONE, G_EX_ORIGIN_NONE, 0, 0, 0, 0, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -428,13 +428,12 @@ RECOMP_PATCH void cmdmenu_draw_player_stats(Gfx** gdl, Mtx** mtxs, Vertex** vtxs
     s8 offsetY;
     s32 temp;
     Gfx* dl;
-    Object* player = get_player();
+    Object* player = objGetPlayer();
     u8 texIdx;
     char playerScarabCountText[4] = "   ";
 
     dl = *gdl;
-    temp = vi_get_current_size();
-    
+    temp = viGetCurrentSize();
     gDPSetScissor(dl++, G_SC_NON_INTERLACE, 0, 0, (u16)GET_VIDEO_WIDTH(temp) - 1, SCREEN_HEIGHT - 1);
 
     // @recomp: Align stats to left
@@ -497,7 +496,7 @@ RECOMP_PATCH void cmdmenu_draw_player_stats(Gfx** gdl, Mtx** mtxs, Vertex** vtxs
                     texIdx = CMDMENU_TEX_08_Apple_0_Pct + (sStats.playerHealth & 3);
                 }
                 
-                rcp_tile_write(
+                rcpTileWrite(
                     &dl,
                     sTextureTiles[texIdx], 
                     HEALTH_ICONS_X + offsetX, 
@@ -550,7 +549,7 @@ RECOMP_PATCH void cmdmenu_draw_player_stats(Gfx** gdl, Mtx** mtxs, Vertex** vtxs
                 }
 
                 //Draw the filled part of the bar
-                rcp_tile_write_x(
+                rcpTileWriteX(
                     &dl,
                     sTextureTiles[CMDMENU_TEX_36_MagicBar_Full],
                     MAGIC_BARS_X,
@@ -564,7 +563,7 @@ RECOMP_PATCH void cmdmenu_draw_player_stats(Gfx** gdl, Mtx** mtxs, Vertex** vtxs
                 );
 
                 //Draw the empty part of the bar
-                rcp_tile_write_x(
+                rcpTileWriteX(
                     &dl, sTextureTiles[CMDMENU_TEX_35_MagicBar_Empty],
                     MAGIC_BARS_X + temp,
                     MAGIC_BARS_Y + (i * MAGIC_BARS_SPACING_Y),
@@ -593,9 +592,9 @@ RECOMP_PATCH void cmdmenu_draw_player_stats(Gfx** gdl, Mtx** mtxs, Vertex** vtxs
                 texIdx = CMDMENU_TEX_40_Sabre;
             }
 
-            dInventoryPageIcon = tex_load_deferred(dTextableIDs[texIdx]);
+            dInventoryPageIcon = texLoadTexture(dTextableIDs[texIdx]);
 
-            rcp_screen_full_write(
+            rcpScreenFullWrite(
                 &dl,
                 dInventoryPageIcon,
                 CHARACTER_ICON_X + offsetX,
@@ -606,7 +605,7 @@ RECOMP_PATCH void cmdmenu_draw_player_stats(Gfx** gdl, Mtx** mtxs, Vertex** vtxs
                 SCREEN_WRITE_TRANSLUCENT
             );
 
-            tex_free(dInventoryPageIcon);
+            texFreeTexture(dInventoryPageIcon);
         }
     }
 
@@ -635,7 +634,7 @@ RECOMP_PATCH void cmdmenu_draw_player_stats(Gfx** gdl, Mtx** mtxs, Vertex** vtxs
         }
 
         statsOpacity = sOpacityScarabs;
-        if (statsOpacity && main_get_bits(BIT_UI_Scarab_Counter_Enabled)) {
+        if (statsOpacity && mainGetBits(BIT_UI_Scarab_Counter_Enabled)) {
             sAnimFrameScarab = 0;
             if (statsOpacity == MAX_OPACITY) {
                 if ((i = sAnimScarabSpin)) { //@fake assignment of i
@@ -655,12 +654,12 @@ RECOMP_PATCH void cmdmenu_draw_player_stats(Gfx** gdl, Mtx** mtxs, Vertex** vtxs
                             sAnimFrameScarab = 3 - (sAnimScarabFlutterTimer >> 1);
                         }
                     } else {
-                        sAnimScarabFlutterTimer = rand_next(20, 255);
+                        sAnimScarabFlutterTimer = mathRnd(20, 255);
                     }
                 }
             }
 
-            rcp_tile_write_x(
+            rcpTileWriteX(
                 &dl, 
                 sTextureTiles[CMDMENU_TEX_18_Scarab + sAnimFrameScarab], 
                 SCARABS_ICON_X, 
@@ -674,15 +673,15 @@ RECOMP_PATCH void cmdmenu_draw_player_stats(Gfx** gdl, Mtx** mtxs, Vertex** vtxs
             );
 
             sprintf(playerScarabCountText, "%d", (int)sStats.playerScarabCount);
-            font_window_set_coords(3, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-            font_window_use_font(3, FONT_DINO_SUBTITLE_FONT_1);
-            font_window_set_bg_colour(3, 0, 0, 0, 0);
-            font_window_flush_strings(3);
-            font_window_set_text_colour(3, 0xFF, 0xFF, 0xFF, 0xFF, statsOpacity);
-            font_window_add_string_xy(3, SCARABS_NUMBER_X, SCARABS_NUMBER_Y, playerScarabCountText, 1, ALIGN_TOP_LEFT);
-            font_window_set_text_colour(3, 0x14, 0x14, 0x14, 0xFF, 0xFF);
-            font_window_use_font(3, FONT_DINO_SUBTITLE_FONT_1);
-            font_window_draw(&dl, mtxs, vtxs, 3);
+            fontWindowSetCoords(3, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+            fontWindowUseFont(3, FONT_DINO_SUBTITLE_FONT_1);
+            fontWindowSetBgColour(3, 0, 0, 0, 0);
+            fontWindowFlushStrings(3);
+            fontWindowSetTextColour(3, 0xFF, 0xFF, 0xFF, 0xFF, statsOpacity);
+            fontWindowAddStringXY(3, SCARABS_NUMBER_X, SCARABS_NUMBER_Y, playerScarabCountText, 1, ALIGN_TOP_LEFT);
+            fontWindowSetTextColour(3, 0x14, 0x14, 0x14, 0xFF, 0xFF);
+            fontWindowUseFont(3, FONT_DINO_SUBTITLE_FONT_1);
+            fontWindowDraw(&dl, mtxs, vtxs, 3);
         }
     }
 
@@ -711,10 +710,10 @@ RECOMP_PATCH void cmdmenu_draw_main(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
     s8 offsetY;
     Object* sidekick;
 
-    player = get_player();
+    player = objGetPlayer();
     offsetX = 0;
     offsetY = 0;
-    sidekick = get_sidekick();
+    sidekick = objGetSidekick();
 
     // @recomp: Align item popup to left
     gEXSetViewportAlign((*gdl)++, G_EX_ORIGIN_LEFT, 0, 0);
@@ -733,8 +732,8 @@ RECOMP_PATCH void cmdmenu_draw_main(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
 
         //Clear the icon's data before any change
         if ((sActiveSpellIcon != NULL) && (activeSpellGamebit != sPrevActiveSpellGamebit)) {
-            tex_free(sActiveSpellRing);
-            tex_free(sActiveSpellIcon);
+            texFreeTexture(sActiveSpellRing);
+            texFreeTexture(sActiveSpellIcon);
             sPrevActiveSpellGamebit = NO_GAMEBIT;
             sActiveSpellIcon = NULL;
         }
@@ -743,16 +742,16 @@ RECOMP_PATCH void cmdmenu_draw_main(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
         if ((sActiveSpellIcon == NULL) && (activeSpellGamebit != NO_GAMEBIT)) {
             spellTexTableID = cmdmenu_get_spell_textable(activeSpellGamebit);
             if (spellTexTableID != NO_TEXTURE) {
-                sActiveSpellIcon = tex_load_deferred(spellTexTableID);
-                sActiveSpellRing = tex_load_deferred(TEXTABLE_574_CMDMENU_Active_Spell_Ring);
+                sActiveSpellIcon = texLoadTexture(spellTexTableID);
+                sActiveSpellRing = texLoadTexture(TEXTABLE_574_CMDMENU_Active_Spell_Ring);
             }
         }
 
         sPrevActiveSpellGamebit = activeSpellGamebit;
 
         if (sActiveSpellIcon != NULL) {
-            rcp_screen_full_write(gdl, sActiveSpellRing, ACTIVE_SPELL_X,      ACTIVE_SPELL_Y,      0, 0, 0xFF, SCREEN_WRITE_TRANSLUCENT);
-            rcp_screen_full_write(gdl, sActiveSpellIcon, ACTIVE_SPELL_ICON_X, ACTIVE_SPELL_ICON_Y, 0, 0, 0xFF, SCREEN_WRITE_TRANSLUCENT);
+            rcpScreenFullWrite(gdl, sActiveSpellRing, ACTIVE_SPELL_X,      ACTIVE_SPELL_Y,      0, 0, 0xFF, SCREEN_WRITE_TRANSLUCENT);
+            rcpScreenFullWrite(gdl, sActiveSpellIcon, ACTIVE_SPELL_ICON_X, ACTIVE_SPELL_ICON_Y, 0, 0, 0xFF, SCREEN_WRITE_TRANSLUCENT);
         }
     }
 
@@ -769,8 +768,8 @@ RECOMP_PATCH void cmdmenu_draw_main(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
 
         //Clear the icon's data before any change
         if ((sActiveSidekickCommandIcon != NULL) && (sideCommandIndex != sPrevSidekickCommandIndex)) {
-            tex_free(sActiveSidekickCommandRing);
-            tex_free(sActiveSidekickCommandIcon);
+            texFreeTexture(sActiveSidekickCommandRing);
+            texFreeTexture(sActiveSidekickCommandIcon);
             sPrevSidekickCommandIndex = NO_SIDEKICK_COMMAND;
             sActiveSidekickCommandIcon = NULL;
         }
@@ -779,16 +778,16 @@ RECOMP_PATCH void cmdmenu_draw_main(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
         if (sActiveSidekickCommandIcon == NULL && sideCommandIndex > 0) {
             commandTexTableID = dCommandTextableIDs[sideCommandIndex];
             if (commandTexTableID != NO_TEXTURE) {
-                sActiveSidekickCommandIcon = tex_load_deferred(commandTexTableID);
-                sActiveSidekickCommandRing = tex_load_deferred(TEXTABLE_584_CMDMENU_Active_Sidekick_Command_Ring);
+                sActiveSidekickCommandIcon = texLoadTexture(commandTexTableID);
+                sActiveSidekickCommandRing = texLoadTexture(TEXTABLE_584_CMDMENU_Active_Sidekick_Command_Ring);
             }
         }
 
         sPrevSidekickCommandIndex = sideCommandIndex;
 
         if (sActiveSidekickCommandIcon != NULL) {
-            rcp_screen_full_write(gdl, sActiveSidekickCommandRing, ACTIVE_SIDECOMMAND_X,      ACTIVE_SIDECOMMAND_Y,      0, 0, 0xFF, SCREEN_WRITE_TRANSLUCENT);
-            rcp_screen_full_write(gdl, sActiveSidekickCommandIcon, ACTIVE_SIDECOMMAND_ICON_X, ACTIVE_SIDECOMMAND_ICON_Y, 0, 0, 0xFF, SCREEN_WRITE_TRANSLUCENT);
+            rcpScreenFullWrite(gdl, sActiveSidekickCommandRing, ACTIVE_SIDECOMMAND_X,      ACTIVE_SIDECOMMAND_Y,      0, 0, 0xFF, SCREEN_WRITE_TRANSLUCENT);
+            rcpScreenFullWrite(gdl, sActiveSidekickCommandIcon, ACTIVE_SIDECOMMAND_ICON_X, ACTIVE_SIDECOMMAND_ICON_Y, 0, 0, 0xFF, SCREEN_WRITE_TRANSLUCENT);
         }
     }
 
@@ -892,7 +891,7 @@ RECOMP_PATCH void cmdmenu_draw_main(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
                         //Draw icon
                         if (track_func_80041E08()) {
                             //Widescreen aspect
-                            rcp_tile_write(
+                            rcpTileWrite(
                                 gdl, 
                                 sTempIcon, 
                                 MENU_ITEM_X - 1, 
@@ -901,7 +900,7 @@ RECOMP_PATCH void cmdmenu_draw_main(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
                             );
                         } else {
                             //Standard aspect
-                            rcp_tile_write(
+                            rcpTileWrite(
                                 gdl, 
                                 sTempIcon, 
                                 MENU_ITEM_X, 
@@ -914,7 +913,7 @@ RECOMP_PATCH void cmdmenu_draw_main(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
                         if (sMenuItemQuantities[itemIdx] > 1) {
                             sTempIcon->tex = sInventoryStackNumbersTex;
                             sTempIcon->animProgress = (sMenuItemQuantities[itemIdx] - 2) << 8; //Numbers only shown from 2 onwards (up to 10)
-                            rcp_tile_write(
+                            rcpTileWrite(
                                 gdl, 
                                 sTempIcon, 
                                 MENU_ITEM_QUANTITY_X, 
@@ -927,7 +926,7 @@ RECOMP_PATCH void cmdmenu_draw_main(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
                     //Draw empty tile
                     if (track_func_80041E08()) {
                         //Widescreen aspect
-                        rcp_tile_write(
+                        rcpTileWrite(
                             gdl, 
                             sTextureTiles[CMDMENU_TEX_00_Scroll_BG], 
                             MENU_ITEM_X - 1, 
@@ -936,7 +935,7 @@ RECOMP_PATCH void cmdmenu_draw_main(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
                         );
                     } else {
                         //Standard aspect
-                        rcp_tile_write(
+                        rcpTileWrite(
                             gdl, 
                             sTextureTiles[CMDMENU_TEX_00_Scroll_BG], 
                             MENU_ITEM_X, 
@@ -954,10 +953,10 @@ RECOMP_PATCH void cmdmenu_draw_main(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
             }
 
             //Draw a selection square around the currently highlighted item
-            rcp_tile_write(gdl, sTextureTiles[CMDMENU_TEX_31_Highlight_Corner_Top_Left],     ITEM_HL_X1, (sInventoryUnrollY - dInventoryUnrollMax) + ITEM_HL_Y1, 255, 255, 255, dInventoryOpacity);
-            rcp_tile_write(gdl, sTextureTiles[CMDMENU_TEX_32_Highlight_Corner_Top_Right],    ITEM_HL_X2, (sInventoryUnrollY - dInventoryUnrollMax) + ITEM_HL_Y1, 255, 255, 255, dInventoryOpacity);
-            rcp_tile_write(gdl, sTextureTiles[CMDMENU_TEX_33_Highlight_Corner_Bottom_Left],  ITEM_HL_X1, (sInventoryUnrollY - dInventoryUnrollMax) + ITEM_HL_Y2, 255, 255, 255, dInventoryOpacity);
-            rcp_tile_write(gdl, sTextureTiles[CMDMENU_TEX_34_Highlight_Corner_Bottom_Right], ITEM_HL_X2, (sInventoryUnrollY - dInventoryUnrollMax) + ITEM_HL_Y2, 255, 255, 255, dInventoryOpacity);
+            rcpTileWrite(gdl, sTextureTiles[CMDMENU_TEX_31_Highlight_Corner_Top_Left],     ITEM_HL_X1, (sInventoryUnrollY - dInventoryUnrollMax) + ITEM_HL_Y1, 255, 255, 255, dInventoryOpacity);
+            rcpTileWrite(gdl, sTextureTiles[CMDMENU_TEX_32_Highlight_Corner_Top_Right],    ITEM_HL_X2, (sInventoryUnrollY - dInventoryUnrollMax) + ITEM_HL_Y1, 255, 255, 255, dInventoryOpacity);
+            rcpTileWrite(gdl, sTextureTiles[CMDMENU_TEX_33_Highlight_Corner_Bottom_Left],  ITEM_HL_X1, (sInventoryUnrollY - dInventoryUnrollMax) + ITEM_HL_Y2, 255, 255, 255, dInventoryOpacity);
+            rcpTileWrite(gdl, sTextureTiles[CMDMENU_TEX_34_Highlight_Corner_Bottom_Right], ITEM_HL_X2, (sInventoryUnrollY - dInventoryUnrollMax) + ITEM_HL_Y2, 255, 255, 255, dInventoryOpacity);
             
             //Restore full-screen scissor
             cmdmenu_gfx_set_screen_scissor(gdl);
@@ -1017,8 +1016,8 @@ RECOMP_PATCH void cmdmenu_draw_main(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
 
         //Draw page icon
         if (iconOpacity) {
-            dInventoryPageIcon = tex_load_deferred(dTextableIDs[pageIcon]);
-            rcp_screen_full_write(
+            dInventoryPageIcon = texLoadTexture(dTextableIDs[pageIcon]);
+            rcpScreenFullWrite(
                 gdl, 
                 dInventoryPageIcon, 
                 PAGE_ICON_X + offsetX,
@@ -1028,7 +1027,7 @@ RECOMP_PATCH void cmdmenu_draw_main(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
                 iconOpacity, 
                 SCREEN_WRITE_TRANSLUCENT
             );
-            tex_free(dInventoryPageIcon);
+            texFreeTexture(dInventoryPageIcon);
         }
     }
 

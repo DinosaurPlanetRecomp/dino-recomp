@@ -51,7 +51,7 @@ typedef struct RecompCustomDLLState {
 u16 recomp_register_dll(RecompDLLBank bank, u16 exportCount, RecompDLLFunc ctor, RecompDLLFunc dtor, void *vtblPtr);
 void recomp_dll_init_system(void);
 RecompCustomDLLState *recomp_get_loaded_custom_dlls(s32 *outLoadedDLLCount);
-void *recomp_dll_load_deferred_custom(RecompDLLBank bank, u16 id, u16 exportCount);
-void *recomp_dll_load_custom(RecompDLLBank bank, u16 id, u16 exportCount, s32 runConstructor);
+void *recomp_dll_load_custom(RecompDLLBank bank, u16 id, u16 exportCount);
+void *recomp_dll_load_actual_custom(RecompDLLBank bank, u16 id, u16 exportCount, s32 runConstructor);
 RecompCustomDLLState *recomp_dll_interface_to_custom_state(void *dllInterfacePtr);
 s32 recomp_dll_unload_custom(RecompCustomDLLState *state);

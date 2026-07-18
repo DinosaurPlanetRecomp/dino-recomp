@@ -166,17 +166,17 @@ static s32 infiniteMagic = FALSE;
 static void bit_editor(CheatInventoryItem *item) {
     switch (item->type) {
         case TYPE_BOOL: {
-            s32 checked = main_get_bits(item->bit);
+            s32 checked = mainGetBits(item->bit);
             if (dbgui_checkbox(item->name, &checked)) {
-                main_set_bits(item->bit, checked);
+                mainSetBits(item->bit, checked);
             }
             break;
         }
         case TYPE_INT: {
-            s32 value = main_get_bits(item->bit);
+            s32 value = mainGetBits(item->bit);
             dbgui_set_next_item_width(100);
             if (dbgui_input_int(item->name, &value)) {
-                main_set_bits(item->bit, value);
+                mainSetBits(item->bit, value);
             }
             break;
         }

@@ -13,8 +13,8 @@
 #include "libnaudio/n_unkfuncs.h"
 #include "game/gamebits.h"
 #include "sys/audio.h"
-#include "sys/asset_thread.h"
-#include "sys/dl_debug.h"
+#include "sys/asset.h"
+#include "sys/di_rcp.h"
 #include "sys/exception.h"
 #include "sys/rcp.h"
 #include "sys/rsp_segment.h"
@@ -54,10 +54,10 @@ extern u8 D_8008CA30;
 extern s32 gMainMapChangeNextMenu;
 extern s8 gMainDoMapChange;
 
-extern void func_80013D80(void);
-extern void main_handle_map_change(void);
-extern s8 func_800143FC(void);
-extern void update_PlayerPosBuffer();
+extern void main_func_80013D80(void);
+extern void mainHandleMapChange(void);
+extern s8 main_func_800143FC(void);
+extern void mainUpdatePlayerPosBuffer(void);
 
 u32 recomp_tickCounter;
 
@@ -67,7 +67,7 @@ static Mtx recompMainMtx[2][RECOMP_MAIN_MTX_BUF_SIZE / sizeof(Mtx)];
 static Vertex recompMainVtx[2][RECOMP_MAIN_VTX_BUF_SIZE / sizeof(Vertex)]; 
 static Triangle recompMainPol[2][RECOMP_MAIN_POL_BUF_SIZE / sizeof(Triangle)]; 
 
-RECOMP_PATCH void alloc_frame_buffers(void) {
+RECOMP_PATCH void mainAllocFrameBuffers(void) {
     // @recomp: Use larger buffer sizes
 
     // in default.dol these have names as well.
@@ -117,7 +117,7 @@ static void recomp_game_tick_hook(void) {
     builtin_dbgui_game_tick();
 }
 
-RECOMP_PATCH void game_tick(void) {
+RECOMP_PATCH void mainTick(void) {
     u8 clearFlags;
     u32 updateRate;
     Gfx **gdl;
@@ -126,12 +126,12 @@ RECOMP_PATCH void game_tick(void) {
     recomp_fbfx();
 
     osSetTime(0);
-    dl_next_debug_info_set();
+    diRcpTraceReset();
 
     gdl = &gCurGfx;
 
     // unused return type
-    gfxtask_run_xbus(gMainGfx[gFrameBufIdx], gCurGfx, 0);
+    rcpF3DEX_2_XBUS(gMainGfx[gFrameBufIdx], gCurGfx, 0);
 
     gFrameBufIdx ^= 1;
     gCurGfx = gMainGfx[gFrameBufIdx];
@@ -145,13 +145,13 @@ RECOMP_PATCH void game_tick(void) {
     // @recomp: Hook start of game_tick
     recomp_game_tick_start_hook();
 
-    dl_add_debug_info(gCurGfx, 0, "main/main.c", 0x28E);
-    rsp_segment(&gCurGfx, SEGMENT_MAIN, (void *)K0BASE);
-    rsp_segment(&gCurGfx, SEGMENT_FRAMEBUFFER, gFrontFramebuffer);
-    rsp_segment(&gCurGfx, SEGMENT_ZBUFFER, gFrontDepthBuffer);
-    fbfx_tick(&gCurGfx, gUpdateRate);
-    dl_set_all_dirty();
-    tex_render_reset();
+    diRcpTrace(gCurGfx, 0, "main/main.c", 0x28E);
+    segSetBase(&gCurGfx, SEGMENT_MAIN, (void *)K0BASE);
+    segSetBase(&gCurGfx, SEGMENT_FRAMEBUFFER, gFrontFramebuffer);
+    segSetBase(&gCurGfx, SEGMENT_ZBUFFER, gFrontDepthBuffer);
+    fbfxTick(&gCurGfx, gUpdateRate);
+    dlSetAllDirty();
+    texRenderReset();
 
     if (gDLBuilder->needsPipeSync != 0) {
         gDLBuilder->needsPipeSync = 0;
@@ -160,30 +160,30 @@ RECOMP_PATCH void game_tick(void) {
 
     gDPSetDepthImage(gCurGfx++, SEGMENT_ADDR(SEGMENT_ZBUFFER, 0));
 
-    rsp_init(&gCurGfx);
+    rcpInitSp(&gCurGfx);
 
     clearFlags = CLEAR_ZBUFFER;
-    if (track_is_z_buffer_on() == FALSE) {
+    if (trackIsZBufferOn() == FALSE) {
         clearFlags = CLEAR_NONE;
-    } else if (track_is_sky_on() == FALSE) {
+    } else if (trackIsSkyOn() == FALSE) {
         clearFlags = CLEAR_COLOR | CLEAR_ZBUFFER;
     }
 
-    rcp_clear_screen(&gCurGfx, &gCurMtx, clearFlags);
-    voxmap_update_cache_timers();
-    func_80013D80();
-    audio_func_800121DC();
+    rcpClearScreen(&gCurGfx, &gCurMtx, clearFlags);
+    voxUpdateCacheTimers();
+    main_func_80013D80();
+    am_func_800121DC();
     gDLL_28_ScreenFade->vtbl->draw(gdl, &gCurMtx, &gCurVtx);
     gDLL_22_Subtitles->vtbl->func_578(gdl);
-    camera_tick();
-    func_800129E4();
+    camTick();
+    assetQueueTick();
     // @recomp: Trigger framebuffer FX from debug UI window. This call must be deferred because
     //          the debug UI runs before the framebuffer FX handler, which would cause it to be
     //          processed a frame early (and doesn't work with the recomp patches for it). Calling
     //          it here makes the debug UI menu behave the same as normal game code using framebuffer FX.
     if (recomp_fbfxShouldPlay) {
         recomp_fbfxShouldPlay = FALSE;
-        fbfx_play(recomp_fbfxTargetID, recomp_fbfxTargetDuration);
+        fbfxPlay(recomp_fbfxTargetID, recomp_fbfxTargetDuration);
     }
     // @recomp: Hook game_tick, before we end the frame
     recomp_game_tick_hook();
@@ -197,7 +197,7 @@ RECOMP_PATCH void game_tick(void) {
     //          so RT64 doesn't factor in the dimensions of the drawing from earlier in the frame,
     //          which does contain fullscreen draws. This also avoids an issue with some transparent
     //          renders like water getting cutoff at certain camera angles.
-    u32 viSize = vi_get_current_size();
+    u32 viSize = viGetCurrentSize();
     u32 viWidth = GET_VIDEO_WIDTH(viSize);
     u32 viHeight = GET_VIDEO_HEIGHT(viSize);
 
@@ -216,7 +216,7 @@ RECOMP_PATCH void game_tick(void) {
     recomp_fbfx_snapshot();
 
     // @recomp: Take pause screenshot with the DP so RT64 can display the high res version instead
-    if (get_pause_state() == 1) {
+    if (mainGetPauseState() == 1) {
         recomp_take_pause_screenshot(gdl);
     }
 
@@ -226,15 +226,15 @@ RECOMP_PATCH void game_tick(void) {
     // @recomp: Re-enable global interp
     recomp_skipAllInterp = FALSE;
 
-    gfxtask_wait();
-    obj_do_deferred_free();
+    rcpWaitDP();
+    objDoDeferredFree();
     mmFreeTick();
 
     if (gPauseState == 0) {
-        camera_apply_alternate_trigger();
+        camApplyAlternateTrigger();
     }
 
-    gUpdateRate = vi_frame_sync(0);
+    gUpdateRate = viFrameSync(0);
     
     if (0) {}
 
@@ -249,19 +249,19 @@ RECOMP_PATCH void game_tick(void) {
     gUpdateRateMirrorF = gUpdateRateF;
     gUpdateRateInverseMirrorF = 1.0f / gUpdateRateMirrorF;
 
-    main_handle_map_change();
+    mainHandleMapChange();
     write_c_file_label_pointers("main/main.c", 0x37C);
 
     // @recomp: Track semi-unique number for each game tick
     recomp_tickCounter++;
 }
 
-RECOMP_PATCH void main_handle_map_change(void) {
+RECOMP_PATCH void mainHandleMapChange(void) {
     if (gMainDoMapChange) {
         //recomp_printf("$$$$$  CHANGEMAP \n");
         mmSetDelay(0);
         if (D_8008CA30 != 0) {
-            rcp_set_screen_color(0, 0, 0);
+            rcpSetScreenColour(0, 0, 0);
             func_800668A4();
             map_func_800484A8();
 
@@ -276,10 +276,10 @@ RECOMP_PATCH void main_handle_map_change(void) {
         recomp_skip_all_interp();
 
         mmSetDelay(0);
-        camera_init();
+        camInit();
 
         if (gMainMapChangeNextMenu >= 0) {
-            menu_set(gMainMapChangeNextMenu);
+            menuSet(gMainMapChangeNextMenu);
             gMainMapChangeNextMenu = -1;
         }
 
@@ -294,51 +294,51 @@ RECOMP_PATCH void main_handle_map_change(void) {
     }
 }
 
-RECOMP_PATCH void func_80013D80(void) {
+RECOMP_PATCH void main_func_80013D80(void) {
     s32 button;
 
-    joy_disable_buttons(0, U_JPAD | R_JPAD);
+    joyDisableButtons(0, U_JPAD | R_JPAD);
     gDLL_2_Camera->vtbl->lock_icon_tick();
     gDLL_22_Subtitles->vtbl->func_4C0();
 
-    if (menu_update1() == 0) {
-        button = joy_get_pressed(0);
+    if (menuUpdate1() == 0) {
+        button = joyGetPressed(0);
 
         if (gPauseState != 0) {
-            draw_pause_screen_freeze_frame(&gCurGfx);
+            rcpDrawPauseScreenFreezeFrame(&gCurGfx);
         }
 
         if (gPauseState == 0) {
-            update_objects();
-            track_tick(0);
+            objTick();
+            trackTick(0);
 
-            if ((camera_is_alternate_active() == 0) 
+            if ((camIsAlternateActive() == 0) 
                     && (D_8008C94C == 0) 
-                    && (func_800143FC() == 0) 
+                    && (main_func_800143FC() == 0) 
                     && ((button & START_BUTTON) != 0) 
-                    && (main_get_bits(BIT_Menus_Selection_Blocked) == 0)) {
+                    && (mainGetBits(BIT_Menus_Selection_Blocked) == 0)) {
                 gPauseState = 1;
-                joy_disable_buttons(0, START_BUTTON);
+                joyDisableButtons(0, START_BUTTON);
                 // @recomp: Don't switch to pause menu immediately so we include the current menu
                 //          in the pause screen snapshot. Note: This is only an issue because of the
                 //          changes recomp makes to how the pause screen snapshot is taken.
-                //menu_set(MENU_PAUSE);
+                //menuSet(MENU_PAUSE);
             }
 
             gDLL_29_Gplay->vtbl->tick();
         } else {
-            update_obj_models();
+            objUpdateObjModels();
         }
 
         if (gPauseState == 0) {
-            update_PlayerPosBuffer();
+            mainUpdatePlayerPosBuffer();
         }
 
-        menu_update2();
+        menuUpdate2();
         func_800591EC();
-        func_8004A67C();
-        map_update_streaming();
-        func_800210DC();
+        map_func_8004A67C();
+        mapUpdateStreaming();
+        objHandleAnimseqActors();
 
         gDLL_4_Race->vtbl->func14();
 
@@ -346,15 +346,15 @@ RECOMP_PATCH void func_80013D80(void) {
         //          the snapshot will be blank in cases where the color framebuffer was cleared at the
         //          start of the frame.
         if (gPauseState != 2) {
-            track_draw(&gCurGfx, &gCurMtx, &gCurVtx, &gCurPol, &gCurVtx, &gCurPol);
+            trackDraw(&gCurGfx, &gCurMtx, &gCurVtx, &gCurPol, &gCurVtx, &gCurPol);
         }
 
         gDLL_20_Screens->vtbl->draw(&gCurGfx);
-        menu_draw(&gCurGfx, &gCurMtx, &gCurVtx, &gCurPol);
+        menuDraw(&gCurGfx, &gCurMtx, &gCurVtx, &gCurPol);
 
         // @recomp: Do the switch to the pause menu down here instead
         if (gPauseState == 1) {
-            menu_set(MENU_PAUSE);
+            menuSet(MENU_PAUSE);
         }
 
         D_8008C94C -= gUpdateRate;

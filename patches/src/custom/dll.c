@@ -4,7 +4,7 @@
 #include "recomp_funcs.h"
 
 #include "PR/ultratypes.h"
-#include "sys/asset_thread.h"
+#include "sys/asset.h"
 #include "sys/dll.h"
 
 // Note: Custom engine DLLs are not supported as their tab indices and IDs are ambigious. If the
@@ -139,10 +139,10 @@ RecompCustomDLLState *recomp_get_loaded_custom_dlls(s32 *outLoadedDLLCount) {
     return recompCustomDLLList;
 }
 
-void *recomp_dll_load_deferred_custom(RecompDLLBank bank, u16 id, u16 exportCount) {
+void *recomp_dll_load_custom(RecompDLLBank bank, u16 id, u16 exportCount) {
     RecompCustomDLLState *state;
     void *dllInterfacePtr = NULL;
-    queue_load_dll(&dllInterfacePtr, id, exportCount);
+    assetLoadDLL(&dllInterfacePtr, id, exportCount);
 
     state = DLL_INTERFACE_TO_CUSTOM_STATE(dllInterfacePtr);
 
@@ -164,14 +164,14 @@ void *recomp_dll_load_deferred_custom(RecompDLLBank bank, u16 id, u16 exportCoun
                     dll = recomputil_u32_memory_hashmap_get(recompCustomDLLTab.bank4, id);
                     break;
                 default:
-                    recomp_exit_with_error(recomp_sprintf_helper("[recomp_dll_load_deferred_custom] Invalid bank: %d", bank));
+                    recomp_exit_with_error(recomp_sprintf_helper("[recomp_dll_load_custom] Invalid bank: %d", bank));
                     return NULL;
             }
         }
 
         if (dll == NULL) {
             recomp_exit_with_error(recomp_sprintf_helper(
-                "[recomp_dll_load_deferred_custom] Load failed. Custom DLL ID 0x%X not found in bank %d.", id, bank));
+                "[recomp_dll_load_custom] Load failed. Custom DLL ID 0x%X not found in bank %d.", id, bank));
             return NULL;
         }
 
@@ -181,7 +181,7 @@ void *recomp_dll_load_deferred_custom(RecompDLLBank bank, u16 id, u16 exportCoun
     return dllInterfacePtr;
 }
 
-void *recomp_dll_load_custom(RecompDLLBank bank, u16 id, u16 exportCount, s32 bRunConstructor) {
+void *recomp_dll_load_actual_custom(RecompDLLBank bank, u16 id, u16 exportCount, s32 bRunConstructor) {
     // Check if DLL is already loaded, and if so, increment the reference count
     for (u32 i = 0; i < (u32)recompLoadedCustomDLLCount; i++) {
         if (id == recompCustomDLLList[i].id) {
@@ -207,14 +207,14 @@ void *recomp_dll_load_custom(RecompDLLBank bank, u16 id, u16 exportCount, s32 bR
                 dll = recomputil_u32_memory_hashmap_get(recompCustomDLLTab.bank4, id);
                 break;
             default:
-                recomp_exit_with_error(recomp_sprintf_helper("[recomp_dll_load_custom] Invalid bank: %d", bank));
+                recomp_exit_with_error(recomp_sprintf_helper("[recomp_dll_load_actual_custom] Invalid bank: %d", bank));
                 return NULL;
         }
     }
 
     if (dll == NULL) {
         recomp_exit_with_error(recomp_sprintf_helper(
-            "[recomp_dll_load_custom] Load failed. Custom DLL ID 0x%X not found in bank %d.", id, bank));
+            "[recomp_dll_load_actual_custom] Load failed. Custom DLL ID 0x%X not found in bank %d.", id, bank));
         return NULL;
     }
 

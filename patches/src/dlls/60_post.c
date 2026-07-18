@@ -25,7 +25,7 @@ RECOMP_PATCH s32 dll_60_update1(void) {
         bss_0 += gUpdateRateF;
 
         // @recomp: Allow skipping
-        if ((joy_get_pressed_raw(0) & A_BUTTON) != 0) {
+        if ((joyGetPressedRaw(0) & A_BUTTON) != 0) {
             // Fade in background if we haven't shown it yet
             if (bss_0 <= 240.0f) {
                 gDLL_28_ScreenFade->vtbl->fade_reversed(30, SCREEN_FADE_BLACK);
@@ -60,7 +60,7 @@ RECOMP_PATCH s32 dll_60_update1(void) {
         if (bss_4 != 0) {
             bss_4 = 0;
             bss_0 = 0.0f;
-            menu_set(MENU_RAREWARE);
+            menuSet(MENU_RAREWARE);
         }
 
         return 0;

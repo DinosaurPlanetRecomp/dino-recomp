@@ -32,15 +32,14 @@ extern s8 gPauseState;
 extern u8 gViUpdateRateTarget;
 extern u8 gViUpdateRate;
 
-extern void vi_swap_buffers(void);
-extern void vi_func_8005DEE8(void);
+extern void viSwapBuffers(void);
 
 static s32 recomp_fake_frame_vi_sync(void) {
     s32 updateRate;
 
     updateRate = 1;
 
-    vi_swap_buffers();
+    viSwapBuffers();
 
     while (osRecvMesg(&gVideoMesgQueue, NULL, OS_MESG_NOBLOCK) != -1) {
         updateRate += 1;
@@ -69,21 +68,21 @@ static void recomp_fake_frame_rdp_init(Gfx **gdl) {
     s32 resWidth, resHeight;
     s32 ulx, uly, lrx, lry;
 
-    viewport_get_full_rect(&ulx, &uly, &lrx, &lry);
+    camViewportGetFullRect(&ulx, &uly, &lrx, &lry);
 
-    resolution = vi_get_current_size();
+    resolution = viGetCurrentSize();
     resWidth = GET_VIDEO_WIDTH(resolution);
     resHeight = GET_VIDEO_HEIGHT(resolution);
 
     gDPSetScissor((*gdl)++, G_SC_NON_INTERLACE, 0, 0, resWidth - 1, resHeight - 1);
 
     gDPSetCombineMode((*gdl), G_CC_PRIMITIVE, G_CC_PRIMITIVE);
-    dl_apply_combine(gdl);
+    dlApplyCombine(gdl);
 
     gDPSetOtherMode((*gdl), 
         G_AD_PATTERN | G_CD_MAGICSQ | G_CK_NONE | G_TC_FILT | G_TF_BILERP | G_TT_NONE | G_TL_TILE | G_TD_CLAMP | G_TP_PERSP | G_CYC_FILL |  G_PM_NPRIMITIVE, 
         G_AC_NONE | G_ZS_PIXEL | G_RM_OPA_SURF | G_RM_OPA_SURF2);
-    dl_apply_other_mode(gdl);
+    dlApplyOtherMode(gdl);
 
     if (gDLBuilder->needsPipeSync) {
         gDLBuilder->needsPipeSync = FALSE;
@@ -99,7 +98,7 @@ static void recomp_fake_frame_rdp_init(Gfx **gdl) {
 
     gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, resWidth, SEGMENT_ADDR(SEGMENT_FRAMEBUFFER, 0x0));
 
-    camera_apply_scissor(gdl);
+    camApplyScissor(gdl);
 }
 
 void recomp_do_fake_frame_start(void) {
@@ -107,10 +106,10 @@ void recomp_do_fake_frame_start(void) {
     u32 updateRate;
 
     osSetTime(0);
-    // dl_next_debug_info_set();
+    // diRcpTraceReset();
 
     // unused return type
-    gfxtask_run_xbus(gMainGfx[gFrameBufIdx], gCurGfx, 0);
+    rcpF3DEX_2_XBUS(gMainGfx[gFrameBufIdx], gCurGfx, 0);
 
     gFrameBufIdx ^= 1;
     gCurGfx = gMainGfx[gFrameBufIdx];
@@ -126,13 +125,13 @@ void recomp_do_fake_frame_start(void) {
     recomp_pull_game_options();
     recomp_dbgui_tick();
 
-    // dl_add_debug_info(gCurGfx, 0, "main/main.c", 0x28E);
-    rsp_segment(&gCurGfx, SEGMENT_MAIN, (void *)K0BASE);
-    rsp_segment(&gCurGfx, SEGMENT_FRAMEBUFFER, gFrontFramebuffer);
-    rsp_segment(&gCurGfx, SEGMENT_ZBUFFER, gFrontDepthBuffer);
-    //fbfx_tick(&gCurGfx, gUpdateRate);
-    dl_set_all_dirty();
-    tex_render_reset();
+    // diRcpTrace(gCurGfx, 0, "main/main.c", 0x28E);
+    segSetBase(&gCurGfx, SEGMENT_MAIN, (void *)K0BASE);
+    segSetBase(&gCurGfx, SEGMENT_FRAMEBUFFER, gFrontFramebuffer);
+    segSetBase(&gCurGfx, SEGMENT_ZBUFFER, gFrontDepthBuffer);
+    //fbfxTick(&gCurGfx, gUpdateRate);
+    dlSetAllDirty();
+    texRenderReset();
 
     if (gDLBuilder->needsPipeSync != 0) {
         gDLBuilder->needsPipeSync = 0;
@@ -141,16 +140,16 @@ void recomp_do_fake_frame_start(void) {
 
     gDPSetDepthImage(gCurGfx++, SEGMENT_ZBUFFER << 24);
 
-    rsp_init(&gCurGfx);
+    rcpInitSp(&gCurGfx);
 
     // clearFlags = CLEAR_ZBUFFER;
-    // if (track_is_z_buffer_on() == FALSE) {
+    // if (trackIsZBufferOn() == FALSE) {
     //     clearFlags = CLEAR_NONE;
-    // } else if (track_is_sky_on() == FALSE) {
+    // } else if (trackIsSkyOn() == FALSE) {
     //     clearFlags = CLEAR_COLOR | CLEAR_ZBUFFER;
     // }
 
-    // rcp_clear_screen(&gCurGfx, &gCurMtx, phi_v1);
+    // rcpClearScreen(&gCurGfx, &gCurMtx, phi_v1);
     recomp_fake_frame_rdp_init(&gCurGfx);
 }
 
@@ -158,7 +157,7 @@ void recomp_do_fake_frame_end(void) {
     u32 updateRate;
 
     // rt64 hack
-    u32 viSize = vi_get_current_size();
+    u32 viSize = viGetCurrentSize();
     u32 viWidth = GET_VIDEO_WIDTH(viSize);
     u32 viHeight = GET_VIDEO_HEIGHT(viSize);
 
@@ -175,15 +174,15 @@ void recomp_do_fake_frame_end(void) {
     gDPFullSync(gCurGfx++);
     gSPEndDisplayList(gCurGfx++);
 
-    gfxtask_wait();
-    // obj_do_deferred_free();
+    rcpWaitDP();
+    // objDoDeferredFree();
     // mmFreeTick();
 
     if (gPauseState == 0) {
-        camera_apply_alternate_trigger();;
+        camApplyAlternateTrigger();;
     }
 
-    //gUpdateRate = vi_frame_sync(0);
+    //gUpdateRate = viFrameSync(0);
     gUpdateRate = recomp_fake_frame_vi_sync();
     
     //if (0) {}
@@ -199,6 +198,6 @@ void recomp_do_fake_frame_end(void) {
     gUpdateRateMirrorF = gUpdateRateF;
     gUpdateRateInverseMirrorF = 1.0f / gUpdateRateMirrorF;
     
-    // main_handle_map_change();
+    // mainHandleMapChange();
     // write_c_file_label_pointers("main/main.c", 0x37C);
 }

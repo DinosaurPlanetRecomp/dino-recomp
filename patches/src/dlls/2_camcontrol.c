@@ -49,13 +49,13 @@ static void recomp_check_camera_jumps(void) {
     static Vec3f camVelocity = {0};
 
     Vec3f posDelta;
-    vec3_sub(&sCam->srt.transl, &sCam->positionMirror, &posDelta);
+    vec3Sub(&sCam->srt.transl, &sCam->positionMirror, &posDelta);
 
     Vec3f posProjected;
-    vec3_add_with_scale(&sCam->positionMirror, &camVelocity, gUpdateRateF, &posProjected);
+    vec3AddWithScale(&sCam->positionMirror, &camVelocity, gUpdateRateF, &posProjected);
 
-    f32 distToProjected = vec3_distance(&sCam->srt.transl, &posProjected);
-    f32 speed = vec3_length(&camVelocity);
+    f32 distToProjected = vec3Distance(&sCam->srt.transl, &posProjected);
+    f32 speed = vec3Length(&camVelocity);
     f32 threshold = recomp_get_camera_jump_threshold(speed);
     // if (distToProjected > (threshold * 0.5f)) {
     //     recomp_printf("dist %f / %f  (%f)\n", distToProjected, threshold, speed);
@@ -78,7 +78,7 @@ RECOMP_PATCH void CamControl_tick(void) {
     f32 tSpeed;
     u8 onTitleScreen;
 
-    if (menu_get_current() == MENU_TITLE_SCREEN) {
+    if (menuGetCurrent() == MENU_TITLE_SCREEN) {
         onTitleScreen = TRUE;
     } else {
         onTitleScreen = FALSE;
@@ -89,7 +89,7 @@ RECOMP_PATCH void CamControl_tick(void) {
         return;
     }
     
-    func_80008D90(player->parent);
+    vox_func_80008D90(player->parent);
     CamControl_store_player_coords(player);
     CamControl_average_player_speed(sCam, player);
     
@@ -106,7 +106,7 @@ RECOMP_PATCH void CamControl_tick(void) {
     
     //Transform the player's coordinates based on their parent Object
     if (player->parent != NULL) {
-        transform_point_by_object(
+        camTransformPointByObject(
             player->srt.transl.x, player->srt.transl.y, player->srt.transl.z, 
             &player->srt.transl.x, &player->srt.transl.y, &player->srt.transl.z, 
             player->parent
@@ -197,8 +197,8 @@ RECOMP_PATCH void CamControl_update_camera(Cam* cam) {
     f32 tValue;
     f32 spline[4];
 
-    set_camera_selector(0);
-    camera = get_main_camera();
+    camSetCameraSelector(0);
+    camera = camGetMain();
     camera->srt.yaw = cam->srt.yaw;
     camera->srt.pitch = cam->srt.pitch;
     camera->srt.roll = cam->srt.roll;
@@ -216,7 +216,7 @@ RECOMP_PATCH void CamControl_update_camera(Cam* cam) {
         spline[2] = 0.0f;
         spline[0] = 0.0f;
         spline[1] = 1.0f;
-        tValue = 1.0f - curves_hermite(spline, cam->tValue, 0);
+        tValue = 1.0f - curvesHermite(spline, cam->tValue, 0);
 
         //Linear interpolation (position)
         if (cam->easeFlags & Cam_Ease_X) {
@@ -248,15 +248,15 @@ RECOMP_PATCH void CamControl_update_camera(Cam* cam) {
     }
     
     //Change FOV
-    if (camera_get_fov() != sFov) {
-        camera_set_fov(sFov);
+    if (camGetFOV() != sFov) {
+        camSetFOV(sFov);
     }
     
-    update_camera_for_object(camera);
+    camUpdateCameraForObject(camera);
     map_func_80046B58(camera->tx, camera->ty, camera->tz);
 
     //Update camera letterboxing
-    sLetterboxHeight = camera_get_letterbox();
+    sLetterboxHeight = camGetLetterbox();
     // @recomp: Add back +6 offset removed from other scissor patches.
     //          This is necessary for the cinematic top/bottom black bars during cutscnes to be the correct size.
     s32 letterboxGoal = cam->letterboxGoal == 0 ? 0 : cam->letterboxGoal + 6;
@@ -272,7 +272,7 @@ RECOMP_PATCH void CamControl_update_camera(Cam* cam) {
                 sLetterboxHeight = letterboxGoal;
             }
         }
-        camera_set_letterbox(sLetterboxHeight);
+        camSetLetterbox(sLetterboxHeight);
     }
     
     cam->letterboxGoal = 0;
@@ -286,7 +286,7 @@ RECOMP_PATCH void CamControl_set_letterbox_goal(s32 height, s32 startAtGoal) {
         if (startAtGoal) {
             // @recomp: Add back +6 offset removed from other scissor patches.
             //          Same patch as in CamControl_update_camera.
-            camera_set_letterbox(height == 0 ? 0 : height + 6);
+            camSetLetterbox(height == 0 ? 0 : height + 6);
         }
     }
 }

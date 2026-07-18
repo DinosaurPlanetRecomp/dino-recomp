@@ -4,9 +4,9 @@
 #include "PR/ultratypes.h"
 #include "dlls/engine/29_gplay.h"
 #include "dlls/engine/31_flash.h"
-#include "sys/asset_thread.h"
+#include "sys/asset.h"
 #include "sys/dll.h"
-#include "sys/fs.h"
+#include "sys/pi.h"
 #include "sys/memory.h"
 #include "dll.h"
 
@@ -96,7 +96,7 @@ RECOMP_PATCH s32 gplay_load_save(s8 idx, u8 startGame) {
         } else {
             // @recomp: Zero out recomp data when loading from SAVEGAME.bin
             bzero(sSavegame, sizeof(RecompFlashData));
-            queue_load_file_region_to_ptr(
+            assetRomLoadSection(
                 (void**)&sSavegame->asFlash,
                 SAVEGAME_BIN,
                 idx * sizeof(FlashStruct) - (sizeof(FlashStruct) * 4),

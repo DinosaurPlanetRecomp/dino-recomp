@@ -23,7 +23,7 @@
 #include "reasset/special/reasset_menus.h"
 
 #include "libc/string.h"
-#include "sys/fs.h"
+#include "sys/pi.h"
 
 RECOMP_DECLARE_EVENT(reasset_on_init(void));
 RECOMP_DECLARE_EVENT(reasset_on_fst_set(void));

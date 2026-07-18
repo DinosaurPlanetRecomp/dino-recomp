@@ -6,7 +6,7 @@
 
 #include "PR/ultratypes.h"
 #include "PR/os.h"
-#include "sys/fs.h"
+#include "sys/pi.h"
 #include "sys/memory.h"
 
 typedef struct {
@@ -139,7 +139,7 @@ RECOMP_EXPORT void reasset_fst_read_from_file(s32 fileID, void *dst, u32 offset,
         // Read original ROM
         u32 fileOffset = originalFst->offsets[fileID];
 
-        read_from_rom((u32)&__file1Address + fileOffset + offset, dst, size);
+        romCopy((u32)&__file1Address + fileOffset + offset, dst, size);
     }
 }
 

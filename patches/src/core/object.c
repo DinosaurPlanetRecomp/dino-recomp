@@ -6,9 +6,9 @@
 #include "PR/ultratypes.h"
 #include "game/objects/object_id.h"
 #include "sys/camera.h"
-#include "sys/fs.h"
+#include "sys/pi.h"
 #include "sys/gfx/model.h"
-#include "sys/asset_thread.h"
+#include "sys/asset.h"
 #include "sys/dll.h"
 #include "sys/exception.h"
 #include "sys/linked_list.h"
@@ -52,11 +52,10 @@ extern s8 gEffectBoxCount;
 extern Object *gEffectBoxes[20];
 extern s32 D_800B1988;
 
-extern void obj_clear_all(void);
-extern void obj_mark_visibility_sort_dirty(void);
-extern void obj_init_object(Object *obj, ObjSetup *setup, s32 reset);
-extern void obj_free_objdef(s32 tabIdx);
-extern void func_8002272C(Object *obj);
+extern void objClearAll(void);
+extern void objMarkVisibilitySortDirty(void);
+extern void objFreeObjdef(s32 tabIdx);
+extern void objInitObject(Object *obj, ObjSetup *setup, s32 reset);
 
 // 180 -> 500
 #define RECOMP_MAX_OBJECTS 500
@@ -105,12 +104,12 @@ static void recomp_obj_update_matrix_group_state(Object *obj, RecompObjInterpSta
         // If the object turned very sharply, interpolation will look wrong since the movement was too large.
         // This is mainly a problem with the player and the ability to instantly do a 180 in a single frame.
         f32 lastDir[2] = {
-            fcos16_precise(state->lastYaw),
-            fsin16_precise(state->lastYaw)
+            mathCosfInterp(state->lastYaw),
+            mathSinfInterp(state->lastYaw)
         };
         f32 dir[2] = {
-            fcos16_precise(obj->srt.yaw),
-            fsin16_precise(obj->srt.yaw)
+            mathCosfInterp(obj->srt.yaw),
+            mathSinfInterp(obj->srt.yaw)
         };
 
         // TODO: is this even right?
@@ -218,7 +217,7 @@ static void recomp_obj_free_matrix_group(Object *obj) {
     }
 }
 
-RECOMP_PATCH void init_objects(void) {
+RECOMP_PATCH void objInit(void) {
     int i;
 
     // @recomp: Init matrix group stuff
@@ -231,12 +230,12 @@ RECOMP_PATCH void init_objects(void) {
     D_800B18E4 = mmAlloc(0x10, ALLOC_TAG_OBJECTS_COL, ALLOC_NAME("obj:contnobuf"));
 
     //load OBJINDEX.BIN and count number of entries
-    queue_alloc_load_file((void **) (&gFile_OBJINDEX), OBJINDEX_BIN);
-    gObjIndexCount = (get_file_size(OBJINDEX_BIN) >> 1) - 1;
+    assetRomLoad((void **) (&gFile_OBJINDEX), OBJINDEX_BIN);
+    gObjIndexCount = (piRomGetFileSize(OBJINDEX_BIN) >> 1) - 1;
     while(!gFile_OBJINDEX[gObjIndexCount]) gObjIndexCount--;
 
     //load OBJECTS.TAB and count number of entries
-    queue_alloc_load_file((void **)&gFile_OBJECTS_TAB, OBJECTS_TAB);
+    assetRomLoad((void **)&gFile_OBJECTS_TAB, OBJECTS_TAB);
     gNumObjectsTabEntries = 0;
     while(gFile_OBJECTS_TAB[gNumObjectsTabEntries] != -1) gNumObjectsTabEntries++;
     gNumObjectsTabEntries--;
@@ -247,21 +246,21 @@ RECOMP_PATCH void init_objects(void) {
     for(i = 0; i < gNumObjectsTabEntries; i++) gObjDefRefCount[i] = 0; //why not memset?
 
     //load TABLES.BIN and TABLES.TAB and count number of entries
-    queue_alloc_load_file((void **) (&gFile_TABLES_BIN), TABLES_BIN);
-    queue_alloc_load_file((void **) (&gFile_TABLES_TAB), TABLES_TAB);
+    assetRomLoad((void **) (&gFile_TABLES_BIN), TABLES_BIN);
+    assetRomLoad((void **) (&gFile_TABLES_TAB), TABLES_TAB);
     gNumTablesTabEntries = 0;
     while(gFile_TABLES_TAB[gNumTablesTabEntries] != -1) gNumTablesTabEntries++;
 
     //allocate global object list and some other buffers
     // @recomp: Use increased max object count
     gObjList = mmAlloc(sizeof(Object*) * RECOMP_MAX_OBJECTS, ALLOC_TAG_OBJECTS_COL, ALLOC_NAME("obj:ObjList"));
-    objhits_init();
-    obj_clear_all();
+    objHitInit();
+    objClearAll();
 }
 
-RECOMP_PATCH void obj_add_object(Object *obj, u32 initFlags) {
+RECOMP_PATCH void objAddObject(Object *obj, u32 initFlags) {
     if (obj->parent != NULL) {
-        transform_point_by_object(
+        camTransformPointByObject(
             obj->srt.transl.x, obj->srt.transl.y, obj->srt.transl.z,
             &obj->globalPosition.x, &obj->globalPosition.y, &obj->globalPosition.z,
             obj->parent
@@ -280,7 +279,7 @@ RECOMP_PATCH void obj_add_object(Object *obj, u32 initFlags) {
     obj->prevGlobalPosition.y = obj->globalPosition.y;
     obj->prevGlobalPosition.z = obj->globalPosition.z;
 
-    obj_init_object(obj, obj->setup, FALSE);
+    objInitObject(obj, obj->setup, FALSE);
 
     if (obj->objhitInfo != NULL) {
         obj->objhitInfo->unk10.x = obj->srt.transl.x;
@@ -293,20 +292,20 @@ RECOMP_PATCH void obj_add_object(Object *obj, u32 initFlags) {
     }
 
     if (obj->def->mobileMapID > -1) {
-        map_load_mobile_map(obj->def->mobileMapID, obj);
+        mapLoadMobileMap(obj->def->mobileMapID, obj);
     }
 
     update_pi_manager_array(0, -1);
 
     if (obj->def->flags & OBJDEF_IS_MOBILE_MAP) {
-        obj_add_object_type(obj, OBJTYPE_MobileMap);
+        objAddObjectType(obj, OBJTYPE_MobileMap);
 
         if (obj->updatePriority != OBJPRIORITY_MOBILE_MAP) {
-            obj_set_update_priority(obj, OBJPRIORITY_MOBILE_MAP);
+            objSetPriority(obj, OBJPRIORITY_MOBILE_MAP);
         }
     } else {
         if (obj->updatePriority == 0) {
-            obj_set_update_priority(obj, OBJPRIORITY_DEFAULT);
+            objSetPriority(obj, OBJPRIORITY_DEFAULT);
         }
     }
 
@@ -325,21 +324,21 @@ RECOMP_PATCH void obj_add_object(Object *obj, u32 initFlags) {
             recomp_eprintf("Failed assertion ObjListSize<MAX_OBJECTS\n");
         }
 
-        obj_add_tick(obj);
+        objEnable(obj);
     }
 
     if (obj->def->unk5e >= 1) {
-        obj_add_object_type(obj, OBJTYPE_LookAt);
+        objAddObjectType(obj, OBJTYPE_LookAt);
     }
 
     // Resorting by visibility isn't necessary if the object is visible since the object
     // was added to the end of the list where the visible objects are.
     if (obj->def->flags & OBJDEF_INVISIBLE) {
-        obj_mark_visibility_sort_dirty();
+        objMarkVisibilitySortDirty();
     }
 
     if (obj->def->flags & OBJDEF_FLAG10) {
-        obj_add_object_type(obj, OBJTYPE_56);
+        objAddObjectType(obj, OBJTYPE_56);
     }
 
     write_c_file_label_pointers("objects/objects.c", 1143);
@@ -348,7 +347,7 @@ RECOMP_PATCH void obj_add_object(Object *obj, u32 initFlags) {
     recomp_obj_alloc_matrix_group(obj);
 }
 
-RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
+RECOMP_PATCH void objFreeObjectInternal(Object *obj, s32 onlySelf) {
     Object *obj2;
     /*sp+0xE4*/ LightAction lAction;
     AnimObj_Data *animObjdata;
@@ -361,21 +360,21 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
 
     if (obj->dll != NULL) {
         update_pi_manager_array(4, obj->id);
-        obj->dll->vtbl->free(obj, onlySelf);
+        obj->dll->vtbl->Free(obj, onlySelf);
         update_pi_manager_array(4, -1);
-        dll_unload(obj->dll);
+        dllFree(obj->dll);
     }
 
-    gDLL_6_AMSFX->vtbl->free_object(obj);
+    dll_amSfx->FreeObject(obj);
     gDLL_5_AMSEQ->vtbl->func17(obj);
     gDLL_13_Expgfx->vtbl->func9(obj);
 
     if (obj->def != NULL && (obj->def->flags & OBJDEF_FLAG10)) {
-        obj_free_object_type(obj, OBJTYPE_56);
+        objFreeObjectType(obj, OBJTYPE_56);
     }
 
     if (obj->def->flags & OBJDEF_IS_MOBILE_MAP) {
-        obj_free_object_type(obj, OBJTYPE_MobileMap);
+        objFreeObjectType(obj, OBJTYPE_MobileMap);
 
         if (!onlySelf) {
             numStackObjs = 0;
@@ -403,10 +402,10 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
             }
 
             for (i = 0; i < numStackObjs; i++) {
-                obj_destroy_object(stackObjs[i]);
+                objFreeObject(stackObjs[i]);
             }
 
-            map_free(obj->mobileMapID);
+            mapFree(obj->mobileMapID);
         }
     }
 
@@ -432,7 +431,7 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
     
 
     if (obj->def->unk5e >= 1) {
-        obj_free_object_type(obj, OBJTYPE_LookAt);
+        objFreeObjectType(obj, OBJTYPE_LookAt);
     }
 
     if (obj->def->unk87 & 0x10) {
@@ -450,11 +449,11 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
         }
 
         if (obj->shadow->texture != NULL) {
-            tex_free(obj->shadow->texture);
+            texFreeTexture(obj->shadow->texture);
         }
 
         if (obj->shadow->unk8 != NULL) {
-            tex_free(obj->shadow->unk8);
+            texFreeTexture(obj->shadow->unk8);
         }
     }
 
@@ -467,11 +466,11 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
     for (k = 0; k < numModels; k++) {
         if (obj->modelInsts[k] != NULL) {
             modelInst = obj->modelInsts[k];
-            destroy_model_instance(modelInst);
+            modFreeModel(modelInst);
         }
     }
 
-    obj_free_objdef(obj->tabIdx);
+    objFreeObjdef(obj->tabIdx);
 
     if (obj->seqSlot >= 0) {
         if (!onlySelf) {
@@ -490,21 +489,21 @@ RECOMP_PATCH void obj_free_object(Object *obj, s32 onlySelf) {
     mmFree(obj);
 }
 
-RECOMP_PATCH void obj_destroy_object(Object *obj) {
+RECOMP_PATCH void objFreeObject(Object *obj) {
     s32 i;
     s32 k;
 
     if (obj == NULL) {
         // "Failed assertion obj" (default.dol)
         // @recomp: Restore printf
-        recomp_eprintf("obj_destroy_object: failed assertion obj\n");
+        recomp_eprintf("objFreeObject: failed assertion obj\n");
         *((volatile s8*)NULL) = 0;
         return;
     }
 
     if (!(obj->stateFlags & OBJSTATE_DESTROYED)) {
         if (obj->unkD9 != 0) {
-            func_8003273C(obj);
+            objRemoveTouchCallbacksForObj(obj);
         }
 
         if (obj->stateFlags & OBJSTATE_STANDALONE) {
@@ -522,8 +521,8 @@ RECOMP_PATCH void obj_destroy_object(Object *obj) {
                 }
             }
 
-            obj_free_tick(obj);
-            obj_mark_visibility_sort_dirty();
+            objDisable(obj);
+            objMarkVisibilitySortDirty();
         }
 
         obj->stateFlags |= OBJSTATE_DESTROYED;
@@ -565,7 +564,7 @@ RECOMP_PATCH void obj_destroy_object(Object *obj) {
                 }
             }
         } else {
-            obj_free_object(obj, /*onlySelf*/sObjFreeMode == OBJFREEMODE_FREE_ALL);
+            objFreeObjectInternal(obj, /*onlySelf*/sObjFreeMode == OBJFREEMODE_FREE_ALL);
         }
     }
 }

@@ -14,14 +14,14 @@ extern s8 D_800931B4;
 extern s8 D_800931B8;
 extern Texture *gDiTextures[3];
 
-RECOMP_PATCH void diPrintfInit() {
+RECOMP_PATCH void diPrintfInit(void) {
     // @recomp: Remove code that scales up the rendered diPrintf text when
     // the resolution is above 320x240. This results in the text being way
     // too big for some reason.
     /*
     u32 fbRes;
 
-    fbRes = vi_get_current_size();
+    fbRes = viGetCurrentSize();
     if (GET_VIDEO_WIDTH(fbRes) > 320) {
         D_800931AC = 1;
     }
@@ -33,9 +33,9 @@ RECOMP_PATCH void diPrintfInit() {
     D_800931B4 = 0;
     D_800931B8 = 0;
 
-    gDiTextures[0] = tex_load_deferred(TEXTABLE_0_DiFontAtlas1);
-    gDiTextures[1] = tex_load_deferred(TEXTABLE_1_DiFontAtlas2);
-    gDiTextures[2] = tex_load_deferred(TEXTABLE_2_DiFontAtlas3);
+    gDiTextures[0] = texLoadTexture(TEXTABLE_0_DiFontAtlas1);
+    gDiTextures[1] = texLoadTexture(TEXTABLE_1_DiFontAtlas2);
+    gDiTextures[2] = texLoadTexture(TEXTABLE_2_DiFontAtlas3);
 
     gDebugPrintBufferEnd = &gDebugPrintBufferStart[0];
 }

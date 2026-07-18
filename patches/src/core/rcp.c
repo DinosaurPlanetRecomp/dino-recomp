@@ -3,6 +3,7 @@
 
 #include "PR/gbi.h"
 #include "sys/camera.h"
+#include "sys/gfx/texture.h"
 #include "sys/rcp.h"
 #include "sys/rsp_segment.h"
 #include "sys/vi.h"
@@ -14,17 +15,17 @@ extern u8 sBGPrimColourB;
 
 extern u16 *gFramebufferEnd;
 
-RECOMP_PATCH void rcp_clear_screen(Gfx **gdl, Mtx **mtx, s32 flags) {
+RECOMP_PATCH void rcpClearScreen(Gfx **gdl, Mtx **mtx, s32 flags) {
     s32 viSize;
     s32 viWidth, viHeight;
     s32 ulx, uly, lrx, lry;
     s32 letterbox;
 
-    viewport_get_full_rect(&ulx, &uly, &lrx, &lry);
+    camViewportGetFullRect(&ulx, &uly, &lrx, &lry);
 
-    letterbox = camera_get_letterbox();
+    letterbox = camGetLetterbox();
 
-    viSize = vi_get_current_size();
+    viSize = viGetCurrentSize();
     viWidth = GET_VIDEO_WIDTH(viSize);
     viHeight = GET_VIDEO_HEIGHT(viSize);
 
@@ -33,12 +34,12 @@ RECOMP_PATCH void rcp_clear_screen(Gfx **gdl, Mtx **mtx, s32 flags) {
     gDPSetScissor((*gdl)++, G_SC_NON_INTERLACE, 0, 0, viWidth, viHeight);
 
     gDPSetCombineMode((*gdl), G_CC_PRIMITIVE, G_CC_PRIMITIVE);
-    dl_apply_combine(gdl);
+    dlApplyCombine(gdl);
 
     gDPSetOtherMode((*gdl), 
         G_AD_PATTERN | G_CD_MAGICSQ | G_CK_NONE | G_TC_FILT | G_TF_BILERP | G_TT_NONE | G_TL_TILE | G_TD_CLAMP | G_TP_PERSP | G_CYC_FILL |  G_PM_NPRIMITIVE, 
         G_AC_NONE | G_ZS_PIXEL | G_RM_OPA_SURF | G_RM_OPA_SURF2);
-    dl_apply_other_mode(gdl);
+    dlApplyOtherMode(gdl);
 
     if (gDLBuilder->needsPipeSync) {
         gDLBuilder->needsPipeSync = FALSE;
@@ -48,7 +49,7 @@ RECOMP_PATCH void rcp_clear_screen(Gfx **gdl, Mtx **mtx, s32 flags) {
     gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, viWidth, SEGMENT_ADDR(SEGMENT_ZBUFFER, 0x0));
 
     if ((flags & CLEAR_ZBUFFER) != 0) {
-        dl_set_fill_color(gdl, (GPACK_ZDZ(G_MAXFBZ, 0) << 16) | GPACK_ZDZ(G_MAXFBZ, 0));
+        dlSetFillColor(gdl, (GPACK_ZDZ(G_MAXFBZ, 0) << 16) | GPACK_ZDZ(G_MAXFBZ, 0));
 
         gDPFillRectangle((*gdl)++, ulx, uly, lrx, lry);
 
@@ -63,7 +64,7 @@ RECOMP_PATCH void rcp_clear_screen(Gfx **gdl, Mtx **mtx, s32 flags) {
     gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, viWidth, SEGMENT_ADDR(SEGMENT_FRAMEBUFFER, 0x0));
 
     if ((flags & CLEAR_COLOR) != 0 || letterbox != 0) {
-        dl_set_fill_color(gdl, 
+        dlSetFillColor(gdl, 
             (GPACK_RGBA5551(sBGPrimColourR, sBGPrimColourG, sBGPrimColourB, 1) << 16) 
                 | GPACK_RGBA5551(sBGPrimColourR, sBGPrimColourG, sBGPrimColourB, 1));
 
@@ -81,11 +82,11 @@ RECOMP_PATCH void rcp_clear_screen(Gfx **gdl, Mtx **mtx, s32 flags) {
         }
     }
 
-    camera_apply_scissor(gdl);
+    camApplyScissor(gdl);
 }
 
 void recomp_take_pause_screenshot(Gfx **gdl) {
-    u32 viSize = vi_get_current_size();
+    u32 viSize = viGetCurrentSize();
     u32 viWidth = GET_VIDEO_WIDTH(viSize);
     u32 viHeight = GET_VIDEO_HEIGHT(viSize);
 
@@ -112,7 +113,7 @@ void recomp_take_pause_screenshot(Gfx **gdl) {
     gDPSetColorImage((*gdl)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, viWidth, SEGMENT_FRAMEBUFFER << 24);
 }
 
-RECOMP_PATCH void draw_pause_screen_freeze_frame(Gfx** gdl) {
+RECOMP_PATCH void rcpDrawPauseScreenFreezeFrame(Gfx** gdl) {
     s32 height;
     s32 width;
 
@@ -139,8 +140,8 @@ RECOMP_PATCH void draw_pause_screen_freeze_frame(Gfx** gdl) {
     gSPTextureRectangle((*gdl)++, 0, 0, (width + 1) * 4, (height + 1) * 4, 0, 0, 0, 1 << 12, 1 << 10);
 
     // @recomp: Reset DLBuilder state since we're not using it
-    dl_set_all_dirty();
+    dlSetAllDirty();
 
     // @recomp: Reset texture DL cache since we're changing the texture outside the tex code
-    tex_render_reset();
+    texRenderReset();
 }

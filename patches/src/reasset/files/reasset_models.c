@@ -17,7 +17,7 @@
 
 #include "PR/ultratypes.h"
 #include "sys/gfx/model.h"
-#include "sys/fs.h"
+#include "sys/pi.h"
 #include "sys/memory.h"
 #include "sys/rarezip.h"
 
@@ -195,7 +195,7 @@ static void model_decompress(Buffer *buffer) {
         return;
     }
 
-    s32 decompressedSize = rarezip_uncompress_size((u8*)data + 8);
+    s32 decompressedSize = rarezipUncompressSize((u8*)data + 8);
     if (decompressedSize <= 0) {
         // Already decompressed or zero size
         return;
@@ -209,7 +209,7 @@ static void model_decompress(Buffer *buffer) {
 
     bcopy(data, newData, 8); // header
     *((s32*)((u8*)newData + 0x8)) = -1; // decompressedSize
-    rarezip_uncompress((u8*)data + 8, (u8*)newData + newDataOffset, decompressedSize);
+    rarezipUncompress((u8*)data + 8, (u8*)newData + newDataOffset, decompressedSize);
 
     buffer_set(buffer, newData, newSize);
 
@@ -392,7 +392,7 @@ void reasset_models_patch(void) {
 
         void *modelBin = entry->modelPtr.ptr;
         if (modelBin != NULL) {
-            reasset_assert(rarezip_uncompress_size((u8*)modelBin + 8) == -1,
+            reasset_assert(rarezipUncompressSize((u8*)modelBin + 8) == -1,
                 "[reasset] bug! Model needs to be uncompressed for the patch stage.");
             
             Model *model = (Model*)((u8*)modelBin + 0xC);

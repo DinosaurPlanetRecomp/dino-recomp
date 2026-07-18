@@ -3,7 +3,7 @@
 #include "PR/ultratypes.h"
 #include "PR/gbi.h"
 #include "sys/gfx/texture.h"
-#include "sys/fs.h"
+#include "sys/pi.h"
 #include "sys/memory.h"
 #include "sys/rarezip.h"
 #include "macros.h"
@@ -21,10 +21,10 @@ extern u16* gFile_TEXTABLE;
 extern s32 gNumCachedTextures;
 extern s32 *gTexLoadBuffer; // scratch space used when loading texture bin header data
 
-extern Gfx *tex_setup_display_lists(Texture *texture, Gfx *gdl);
+extern Gfx *texSetupDisplayLists(Texture *texture, Gfx *gdl);
 
 // Note: this is based off of a nonmatch
-RECOMP_PATCH Texture* tex_load(s32 id, u8 param2) {
+RECOMP_PATCH Texture* texLoadTextureActual(s32 id, u8 param2) {
     u32 binFileID; // sp74
     Texture* tex;
     s32 temp;
@@ -71,10 +71,10 @@ RECOMP_PATCH Texture* tex_load(s32 id, u8 param2) {
     numFrames = (gFile_TEX_TAB[tab][tabEntry] >> 24) & 0xFF;
     compressedSize = (gFile_TEX_TAB[tab][tabEntry + 1] & 0xFFFFFF) - offset;
     if (numFrames > 1) {
-        read_file_region(binFileID, gTexLoadBuffer, offset, (numFrames + 1) << 3);
+        piRomLoadSection(binFileID, gTexLoadBuffer, offset, (numFrames + 1) << 3);
     } else {
         gTexLoadBuffer[0] = 0;
-        gTexLoadBuffer[1] = rarezip_uncompress_size_rom(binFileID, offset, TRUE);
+        gTexLoadBuffer[1] = rarezipUncompressSizeROM(binFileID, offset, TRUE);
         gTexLoadBuffer[2] = compressedSize;
     }
     
@@ -99,12 +99,12 @@ RECOMP_PATCH Texture* tex_load(s32 id, u8 param2) {
         } else {
             // @recomp: Support uncompressed textures (note: uncompressed data starts at +0x4 instead of +0x5)
             if (notCompressed) {
-                read_file_region(binFileID, tex, gTexLoadBuffer[frame << 1] + offset + 0x4, uncompressedSize);
+                piRomLoadSection(binFileID, tex, gTexLoadBuffer[frame << 1] + offset + 0x4, uncompressedSize);
             } else {
                 temp = (s32)((((u8*)tex + uncompressedSize) - compressedSize) + 0xE4);
                 temp_s3 = (u8*)(temp - (temp % 16));
-                read_file_region(binFileID, temp_s3, gTexLoadBuffer[frame << 1] + offset, compressedSize);
-                rarezip_uncompress(temp_s3, (u8*)tex, uncompressedSize);
+                piRomLoadSection(binFileID, temp_s3, gTexLoadBuffer[frame << 1] + offset, compressedSize);
+                rarezipUncompress(temp_s3, (u8*)tex, uncompressedSize);
             }
             // @recomp: Invoke event
             recomp_on_tex_loaded_frame_rom(id, frame, tex);
@@ -121,7 +121,7 @@ RECOMP_PATCH Texture* tex_load(s32 id, u8 param2) {
             }
             tex->unk10 = (u32) (uncompressedSize + 0xE4) >> 2;
             mmRealloc(tex, 
-                ((u8*)tex_setup_display_lists(tex, (Gfx*)mmAlign16((u32)tex + uncompressedSize)) - (u8*)tex) + 8, 
+                ((u8*)texSetupDisplayLists(tex, (Gfx*)mmAlign16((u32)tex + uncompressedSize)) - (u8*)tex) + 8, 
                 NULL);
             // @recomp: Invoke event
             recomp_on_tex_loaded_frame(id, frame, tex);

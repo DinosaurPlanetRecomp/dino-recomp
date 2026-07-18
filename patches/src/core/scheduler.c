@@ -88,7 +88,7 @@ RECOMP_PATCH void __scHandleRetrace(OSSched *sc) {
             if (gRetraceCounter64 % 2 == 0) {
                 osSendMesg(client->msgQ, sc, OS_MESG_NOBLOCK);
                 if (sc->audioListHead) {
-                    sc_signal_do_audio(sc);
+                    scSignalDoAudio(sc);
                 }
             }
         } else if (client->id == OS_SC_ID_VIDEO) {

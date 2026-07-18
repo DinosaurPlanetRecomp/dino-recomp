@@ -113,14 +113,14 @@ RECOMP_PATCH void *mmAlloc(s32 size, s32 tag, const char *name) {
 RECOMP_PATCH void mmSetDelay(s32 delay) {
     s32 intFlags;
 
-    intFlags = interrupts_disable();
+    intFlags = disableInterrupts();
     gMemoryFreeDelay = delay;
     if (delay == 0) {
         while (gMemoryFreeQueueLength > 0) {
             mmFreeNow(gMemoryFreeQueue[--gMemoryFreeQueueLength].address);
         }
     }
-    interrupts_enable(intFlags);
+    enableInterrupts(intFlags);
 }
 
 // @recomp: Patch to use new free queue
@@ -147,7 +147,7 @@ RECOMP_PATCH void mmFreeTick(void) {
     MemoryPoolSlot* slot;
     s32 nextIndex;
 
-    intFlags = interrupts_disable();
+    intFlags = disableInterrupts();
     
     for (i = 0; i < gMemoryFreeQueueLength;) {
         gMemoryFreeQueue[i].ticksLeft--;
@@ -162,7 +162,7 @@ RECOMP_PATCH void mmFreeTick(void) {
         }
     }
     
-    interrupts_enable(intFlags);
+    enableInterrupts(intFlags);
     
     // Update memory monitors
     memMonVal0 = 0;

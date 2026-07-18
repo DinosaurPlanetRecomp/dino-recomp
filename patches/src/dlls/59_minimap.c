@@ -78,14 +78,14 @@ RECOMP_PATCH s32 minimap_print(Gfx **gdl, s32 arg1) {
     index = 0;
     index2 = 0;
     mapID = 0;
-    player = get_player();
-    sidekick = get_sidekick();
+    player = objGetPlayer();
+    sidekick = objGetSidekick();
     if (player != NULL) {
         //Get mapID from player's coords, or from the mobile map Object they're parented to
         if (player->parent) {
             mapID = player->parent->mapID;
         } else {
-            mapID = map_world_xz_to_map_id(player->srt.transl.x, player->srt.transl.z);
+            mapID = mapWorldXZToMapID(player->srt.transl.x, player->srt.transl.z);
         }
 
         //Iterate over the map definitions until the one with the relevant mapID is found
@@ -109,7 +109,7 @@ RECOMP_PATCH s32 minimap_print(Gfx **gdl, s32 arg1) {
                 if ((playerX >= mapTiles[index2].minX) && (playerX < mapTiles[index2].maxX) && 
                     (playerZ >= mapTiles[index2].minZ) && (playerZ < mapTiles[index2].maxZ) && 
                     (playerY >= mapTiles[index2].minY) && (playerY < mapTiles[index2].maxY) && 
-                    main_get_bits(mapTiles[index2].gamebitSection)) { //Make sure the tile's gamebit is set
+                    mainGetBits(mapTiles[index2].gamebitSection)) { //Make sure the tile's gamebit is set
 
                     tileIndex = 0;
                     mapFound = TRUE;
@@ -159,13 +159,13 @@ RECOMP_PATCH s32 minimap_print(Gfx **gdl, s32 arg1) {
         }
         
         //Set/get minimap gamebits
-        main_set_bits(BIT_Toggle_Minimap, mapFound);
-        if (sMinimapVisible == FALSE || main_get_bits(BIT_Hide_Minimap)) {
+        mainSetBits(BIT_Toggle_Minimap, mapFound);
+        if (sMinimapVisible == FALSE || mainGetBits(BIT_Hide_Minimap)) {
             loadTextureID = 0;
         }
         
         //Hide during cutscenes
-        if (camera_get_letterbox()) {
+        if (camGetLetterbox()) {
             loadTextureID = 0;
             sOpacity = 0;
         }
@@ -184,12 +184,12 @@ RECOMP_PATCH s32 minimap_print(Gfx **gdl, s32 arg1) {
             if (sOpacity < 0) {
                 sOpacity = 0;
                 if (sMapTile && (loadTextureID || sOpacity == 0)) {
-                    tex_free(sMapTile);
+                    texFreeTexture(sMapTile);
                     sMapTile = NULL;
                     sLoadedTexTableID = 0;
                 }
                 if (loadTextureID) {
-                    sMapTile = tex_load_deferred(loadTextureID);
+                    sMapTile = texLoadTexture(loadTextureID);
                     sLoadedTexTableID = loadTextureID;
                 }
             }
@@ -205,13 +205,13 @@ RECOMP_PATCH s32 minimap_print(Gfx **gdl, s32 arg1) {
             gEXSetRectAlign((*gdl)++, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT, 0, 0, 0, 0);
 
             //Draw minimap tile
-            rcp_screen_full_write(gdl, sMapTile, 
+            rcpScreenFullWrite(gdl, sMapTile, 
                     (MINIMAP_SCREEN_X + sOffsetX - sGridX),
                     (MINIMAP_SCREEN_Y + sOffsetY - sGridZ),
                     0, 0, sOpacity, SCREEN_WRITE_TRANSLUCENT);
 
             //Draw player marker
-            rcp_screen_full_write(gdl, sMarkerPlayer, 
+            rcpScreenFullWrite(gdl, sMarkerPlayer, 
                     (MINIMAP_SCREEN_X - sGridX - (player->globalPosition.x - sLevelMaxX) * 0.025f) - 4.0f,
                     (MINIMAP_SCREEN_Y - sGridZ - (player->globalPosition.z - sLevelMaxZ) * 0.025f) - 4.0f,
                     0, 0, sOpacity, SCREEN_WRITE_TRANSLUCENT);
@@ -222,7 +222,7 @@ RECOMP_PATCH s32 minimap_print(Gfx **gdl, s32 arg1) {
                     (sLevelMinX - BLOCKS_GRID_UNIT_HALF < sidekick->globalPosition.x) && (sidekick->globalPosition.x < sLevelMaxX + BLOCKS_GRID_UNIT_HALF) &&
                     (sLevelMinZ - BLOCKS_GRID_UNIT_HALF < sidekick->globalPosition.z) && (sidekick->globalPosition.z < sLevelMaxZ + BLOCKS_GRID_UNIT_HALF)
                 ) {
-                    rcp_screen_full_write(gdl, sMarkerSidekick, 
+                    rcpScreenFullWrite(gdl, sMarkerSidekick, 
                         (MINIMAP_SCREEN_X - sGridX - (sidekick->globalPosition.x - sLevelMaxX) * 0.025f) - 4.0f,
                         (MINIMAP_SCREEN_Y - sGridZ - (sidekick->globalPosition.z - sLevelMaxZ) * 0.025f) - 4.0f,
                         0, 0, sOpacity, SCREEN_WRITE_TRANSLUCENT);

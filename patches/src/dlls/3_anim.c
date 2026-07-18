@@ -324,7 +324,7 @@ RECOMP_PATCH void anim_update_actor_transform(Object* animObj, Object* actor, An
     if ((st->unk87 != 0) && (st->unk84 != 0)) {
         anim_func_72E0(animObj);
     }
-    get_object_child_position(actor, &actor->globalPosition.x, &actor->globalPosition.y, &actor->globalPosition.z);
+    camGetObjectChildPosition(actor, &actor->globalPosition.x, &actor->globalPosition.y, &actor->globalPosition.z);
 }
 
 // TODO: i dont trust this patch

@@ -14,7 +14,7 @@
 #include "reasset/list.h"
 
 #include "PR/ultratypes.h"
-#include "sys/fs.h"
+#include "sys/pi.h"
 #include "sys/memory.h"
 
 typedef struct {

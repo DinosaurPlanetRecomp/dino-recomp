@@ -1,14 +1,20 @@
 #pragma once
 
 #include "PR/ultratypes.h"
-#include "sys/fs.h"
+#include "sys/pi.h"
+
+extern u8 __fstAddress[];
+extern u8 __file1Address[];
+
+typedef struct { 
+    u32 fileCount;
+    u32 offsets[NUM_FILES];
+} Fs;
 
 extern Fs *gFST;
 extern u32 gLastFSTIndex;
-extern s32 __fstAddress;
-extern s32 __file1Address;
 
-void read_from_rom(u32 romAddr, u8* dst, s32 size);
+extern void romCopy(u32 romAddr, u8* dst, s32 size);
 
 // // // //
 

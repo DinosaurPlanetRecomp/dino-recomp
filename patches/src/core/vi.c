@@ -33,16 +33,16 @@ extern u32 gViBlackTimer;
 extern u8 gViUpdateRateTarget;
 extern u8 gViUpdateRate;
 
-extern void vi_swap_buffers(void);
-extern void vi_set_mode(s32 mode);
-extern void vi_update_fb_size_from_current_mode(int framebufferIndex);
-extern void vi_calc_obj_depths(void);
+extern void viSwapBuffers(void);
+extern void viSetMode(s32 mode);
+extern void viUpdateFbSizeFromCurrentMode(int framebufferIndex);
+extern void viCalcObjDepths(void);
 
 s32 recomp_snowbike30FPS = FALSE;
 
 static u16 hack_480pFramebuffers[2][640 * 480];
 
-RECOMP_PATCH void vi_init_framebuffers(int someBool, s32 width, s32 height) {
+RECOMP_PATCH void viInitFramebuffers(int someBool, s32 width, s32 height) {
     VideoResolution *resPtr;
     u32 hRes;
     u32 vRes;
@@ -93,7 +93,7 @@ RECOMP_PATCH void vi_init_framebuffers(int someBool, s32 width, s32 height) {
     }
 }
 
-RECOMP_PATCH void vi_set_update_rate_target(u32 target) {
+RECOMP_PATCH void viSetUpdateRateTarget(u32 target) {
     // @recomp: Don't let the snowbike race cap the framerate
     if (recomp_snowbike30FPS) {
         target = 1;
@@ -102,7 +102,7 @@ RECOMP_PATCH void vi_set_update_rate_target(u32 target) {
     gViUpdateRateTarget = target;
 }
 
-RECOMP_PATCH int vi_contains_point(s32 x, s32 y) {
+RECOMP_PATCH int viContainsPoint(s32 x, s32 y) {
     // @recomp: Adjust for recomp aspect ratio. The game thinks we're running at 4:3 so we need this
     // to return true for negative x values and x values greater than 320, depending on the recomp screen size.
     // TODO: doesnt seem to work for everything...
@@ -123,7 +123,7 @@ RECOMP_PATCH int vi_contains_point(s32 x, s32 y) {
         && y >= uly && y < lry;
 }
 
-RECOMP_PATCH s32 vi_frame_sync(s32 param1) {
+RECOMP_PATCH s32 viFrameSync(s32 param1) {
     s32 updateRate;
     s32 vidMode;
 
@@ -138,7 +138,7 @@ RECOMP_PATCH s32 vi_frame_sync(s32 param1) {
     }
 
     if (param1 != 8) {
-        vi_swap_buffers();
+        viSwapBuffers();
     }
 
     while (osRecvMesg(&gVideoMesgQueue, NULL, OS_MESG_NOBLOCK) != -1) {
@@ -157,14 +157,14 @@ RECOMP_PATCH s32 vi_frame_sync(s32 param1) {
     }
 
     if (D_80093060 != 0) {
-        vidMode = vi_get_mode();
+        vidMode = viGetMode();
 
         if (D_80093060 == 3) {
-            vi_set_mode(vidMode);
-            vi_update_fb_size_from_current_mode(gCurrFramebufferIdx);
+            viSetMode(vidMode);
+            viUpdateFbSizeFromCurrentMode(gCurrFramebufferIdx);
             osViSwapBuffer(gFrontFramebuffer);
         } else if (D_80093060 == 2) {
-            vi_update_fb_size_from_current_mode(gCurrFramebufferIdx);
+            viUpdateFbSizeFromCurrentMode(gCurrFramebufferIdx);
             osViSwapBuffer(gFrontFramebuffer);
         } else {
             D_800BCC90.hdr.type = 0x11;
@@ -176,9 +176,9 @@ RECOMP_PATCH s32 vi_frame_sync(s32 param1) {
 
         D_80093060 -= 1;
     } else {
-        if (get_pause_state() == 1) {
+        if (mainGetPauseState() == 1) {
             // Create pause screen screenshot
-            set_pause_state(2);
+            mainSetPauseState(2);
             // @recomp: Don't copy framebuffer here, we handle this elsewhere in recomp
             //bcopy(gBackFramebuffer, gFramebufferEnd, 0x25800);
         } else {
@@ -186,8 +186,8 @@ RECOMP_PATCH s32 vi_frame_sync(s32 param1) {
         }
     }
 
-    joy_read_nonblocking();
-    vi_calc_obj_depths();
+    joyReadNonblocking();
+    viCalcObjDepths();
     osRecvMesg(&gVideoMesgQueue, NULL, OS_MESG_BLOCK);
 
     return updateRate;

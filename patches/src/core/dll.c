@@ -3,9 +3,9 @@
 #include "recomp_funcs.h"
 #include "recomp_dll.h"
 
-#include "sys/asset_thread.h"
+#include "sys/asset.h"
 #include "sys/dll.h"
-#include "sys/fs.h"
+#include "sys/pi.h"
 #include "sys/memory.h"
 
 extern DLLState *gLoadedDLLList;
@@ -14,13 +14,11 @@ extern DLLTab *gFile_DLLS_TAB;
 extern s32 gDLLCount;
 extern u32 *gFile_DLLSIMPORTTAB;
 
-extern DLLFile *dll_load_from_tab(u16 tabidx, s32 *sizeOut);
+extern DLLFile *dllLoadFromTab(u16 tabidx, s32 *sizeOut);
 
-RECOMP_PATCH void init_dll_system(void) {
-    s32 dllNone = DLL_NONE;
-
-    queue_alloc_load_file((void**)&gFile_DLLS_TAB, DLLS_TAB);
-    queue_alloc_load_file((void**)&gFile_DLLSIMPORTTAB, DLLSIMPORTTAB_BIN);
+RECOMP_PATCH void dllInit(void) {
+    assetRomLoad((void**)&gFile_DLLS_TAB, DLLS_TAB);
+    assetRomLoad((void**)&gFile_DLLSIMPORTTAB, DLLSIMPORTTAB_BIN);
 
     gDLLCount = 2; 
     while (((DLLTabEntry*)((u8*)gFile_DLLS_TAB + gDLLCount * 2 * 4u))->offset != -1) {
@@ -32,15 +30,14 @@ RECOMP_PATCH void init_dll_system(void) {
 
     gLoadedDLLCount = RECOMP_MAX_LOADED_DLLS;
     while (gLoadedDLLCount != 0) {
-        --gLoadedDLLCount;
-        gLoadedDLLList[gLoadedDLLCount].tabidx = dllNone;
+        gLoadedDLLList[--gLoadedDLLCount].tabidx = DLL_NONE;
     }
 
     // @recomp: Init recomp custom DLL system
     recomp_dll_init_system();
 }
 
-RECOMP_PATCH void *dll_load_deferred(u16 idOrIdx, u16 exportCount) {
+RECOMP_PATCH void *dllLoad(u16 idOrIdx, u16 exportCount) {
     DLLFile *dll;
     DLLState *state;
     void *dllInterfacePtr;
@@ -55,22 +52,22 @@ RECOMP_PATCH void *dll_load_deferred(u16 idOrIdx, u16 exportCount) {
     //          Note: Custom engine DLLs are not supported
     if (idOrIdx >= 0x8000) {
         if (idOrIdx > DLLBANK4_LAST_VANILLA_ID) {
-            return recomp_dll_load_deferred_custom(DLL_BANK_OBJECTS, idOrIdx, exportCount);
+            return recomp_dll_load_custom(DLL_BANK_OBJECTS, idOrIdx, exportCount);
         }
     } else if (idOrIdx >= 0x4000) {
         // recomp bank
-        return recomp_dll_load_deferred_custom(DLL_BANK_RECOMP, idOrIdx, exportCount);
+        return recomp_dll_load_custom(DLL_BANK_RECOMP, idOrIdx, exportCount);
     } else if (idOrIdx >= 0x2000) {
         if (idOrIdx > DLLBANK2_LAST_VANILLA_ID) {
-            return recomp_dll_load_deferred_custom(DLL_BANK_PROJGFX, idOrIdx, exportCount);
+            return recomp_dll_load_custom(DLL_BANK_PROJGFX, idOrIdx, exportCount);
         }
     } else if (idOrIdx >= 0x1000) {
         if (idOrIdx > DLLBANK1_LAST_VANILLA_ID) {
-            return recomp_dll_load_deferred_custom(DLL_BANK_MODGFX, idOrIdx, exportCount);
+            return recomp_dll_load_custom(DLL_BANK_MODGFX, idOrIdx, exportCount);
         }
     }
 
-    queue_load_dll(&dllInterfacePtr, idOrIdx, exportCount);
+    assetLoadDLL(&dllInterfacePtr, idOrIdx, exportCount);
 
     state = DLL_INTERFACE_TO_STATE(dllInterfacePtr);
 
@@ -85,7 +82,7 @@ RECOMP_PATCH void *dll_load_deferred(u16 idOrIdx, u16 exportCount) {
     return dllInterfacePtr;
 }
 
-RECOMP_PATCH void *dll_load(u16 idOrIdx, u16 exportCount, s32 bRunConstructor) {
+RECOMP_PATCH void *dllLoadActual(u16 idOrIdx, u16 exportCount, s32 bRunConstructor) {
     DLLFile *dll;
     u32 i;
     s32 totalSize;
@@ -95,24 +92,24 @@ RECOMP_PATCH void *dll_load(u16 idOrIdx, u16 exportCount, s32 bRunConstructor) {
     //          Note: Custom engine DLLs are not supported
     if (idOrIdx >= 0x8000) {
         if (idOrIdx > DLLBANK4_LAST_VANILLA_ID) {
-            return recomp_dll_load_custom(DLL_BANK_OBJECTS, idOrIdx, exportCount, bRunConstructor);
+            return recomp_dll_load_actual_custom(DLL_BANK_OBJECTS, idOrIdx, exportCount, bRunConstructor);
         }
         idOrIdx -= 0x8000;
         // bank4
         idOrIdx += gFile_DLLS_TAB->header.bank4;
     } else if (idOrIdx >= 0x4000) {
         // recomp bank
-        return recomp_dll_load_custom(DLL_BANK_RECOMP, idOrIdx, exportCount, bRunConstructor);
+        return recomp_dll_load_actual_custom(DLL_BANK_RECOMP, idOrIdx, exportCount, bRunConstructor);
     } else if (idOrIdx >= 0x2000) {
         if (idOrIdx > DLLBANK2_LAST_VANILLA_ID) {
-            return recomp_dll_load_custom(DLL_BANK_PROJGFX, idOrIdx, exportCount, bRunConstructor);
+            return recomp_dll_load_actual_custom(DLL_BANK_PROJGFX, idOrIdx, exportCount, bRunConstructor);
         }
         idOrIdx -= 0x2000;
         // bank2
         idOrIdx += gFile_DLLS_TAB->header.bank2 + 1;
     } else if (idOrIdx >= 0x1000) {
         if (idOrIdx > DLLBANK1_LAST_VANILLA_ID) {
-            return recomp_dll_load_custom(DLL_BANK_MODGFX, idOrIdx, exportCount, bRunConstructor);
+            return recomp_dll_load_actual_custom(DLL_BANK_MODGFX, idOrIdx, exportCount, bRunConstructor);
         }
         idOrIdx -= 0x1000;
         // bank1
@@ -127,7 +124,7 @@ RECOMP_PATCH void *dll_load(u16 idOrIdx, u16 exportCount, s32 bRunConstructor) {
         }
     }
 
-    dll = dll_load_from_tab(idOrIdx, &totalSize);
+    dll = dllLoadFromTab(idOrIdx, &totalSize);
     if (!dll) {
         return NULL;
     }
@@ -177,7 +174,7 @@ RECOMP_PATCH void *dll_load(u16 idOrIdx, u16 exportCount, s32 bRunConstructor) {
     return (void*)interfacePtr;
 }
 
-RECOMP_PATCH s32 dll_unload(void *dllInterfacePtr) {
+RECOMP_PATCH s32 dllFree(void *dllInterfacePtr) {
     DLLFile *dll;
     u16 idx;
     u32 *dllClearAddr;

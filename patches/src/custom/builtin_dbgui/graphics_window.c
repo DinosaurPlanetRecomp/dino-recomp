@@ -191,7 +191,7 @@ static void camera_tab(void) {
 }
 
 static void video_tab(void) {
-    u32 res = vi_get_current_size();
+    u32 res = viGetCurrentSize();
     u32 width = GET_VIDEO_WIDTH(res);
     u32 height = GET_VIDEO_HEIGHT(res);
 

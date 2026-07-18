@@ -45,9 +45,9 @@ RECOMP_PATCH s32 rareware_update1(void) {
     }
 
     // @recomp: Allow skipping
-    if (sCutToNextScreen != 0 || (joy_get_pressed_raw(0) & A_BUTTON) != 0) {
-        main_set_bits(BIT_Menus_Selection_Blocked, 0);
-        menu_set(MENU_GAME_SELECT);
+    if (sCutToNextScreen != 0 || (joyGetPressedRaw(0) & A_BUTTON) != 0) {
+        mainSetBits(BIT_Menus_Selection_Blocked, 0);
+        menuSet(MENU_GAME_SELECT);
     }
 
     dFrame += gUpdateRate;
