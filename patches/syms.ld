@@ -36,7 +36,7 @@ dbgui_end_child = 0x8F00007C;
 dbgui_checkbox = 0x8F000080;
 dbgui_input_int = 0x8F000084;
 dbgui_input_float = 0x8F000088;
-
+dbgui_push_str_id = 0x8F00008C;
 dbgui_color_float4_to_u32 = 0x8F000090;
 dbgui_foreground_text = 0x8F000094;
 dbgui_foreground_line = 0x8F000098;
@@ -59,7 +59,7 @@ dbgui_begin_tab_item = 0x8F000138;
 dbgui_end_tab_item = 0x8F00013C;
 osRecvMesg_recomp = 0x8F000140;
 osSendMesg_recomp = 0x8F000144;
-
+dbgui_pop_id = 0x8F000148;
 recomp_alloc = 0x8F00014C;
 recomp_free = 0x8F000150;
 recomp_run_ui_callbacks = 0x8F000154;

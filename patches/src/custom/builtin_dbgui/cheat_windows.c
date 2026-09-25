@@ -3,9 +3,16 @@
 
 #include "dll.h"
 #include "dlls/engine/29_gplay.h"
+#include "dlls/engine/56_putdown.h"
+#include "dlls/objects/common/foodbag.h"
 #include "game/gamebits.h"
 #include "sys/main.h"
 #include "macros.h"
+
+extern FoodbagItem __dll314_foodbag_items[MAX_FOOD_DEFINITIONS];
+extern FoodbagItem __dll315_dino_foodbag_items[MAX_FOOD_DEFINITIONS];
+extern u32 __dll56_putdown_get_foodID_from_foodType(s32 foodTypeBitfield);
+extern void __dll56_putdown_update_food_quantity_gamebits(FoodbagContents* bagSlots, FoodbagItem* foodDefs);
 
 enum CheatInventoryItemType {
     TYPE_BOOL = 0,
@@ -19,6 +26,12 @@ typedef struct {
     u8 type;
     const char *name;
 } CheatInventoryItem;
+
+typedef struct {
+    u8 foodID;
+    u8 type;
+    const char *name;
+} CheatInventoryFoodbagItem;
 
 static CheatInventoryItem krystalItems[] = {
     { BIT_CloudRunner_Grubs, FALSE, TYPE_INT, "Grubs" },
@@ -133,31 +146,31 @@ static CheatInventoryItem trickyCommands[] = {
     { BIT_Tricky_Learned_Flame, FALSE, TYPE_BOOL, "Flame" }
 };
 
-static CheatInventoryItem foodbag[] = {
-    { BIT_Dino_Egg_Count, FALSE, TYPE_INT, "Energy Eggs" },
-    { BIT_Green_Apple_Count, FALSE, TYPE_INT, "Green Apples" },
-    { BIT_Red_Apple_Count, FALSE, TYPE_INT, "Red Apples" },
-    { BIT_Fish_Count, FALSE, TYPE_INT, "Fish" },
-    { BIT_Smoked_Fish_Count, FALSE, TYPE_INT, "Smoked Fish" },
-    { BIT_Green_Bean_Count, FALSE, TYPE_INT, "Green Beans" },
-    { BIT_Red_Bean_Count, FALSE, TYPE_INT, "Red Beans" },
-    { BIT_Blue_Bean_Count, FALSE, TYPE_INT, "Blue Beans" },
+static CheatInventoryFoodbagItem foodbag[] = {
+    { 6, TYPE_INT, "Energy Eggs" },
+    { 1, TYPE_INT, "Green Apples" },
+    { 2, TYPE_INT, "Red Apples" },
+    { 4, TYPE_INT, "Fish" },
+    { 5, TYPE_INT, "Smoked Fish" },
+    { 8, TYPE_INT, "Green Beans" },
+    { 9, TYPE_INT, "Red Beans" },
+    { 11, TYPE_INT, "Blue Beans" },
 
-    { -1, FALSE, TYPE_SECTION, "Old" },
-    { BIT_Moldy_Meat_Count, FALSE, TYPE_INT, "Moldy Energy Eggs" },
-    { BIT_Brown_Apple_Count, FALSE, TYPE_INT, "Brown Apples" },
-    { BIT_Brown_Bean_Count, FALSE, TYPE_INT, "Brown Beans" }
+    { -1, TYPE_SECTION, "Old" },
+    { 7, TYPE_INT, "Moldy Energy Eggs" },
+    { 3, TYPE_INT, "Brown Apples" },
+    { 10, TYPE_INT, "Brown Beans" }
 };
 
-static CheatInventoryItem dinosaurFoodbag[] = {
-    { BIT_Dino_Bag_Blue_Mushrooms, FALSE, TYPE_INT, "Blue Mushrooms" },
-    { BIT_Dino_Bag_Red_Mushrooms, FALSE, TYPE_INT, "Red Mushrooms" },
-    { BIT_Dino_Bag_Blue_Grubs, FALSE, TYPE_INT, "Blue Grubs" },
-    { BIT_Dino_Bag_Red_Grubs, FALSE, TYPE_INT, "Red Grubs" },
+static CheatInventoryFoodbagItem dinosaurFoodbag[] = {
+    { 1, TYPE_INT, "Blue Mushrooms" },
+    { 2, TYPE_INT, "Red Mushrooms" },
+    { 4, TYPE_INT, "Blue Grubs" },
+    { 5, TYPE_INT, "Red Grubs" },
 
-    { -1, FALSE, TYPE_SECTION, "Old" },
-    { BIT_Dino_Bag_Old_Mushrooms, FALSE, TYPE_INT, "Old Mushrooms" },
-    { BIT_Dino_Bag_Old_Grubs, FALSE, TYPE_INT, "Old Grubs" }
+    { -1, TYPE_SECTION, "Old" },
+    { 3, TYPE_INT, "Old Mushrooms" },
+    { 6, TYPE_INT, "Old Grubs" }
 };
 
 static s32 infiniteHealth = FALSE;
@@ -226,24 +239,134 @@ static void spell_book(void) {
     dbgui_end_child();
 }
 
+static void foodbag_delete_item(u32 foodID, FoodbagContents* foodbag, FoodbagItem* foodDefs) {
+    u32 foodType = FOOD_TYPE(foodID);
+
+    u32 i = 0;
+    for (; i < ARRAYCOUNT(foodbag->foodType); i++) {
+        if (foodbag->foodType[i] == foodType) {
+            break;
+        }
+    }
+
+    u32 i2 = i + foodDefs[foodID].slotsUsed;
+    for (; i2 < MAX_FOOD_TIMERS; i2++, i++){
+        foodbag->lifetime[i] = foodbag->lifetime[i2];
+        foodbag->foodType[i] = foodbag->foodType[i2];
+    }
+}
+
+static void foodbag_add_item(u32 foodID, FoodbagContents* foodbag, FoodbagItem* foodDefs) {
+    u32 i = 0;
+    for (; i < (ARRAYCOUNT(foodbag->foodType) - 1); i++) {
+        if (foodbag->foodType[i] == 0) {
+            break;
+        }
+    }
+
+    u32 slotsNeeded = foodDefs[foodID].slotsUsed;
+    if (slotsNeeded > ((ARRAYCOUNT(foodbag->foodType) - 1) - i)) {
+        return;
+    }
+
+    u32 foodType = FOOD_TYPE(foodID);
+
+    for (u32 k = 0; k < slotsNeeded; k++) {
+        foodbag->foodType[i + k] = foodType;
+        foodbag->lifetime[i + k] = 0.0f;
+    }
+}
+
+static void foodbag_editor(s32 playerno, FoodbagContents* foodbags, FoodbagItem* foodDefs, 
+        CheatInventoryFoodbagItem* cheatItems, u32 cheatItemsLength) {
+    s32 currentPlayerno = gDLL_29_Gplay->vtbl->get_playerno();
+    FoodbagContents *foodbag = &foodbags[playerno];
+
+    u8 quantities[MAX_FOOD_DEFINITIONS] = {0};
+    s32 slotsUsed = 0;
+    for (u32 i = 0; i < ARRAYCOUNT(foodbag->foodType) && foodbag->foodType[i]; i++) {
+        quantities[__dll56_putdown_get_foodID_from_foodType(foodbag->foodType[i])]++;
+        slotsUsed++;
+    }
+
+    dbgui_textf("Slots used: %d/%d", slotsUsed, ARRAYCOUNT(foodbag->foodType) - 1);
+    if (dbgui_begin_child("scroll")) {
+        for (u32 i = 0; i < cheatItemsLength; i++) {
+            if (cheatItems[i].type == TYPE_SECTION) {
+                dbgui_new_line();
+                dbgui_separator_text(cheatItems[i].name);
+                continue;
+            }
+
+            u32 foodID = cheatItems[i].foodID;
+
+            s32 value = quantities[foodID];
+            static DbgUiInputIntOptions options = {
+                .flags = DBGUI_INPUT_TEXT_FLAGS_ReadOnly,
+                .step = 0,
+                .stepFast = 0
+            };
+            dbgui_push_str_id(recomp_sprintf_helper("foodbag_item_%d", i));
+
+            dbgui_set_next_item_width(40);
+            dbgui_input_int_ext("", &value, &options);
+            dbgui_same_line();
+            if (dbgui_button("Remove")) {
+                foodbag_delete_item(foodID, foodbag, foodDefs);
+                if (currentPlayerno == playerno) {
+                    __dll56_putdown_update_food_quantity_gamebits(foodbag, foodDefs);
+                }
+            }
+            dbgui_same_line();
+            if (dbgui_button("Add")) {
+                foodbag_add_item(foodID, foodbag, foodDefs);
+                if (currentPlayerno == playerno) {
+                    __dll56_putdown_update_food_quantity_gamebits(foodbag, foodDefs);
+                }
+            }
+            dbgui_same_line();
+            dbgui_text(cheatItems[i].name);
+
+            dbgui_pop_id();
+        }
+    }
+    dbgui_end_child();
+}
+
 static void foodbags(void) {
     if (dbgui_begin_tab_bar("tabs")) {
         if (dbgui_begin_tab_item("Foodbag", NULL)) {
-            if (dbgui_begin_child("scroll")) {
-                for (s32 i = 0; i < (s32)ARRAYCOUNT(foodbag); i++) {
-                    bit_editor(&foodbag[i]);
+            FoodbagContents *foodbags = gDLL_29_Gplay->vtbl->get_state()->save.file.playerFoodbags;
+            if (dbgui_begin_tab_bar("tabs")) {
+                if (dbgui_begin_tab_item("Krystal", NULL)) {
+                    foodbag_editor(PLAYER_KRYSTAL, foodbags, __dll314_foodbag_items,
+                        foodbag, ARRAYCOUNT(foodbag));
+                    dbgui_end_tab_item();
                 }
+                if (dbgui_begin_tab_item("Sabre", NULL)) {
+                    foodbag_editor(PLAYER_SABRE, foodbags, __dll314_foodbag_items,
+                        foodbag, ARRAYCOUNT(foodbag));
+                    dbgui_end_tab_item();
+                }
+                dbgui_end_tab_bar();
             }
-            dbgui_end_child();
             dbgui_end_tab_item();
         }
         if (dbgui_begin_tab_item("Dinosaur Foodbag", NULL)) {
-            if (dbgui_begin_child("scroll")) {
-                for (s32 i = 0; i < (s32)ARRAYCOUNT(dinosaurFoodbag); i++) {
-                    bit_editor(&dinosaurFoodbag[i]);
+            FoodbagContents *foodbags = gDLL_29_Gplay->vtbl->get_state()->save.file.dinoFoodbags;
+            if (dbgui_begin_tab_bar("tabs")) {
+                if (dbgui_begin_tab_item("Krystal", NULL)) {
+                    foodbag_editor(PLAYER_KRYSTAL, foodbags, __dll315_dino_foodbag_items,
+                        dinosaurFoodbag, ARRAYCOUNT(dinosaurFoodbag));
+                    dbgui_end_tab_item();
                 }
+                if (dbgui_begin_tab_item("Sabre", NULL)) {
+                    foodbag_editor(PLAYER_SABRE, foodbags, __dll315_dino_foodbag_items,
+                        dinosaurFoodbag, ARRAYCOUNT(dinosaurFoodbag));
+                    dbgui_end_tab_item();
+                }
+                dbgui_end_tab_bar();
             }
-            dbgui_end_child();
             dbgui_end_tab_item();
         }
         dbgui_end_tab_bar();
