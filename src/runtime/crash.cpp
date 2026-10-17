@@ -2,6 +2,7 @@
 
 #include <inttypes.h>
 #include <cstdio>
+#include <optional>
 #include <stack>
 #include <stdarg.h>
 
@@ -9,7 +10,7 @@
 #include "recomp.h"
 
 struct GameFunc {
-    const char* name;
+    std::optional<std::string> name;
     gpr address;
 };
 
@@ -18,11 +19,15 @@ thread_local static recomp_context* thread_context = nullptr;
 thread_local static std::stack<GameFunc> game_func_stack;
 
 extern "C" void recomp_enter_function(const char* name, gpr address) {
-    game_func_stack.push({name, address});
+    game_func_stack.push({
+        name == nullptr ? std::nullopt : std::optional(std::string(name)), 
+        address});
 }
 
 extern "C" void recomp_exit_function(void) {
-    game_func_stack.pop();
+    if (!game_func_stack.empty()) {
+        game_func_stack.pop();
+    }
 }
 
 namespace dino::runtime {
@@ -83,8 +88,8 @@ static void dump_game_callstack(const CrashPrintContext* log_context) {
 
         while (!game_func_stack.empty()) {
             GameFunc& func = game_func_stack.top();
-            if (func.name != nullptr) {
-                crash_printf(log_context, "0x%08" PRIx32 " %s\n", (uint32_t)func.address, func.name);
+            if (func.name.has_value()) {
+                crash_printf(log_context, "0x%08" PRIx32 " %s\n", (uint32_t)func.address, func.name.value().c_str());
             } else {
                 crash_printf(log_context, "0x%08" PRIx32 "\n", (uint32_t)func.address);
             }
