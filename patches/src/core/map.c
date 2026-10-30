@@ -13,7 +13,7 @@
 #include "sys/objects.h"
 #include "sys/vi.h"
 #include "sys/menu.h"
-#include "sys/segment_1D900.h"
+#include "sys/lighting.h"
 #include "sys/di_rcp.h"
 #include "sys/newshadows.h"
 #include "sys/bitstream.h"
@@ -87,7 +87,7 @@ extern void blockComputeVertexColors(Block*,s32,s32,s32);
 extern void trackUpdateFrustum(void);
 extern void blockColorTableTick(void);
 extern void trackDrawMain(void);
-extern void mapCheckBlockGrid(s32 gridX, s32 gridZ, s32* arg2, s32* arg3, s32* arg4, s32* arg5, s32 layer, s32 checkVis, s32 streamMapIdx);
+extern void mapCheckBlockGrid(s32 gridX, s32 gridZ, VisGridRange* range0, VisGridRange* range1, VisGridRange* range2, VisGridRange* range3, s32 layer, s32 checkVis, s32 streamMapIdx);
 extern void blockAddToRenderList(Block *block, f32 x, f32 z);
 extern void trackDrawObject(Object* obj, s32 visibility);
 extern void trackDrawRenderList(Mtx *rspMtxs, s8 *visibilities);
@@ -343,7 +343,7 @@ RECOMP_PATCH void blockEmplace(Block *block, s32 id, s32 param_3, s32 globalMapI
         blockComputeVertexColors(block, 0, 0, 1);
     }
 
-    func_80058F3C();
+    trackIntersectMarkBlocksDirty();
 }
 
 RECOMP_PATCH void trackDraw(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** pols, Vertex** vtxs2, Triangle** pols2) {
@@ -400,7 +400,7 @@ RECOMP_PATCH void trackDraw(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** pol
             } else {
                 gEXMatrixGroupSimpleNormal(gMainDL++, NEWSTARS_MTX_GROUP_ID, G_EX_NOPUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             }
-            gDLL_10_Newstars->vtbl->func1(&gMainDL);
+            gDLL_10_Newstars->vtbl->Print(&gMainDL);
         }
         // @recomp: Tag newday matrices (stops the sun from flickering, auto order does not work)
         if (recomp_skipCameraInterp || recomp_skipAllInterp) {
@@ -418,15 +418,15 @@ RECOMP_PATCH void trackDraw(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** pol
     } else {
         camSetupRSPMatrices(&gMainDL, &gWorldRSPMatrices);
     }
-    gDLL_11_Newlfx->vtbl->func2();
-    gDLL_57->vtbl->func3();
-    gDLL_58->vtbl->func2();
+    dll_newlfx->Tick();
+    dll_trklight->Tick();
+    dll_skylight->Tick();
     if (gTrackFlags & TRACKFLAG_SUN_GLARE) {
         if (gDLL_7_Newday->vtbl->func23(&gMainDL) == 0) {
-            gDLL_8->vtbl->func3(&gMainDL);
+            gDLL_8_newfog->vtbl->func3(&gMainDL);
         }
     } else {
-        gDLL_8->vtbl->func3(&gMainDL);
+        gDLL_8_newfog->vtbl->func3(&gMainDL);
     }
     D_800B51E4 = camGet();
     blockColorTableTick();
@@ -461,10 +461,10 @@ RECOMP_PATCH void trackDrawMain(void) {
     s32 gridIdx;
     s8 *blockIdxMap;
     s32 blockIdx;
-    s32 sp274[4];
-    s32 sp264[4];
-    s32 sp254[4];
-    s32 sp244[4];
+    VisGridRange range0;
+    VisGridRange range1;
+    VisGridRange range2;
+    VisGridRange range3;
     s32 layer;
     s32 z;
     s32 zIdx;
@@ -515,26 +515,26 @@ RECOMP_PATCH void trackDrawMain(void) {
         sp230 = gBlockIndices[layer];
         D_800B9714 = D_800B9700[layer];
         mapCheckBlockGrid(gMapCurrentStreamCoordsX + 7, gMapCurrentStreamCoordsZ + 7, 
-            sp274, sp264, sp254, sp244, layer, /*checkVis*/TRUE, D_800B4A54);
+            &range0, &range1, &range2, &range3, layer, /*checkVis*/TRUE, D_800B4A54);
         for (gridIdx = 0; gridIdx < ARRAYCOUNT_S(blockVisibilities); gridIdx++) { blockVisibilities[gridIdx] = 0; }
         
-        for (z = sp274[2]; sp274[3] >= z; z++) {
-            for (x = sp274[0]; sp274[1] >= x; x++) {
+        for (z = range0.s[2]; range0.s[3] >= z; z++) {
+            for (x = range0.s[0]; range0.s[1] >= x; x++) {
                 blockVisibilities[(x + 7) + ((z + 7) << 4)] = 1;
             }
         }
-        for (z = sp264[2]; sp264[3] >= z; z++) {
-            for (x = sp264[0]; sp264[1] >= x; x++) {
+        for (z = range1.s[2]; range1.s[3] >= z; z++) {
+            for (x = range1.s[0]; range1.s[1] >= x; x++) {
                 blockVisibilities[(x + 7) + ((z + 7) << 4)] = 1;
             }
         }
-        for (z = sp254[2]; sp254[3] >= z; z++) {
-            for (x = sp254[0]; sp254[1] >= x; x++) {
+        for (z = range2.s[2]; range2.s[3] >= z; z++) {
+            for (x = range2.s[0]; range2.s[1] >= x; x++) {
                 blockVisibilities[(x + 7) + ((z + 7) << 4)] = 1;
             }
         }
-        for (z = sp244[2]; sp244[3] >= z; z++) {
-            for (x = sp244[0]; sp244[1] >= x; x++) {
+        for (z = range3.s[2]; range3.s[3] >= z; z++) {
+            for (x = range3.s[0]; range3.s[1] >= x; x++) {
                 blockVisibilities[(x + 7) + ((z + 7) << 4)] = 1;
             }
         }
@@ -572,7 +572,7 @@ RECOMP_PATCH void trackDrawMain(void) {
                         blockComputeVertexColors(block, x, z, 0);
                     }
                     if ((block->numSphereMappedShapes != 0) && (gTrackFlags & TRACKFLAG_UNK100)) {
-                        func_8001F4C0(block, x, z);
+                        lightBlockSphereMapping(block, x, z);
                     }
                 }
                 // @recomp: Pass extra info to block_add_to_render_list so it knows the absolute coords of the block
@@ -598,8 +598,8 @@ RECOMP_PATCH void trackDrawMain(void) {
     }
     gDLL_15_Projgfx->vtbl->func5(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 2);
     gDLL_15_Projgfx->vtbl->func5(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 1);
-    gDLL_14_Modgfx->vtbl->func11(objVisibilities);
-    gDLL_14_Modgfx->vtbl->func6(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 0, 0);
+    dll_modgfx->Func11(objVisibilities);
+    dll_modgfx->Func6(&gMainDL, &gWorldRSPMatrices, &D_800B51D4, 0, 0);
     gDLL_24_Waterfx->vtbl->print(&gMainDL, &gWorldRSPMatrices);
     // @recomp: Tag projgfx matrices
     if (recomp_skipAllInterp) {
@@ -629,12 +629,12 @@ RECOMP_PATCH void trackDrawRenderList(Mtx* rspMtxs, s8* visibilities) {
     s32 i;
     BlockTextureAnimInstance* temp_v0_4;
     u32 forceTexSet;
-    s32 spE0;
-    s32 spDC;
-    s32 spD8;
-    s32 spD4;
-    s32 spD0;
-    s32 spCC;
+    s32 trklight1R;
+    s32 trklight1G;
+    s32 trklight1B;
+    s32 trklight2R;
+    s32 trklight2G;
+    s32 trklight2B;
     EncodedTri* temp_a1;
     s32 lastBlockIdx;
     EncodedTri* var_a0;
@@ -656,7 +656,9 @@ RECOMP_PATCH void trackDrawRenderList(Mtx* rspMtxs, s8* visibilities) {
 
     lastBlockIdx = -1;
     objList = objGetObjects(NULL, NULL);
-    gDLL_57->vtbl->func2(&spE0, &spDC, &spD8, &spD4, &spD0, &spCC);
+    dll_trklight->GetLights(
+        &trklight1R, &trklight1G, &trklight1B, 
+        &trklight2R, &trklight2G, &trklight2B);
     for (i = 1; i < gRenderListLength; i++) {
         // @recomp: Use custom render list
         // @recomp: Use updated mask for object indices
@@ -728,19 +730,19 @@ RECOMP_PATCH void trackDrawRenderList(Mtx* rspMtxs, s8* visibilities) {
             }
             if (shape->flags & RENDER_UNK2000) {
                 if (tex0->flags & (RENDER_COMPOSITE_BASE | RENDER_COMPOSITE_OVERLAY)) {
-                    dlSetPrimColor(&gMainDL, 0xFF, 0xFF, 0xFF, 0xA0);
+                    dlSetPrimColor(&gMainDL, 255, 255, 255, 160);
                 } else {
-                    dlSetPrimColor(&gMainDL, 0xFF, 0xFF, 0xFF, 0x64);
+                    dlSetPrimColor(&gMainDL, 255, 255, 255, 100);
                 }
             } else {
                 if (shape->envColourMode == 0xFF) {
-                    dlSetPrimColor(&gMainDL, spE0, spDC, spD8, 0xFF);
+                    dlSetPrimColor(&gMainDL, trklight1R, trklight1G, trklight1B, 0xFF);
                 } else if (shape->envColourMode == 0xFE) {
-                    dlSetPrimColor(&gMainDL, 0xFF, 0xFF, 0xFF, 0xFF);
+                    dlSetPrimColor(&gMainDL, 255, 255, 255, 255);
                 } else if (shape->flags & (RENDER_UNK40000000 | RENDER_UNK4000000 | RENDER_UNK2000000 | RENDER_UNK800000 | RENDER_UNK400000)) {
-                    dlSetPrimColor(&gMainDL, 0xFF, 0xFF, 0xFF, 0xFF);
+                    dlSetPrimColor(&gMainDL, 255, 255, 255, 255);
                 } else {
-                    func_8001F848(&gMainDL);
+                    lightSkyLightDL(&gMainDL);
                 }
             }
             renderFlags = shape->flags;
@@ -821,11 +823,21 @@ RECOMP_PATCH void trackDrawRenderList(Mtx* rspMtxs, s8* visibilities) {
                 gSP1TriangleBlock(gMainDL, var_s2->d0);
                 gMainDL++;
             }
+
             gDLBuilder->needsPipeSync = TRUE;
+
+            /* Draw fog separately for decals (redraws the faces with different settings)
+            
+               This is necessary because decals use vertex alpha, which can't be used at the same time as fog
+               (when using fog, the RSP replaces each pixel's A with the Z-depth value) */
             if ((renderFlags & (RENDER_FOG_ACTIVE | RENDER_DECAL_SIMPLE | RENDER_DECAL)) == (RENDER_FOG_ACTIVE | RENDER_DECAL_SIMPLE | RENDER_DECAL)) {
                 temp_s0_2 = gMainDL - temp_s5;
                 dlSetGeometryMode(&gMainDL, G_FOG);
+
                 if (renderFlags & (RENDER_UNK2000 | RENDER_SEMI_TRANSPARENT)) {
+                    /* Semi-transparent decals
+                      (e.g. cross-fading two sections of water that flow in different directions) */
+                    //@bug: fog ends up too opaque here
                     gDPSetCombineLERP(gMainDL, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1);
                     dlApplyCombine(&gMainDL);
                     gDPSetOtherMode(
@@ -835,6 +847,8 @@ RECOMP_PATCH void trackDrawRenderList(Mtx* rspMtxs, s8* visibilities) {
                     );
                     dlApplyOtherMode(&gMainDL);
                 } else {
+                    /* Opaque decals 
+                      (e.g. cross-fading two sections of ground, like grass transitioning into autumnal leaves) */
                     gDPSetCombineLERP(gMainDL, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1);
                     dlApplyCombine(&gMainDL);
                     
@@ -845,6 +859,8 @@ RECOMP_PATCH void trackDrawRenderList(Mtx* rspMtxs, s8* visibilities) {
                     );
                     dlApplyOtherMode(&gMainDL);
                 }
+
+                //Redraw the previous facebatch by copying its draw commands
                 bcopy(temp_s5, gMainDL, temp_s0_2 * sizeof(Gfx));
                 gMainDL += temp_s0_2;
                 gDLBuilder->needsPipeSync = TRUE;

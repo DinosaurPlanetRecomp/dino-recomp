@@ -225,12 +225,12 @@ text = "osFlashReadArray_recomp(rdram, ctx); recomp_exit_function(); return;"
 # Yields for crash screen loops
 [[patches.hook]]
 before_vram = 0x80062BCC
-func = "other_crash_print"
+func = "diCpuDrawFpuInfo"
 text = "yield_self(rdram);"
 
 [[patches.hook]]
 before_vram = 0x8006272C
-func = "some_crash_print"
+func = "diCpuDrawCpuInfo"
 text = "yield_self(rdram);"
 
 # osAiGetLength got inlined

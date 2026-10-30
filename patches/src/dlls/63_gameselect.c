@@ -91,7 +91,7 @@ RECOMP_PATCH void dll_63_draw(Gfx **gdl, Mtx **mtxs, Vertex **vtxs) {
             rcpScreenFullWrite(gdl, sLogoShadowTexture, 119, 92, 0, 0, 0xFF, SCREEN_WRITE_TRANSLUCENT);
             rcpScreenFullWrite(gdl, sLogoTexture, 129, 100, 0, 0, 0xFF, SCREEN_WRITE_TRANSLUCENT);
 
-            numRecentTasks = gDLL_30_Task->vtbl->get_num_recently_completed();
+            numRecentTasks = dll_task->GetNumRecentlyCompleted();
             if (numRecentTasks > 3) {
                 numRecentTasks = 3;
             }
@@ -105,7 +105,7 @@ RECOMP_PATCH void dll_63_draw(Gfx **gdl, Mtx **mtxs, Vertex **vtxs) {
             // @recomp: Fix memory leak with task strings
             free_recent_task_strs();
             for (i = 0; i < numRecentTasks; i++) {
-                recent_task_strs[i] = gDLL_30_Task->vtbl->get_recently_completed_task_text(i);
+                recent_task_strs[i] = gDLL_30_Task->vtbl->GetRecentlyCompletedTaskText(i);
             }
             num_recent_task_strs = numRecentTasks;
 

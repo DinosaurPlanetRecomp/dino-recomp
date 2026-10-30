@@ -6,7 +6,6 @@
 #include "dlls/engine/86_cam1stperson.h"
 #include "dlls/engine/89_campath.h"
 #include "dlls/engine/90_camstatic.h"
-#include "dlls/engine/95_camtalk.h"
 #include "sys/gfx/animseq.h"
 #include "sys/camera.h"
 #include "macros.h"
@@ -678,15 +677,15 @@ RECOMP_PATCH void anim_update_camera(void) {
         recomp_skip_camera_interp();
         switch (sCameraModule) {
         case DLL_ID_CAMPATH:
-            campathData.unk0 = sCamParam1;
-            campathData.unk4 = sCamParam2;
+            campathData.pathID = sCamParam1;
+            campathData.previousCameraEasesIn = sCamParam2;
             gDLL_2_Camera->vtbl->change_camera_module(DLL_ID_CAMPATH, TRUE, 3, sizeof(campathData), &campathData, sCamEaseDuration, Cam_Ease_All);
             //dummy_label_1: ; // @fake
             break;
         case DLL_ID_CAMSTATIC:
-            camstaticData.unk0 = sCamParam1;
+            camstaticData.cameraID = sCamParam1;
             if (sCamEaseDuration == 0) {
-                camstaticData.unk4 = 1;
+                camstaticData.previousCameraEasesIn = TRUE;
             }
             gDLL_2_Camera->vtbl->change_camera_module(DLL_ID_CAMSTATIC, TRUE, 3, sizeof(camstaticData), &camstaticData, sCamEaseDuration, Cam_Ease_All);
             //dummy_label_2: ; // @fake

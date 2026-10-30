@@ -1,51 +1,37 @@
 #include "patches.h"
 #include "matrix_groups.h"
 
+#include "dlls/engine/14_modgfx.h"
 #include "sys/camera.h"
+#include "sys/lfx.h"
 #include "sys/rand.h"
 #include "sys/segment_13D0.h"
-#include "sys/segment_1D900.h"
+#include "sys/lighting.h"
 #include "macros.h"
 
 #include "recomp/dlls/engine/14_modgfx_recomp.h"
 
-// size: 0x18
-typedef struct {
-    s32 unk0;
-    f32 unk4;
-    u8 _unk8[0x10 - 0x8];
-    s32 unk10;
-    s16 unk14;
-    u8 unk16;
-} BSS0_9C;
-
 typedef struct {
     Object* unk0;
     Object* unk4;
-    void* unk8;
-    s16 unkC;
-    s16 unkE;
-    s16 unk10;
-    u8 _unk12[0x18 - 0x12];
-    Vec3f unk18;
-    Vec3f unk24[5];
+    s16* unk8;
+    SRT unkC;
+    Vec3f unk24;
+    Vec3f unk30[4];
     f32 unk60;
     f32 unk64;
     f32 unk68;
     Vec3f unk6C;
-    Vtx* unk78[2];
-    u8 _unk80[0x84 - 0x80];
-    DLTri* unk84[2];
-    u8 _unk8C[0x98 - 0x8C];
+    Vtx* unk78[3];
+    DLTri* unk84[3];
+    DLTri* unk90;
+    DLTri* unk94;
     Texture* unk98;
-    BSS0_9C* unk9C;
+    ModgfxStruct_0* unk9C;
     LightAction* unkA0;
     s32 unkA4;
-    u8 _unkA8[0xAC - 0xA8];
-    f32 unkAC;
-    f32 unkB0;
-    f32 unkB4;
-    f32 unkB8;
+    s32 unkA8;
+    f32 unkAC[4];
     f32 unkBC;
     f32 unkC0;
     f32 unkC4;
@@ -53,27 +39,32 @@ typedef struct {
     f32 unkCC;
     f32 unkD0;
     f32 unkD4;
-    u8 _unkD8[0xEA - 0xD8];
+    u8 _unkD8[0xE6 - 0xD8];
+    s16 unkE6;
+    u8 padE8;
     s16 unkEA;
     s16 unkEC;
-    u8 _unkEE[0xFC - 0xEE];
+    s16 unkEE[7];
     s16 unkFC;
     s16 unkFE;
-    u8 _unk100[0x106 - 0x100];
-    s16 unk106;
-    s16 unk108;
-    s16 unk10A;
+    s16 unk100;
+    s16 unk102;
+    s16 unk104;
+    s16 unk106; // yaw
+    s16 unk108; // pitch
+    s16 unk10A; // roll
     s16 unk10C;
     s16 unk10E;
     s16 unk110;
-    u8 _unk112[0x120 - 0x112];
+    u16 pad112;
+    s32 unk114[3];
     s16 unk120;
     s16 unk122;
     s16 unk124;
     u8 unk126;
     u8 _unk127[0x12C - 0x127];
-    void* unk12C;
-    u8 unk130;
+    DLTri* unk12C;
+    u8 unk130; // 0 or 1, indexes unk78
     u8 unk131;
     u8 unk132;
     u8 unk133;
@@ -82,7 +73,7 @@ typedef struct {
     u8 unk136;
     u8 unk137;
     u8 unk138;
-    s8 unk139;
+    s8 unk139; // keeps track of count for unk9C
     u8 unk13A;
     u8 unk13B;
     u8 unk13C;
@@ -93,9 +84,9 @@ typedef struct {
 
 /*0x0*/ extern ModgfxInstance* bss_0[496];
 
-extern void dll_14_func_4EDC(ModgfxInstance* arg0, u8 arg1);
+extern void modgfx_func_4EDC(ModgfxInstance* arg0, u8 arg1);
 
-RECOMP_PATCH s32 dll_14_func_2618(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, u8 arg3, Object* obj) {
+RECOMP_PATCH s32 modgfx_Func6(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, u8 arg3, Object* obj) {
     s32 idx;
     s32 i;
     DLTri* var_s6;
@@ -122,11 +113,11 @@ RECOMP_PATCH s32 dll_14_func_2618(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, u8 arg3,
     s16 sp234[] = {
         0x0003, 0x0002, 0x0401, 0x0400, 0x0302, 0x0301, 0x0300, 0x0200, 0x0201
     };
-    u8 sp233;
-    u8 sp232;
-    u8 sp231;
+    u8 skylightR;
+    u8 skylightG;
+    u8 skylightB;
 
-    func_8001F81C(&sp233, &sp232, &sp231);
+    lightGetSkyLight(&skylightR, &skylightG, &skylightB);
     if (func_80000824(-1) == 1) {
         return 1;
     }
@@ -159,7 +150,7 @@ RECOMP_PATCH s32 dll_14_func_2618(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, u8 arg3,
 
         var_s7 = bss_0[idx]->unk78[bss_0[idx]->unk130];
         if (bss_0[idx]->unkA4 & 0x40000) {
-            dll_14_func_4EDC(bss_0[idx], 0);
+            modgfx_func_4EDC(bss_0[idx], 0);
         }
         var_s6 = bss_0[idx]->unk84[bss_0[idx]->unk130];
         srt.transl.x = 0.0f;
@@ -191,10 +182,10 @@ RECOMP_PATCH s32 dll_14_func_2618(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, u8 arg3,
                 sp25C.y = bss_0[idx]->unk4->globalPosition.y;
                 sp25C.z = bss_0[idx]->unk4->globalPosition.z;
             } else {
-                sp25C.x = bss_0[idx]->unk18.x;
-                sp25C.y = bss_0[idx]->unk18.y;
-                sp25C.z = bss_0[idx]->unk18.z;
-                camTransformPointByObjectMatrix(&bss_0[idx]->unk18, &sp25C, bss_0[idx]->unk135);
+                sp25C.x = bss_0[idx]->unkC.transl.x;
+                sp25C.y = bss_0[idx]->unkC.transl.y;
+                sp25C.z = bss_0[idx]->unkC.transl.z;
+                camTransformPointByObjectMatrix(&bss_0[idx]->unkC.transl, &sp25C, bss_0[idx]->unk135);
             }
         }
         if ((sp25C.x > 65534.0f) || (sp25C.x < -65534.0f)) {
@@ -225,9 +216,9 @@ RECOMP_PATCH s32 dll_14_func_2618(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, u8 arg3,
             srt.pitch = bss_0[idx]->unk108 + bss_0[idx]->unk4->srt.pitch;
             srt.yaw = bss_0[idx]->unk10A + bss_0[idx]->unk4->srt.yaw;
         } else if (someVar != 0) {
-            srt.roll = bss_0[idx]->unk106 + bss_0[idx]->unk10;
-            srt.pitch = bss_0[idx]->unk108 + bss_0[idx]->unkE;
-            srt.yaw = bss_0[idx]->unk10A + bss_0[idx]->unkC;
+            srt.roll = bss_0[idx]->unk106 + bss_0[idx]->unkC.roll;
+            srt.pitch = bss_0[idx]->unk108 + bss_0[idx]->unkC.pitch;
+            srt.yaw = bss_0[idx]->unk10A + bss_0[idx]->unkC.yaw;
         } else {
             srt.roll = bss_0[idx]->unk106;
             srt.pitch = bss_0[idx]->unk108;
@@ -268,8 +259,8 @@ RECOMP_PATCH s32 dll_14_func_2618(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, u8 arg3,
         if (bss_0[idx]->unk98 != NULL && bss_0[idx]->unk98->next != NULL && bss_0[idx]->unk132 != 0) {
             bss_0[idx]->unk133 -= 1;
             if (bss_0[idx]->unk133 <= 0) {
-                bss_0[idx]->unk133 = (u8) (0x3C / (s32) bss_0[idx]->unk132);
-                bss_0[idx]->unk131 += 1;
+                bss_0[idx]->unk133 = 0x3C / (s32) bss_0[idx]->unk132;
+                bss_0[idx]->unk131++;
                 if (bss_0[idx]->unk131 >= (bss_0[idx]->unk98->animDuration >> 8)) {
                     bss_0[idx]->unk131 = 0;
                 }
@@ -281,11 +272,11 @@ RECOMP_PATCH s32 dll_14_func_2618(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, u8 arg3,
         gSPLoadGeometryMode(*gdl, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH);
         dlApplyGeometryMode(gdl);
         if (bss_0[idx]->unkA4 & 0x10000000) {
-            dlSetPrimColor(gdl, sp233, sp232, sp231, 0xFF);
+            dlSetPrimColor(gdl, skylightR, skylightG, skylightB, 255);
         } else if ((bss_0[idx]->unk4 != NULL) && (bss_0[idx]->unkA4 & 0x4000)) {
-            dlSetPrimColor(gdl, 0xFF, 0xFF, 0xFF, bss_0[idx]->unk4->opacityWithFade);
+            dlSetPrimColor(gdl, 255, 255, 255, bss_0[idx]->unk4->opacityWithFade);
         } else {
-            dlSetPrimColor(gdl, 0xFF, 0xFF, 0xFF, 0xFF);
+            dlSetPrimColor(gdl, 255, 255, 255, 255);
         }
         if (bss_0[idx]->unk98 != NULL) {
             tmem = bss_0[idx]->unk98->sizeBytes >> 3;

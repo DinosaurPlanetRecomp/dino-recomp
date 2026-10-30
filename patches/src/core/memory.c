@@ -9,7 +9,7 @@
 #include "macros.h"
 #include "memory_regions.h"
 
-extern s32 get_stack_();
+extern s32 diCpuTraceCurrentStack();
 
 // @recomp: Increase size of free queue (420 -> 600)
 static MemoryFreeQueueElement recomp_gMemoryFreeQueue[600];
@@ -66,7 +66,7 @@ RECOMP_PATCH void *mmAlloc(s32 size, s32 tag, const char *name) {
     }
 
     if (size == 0) {
-        get_stack_();
+        diCpuTraceCurrentStack();
         ptr = NULL;
         return ptr;
     }
@@ -75,7 +75,7 @@ RECOMP_PATCH void *mmAlloc(s32 size, s32 tag, const char *name) {
         // >= 4500 bytes -> pool 0
         ptr = mmAllocR(0, size, tag, name);
         if (ptr == NULL) {
-            get_stack_();
+            diCpuTraceCurrentStack();
             // @bug ? If no expansion pack is in, memory pool 1 won't exist
             ptr = mmAllocR(1, size, tag, name);
         }
@@ -83,7 +83,7 @@ RECOMP_PATCH void *mmAlloc(s32 size, s32 tag, const char *name) {
         // >= 1024 bytes -> pool 1
         ptr = mmAllocR(1, size, tag, name);
         if (ptr == NULL) {
-            get_stack_();
+            diCpuTraceCurrentStack();
             ptr = mmAllocR(2, size, tag, name);
         }
     } else {
@@ -97,7 +97,7 @@ RECOMP_PATCH void *mmAlloc(s32 size, s32 tag, const char *name) {
     }
 
     if (ptr == NULL) {
-        get_stack_();
+        diCpuTraceCurrentStack();
 
         // @recomp: If all pools are full, crash with an error instead of returning null
         recomp_error_message_box(recomp_sprintf_helper(

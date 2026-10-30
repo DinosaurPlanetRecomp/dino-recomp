@@ -10,7 +10,7 @@
 #include "sys/gfx/model.h"
 #include "sys/asset.h"
 #include "sys/dll.h"
-#include "sys/exception.h"
+#include "sys/di_cpu.h"
 #include "sys/linked_list.h"
 #include "sys/memory.h"
 #include "sys/objects.h"
@@ -295,7 +295,7 @@ RECOMP_PATCH void objAddObject(Object *obj, u32 initFlags) {
         mapLoadMobileMap(obj->def->mobileMapID, obj);
     }
 
-    update_pi_manager_array(0, -1);
+    diCpuTraceObject(0, -1);
 
     if (obj->def->flags & OBJDEF_IS_MOBILE_MAP) {
         objAddObjectType(obj, OBJTYPE_MobileMap);
@@ -341,7 +341,7 @@ RECOMP_PATCH void objAddObject(Object *obj, u32 initFlags) {
         objAddObjectType(obj, OBJTYPE_56);
     }
 
-    write_c_file_label_pointers("objects/objects.c", 1143);
+    diCpuTraceFile("objects/objects.c", 1143);
 
     // @recomp: Allocate matrix group for tagging
     recomp_obj_alloc_matrix_group(obj);
@@ -359,9 +359,9 @@ RECOMP_PATCH void objFreeObjectInternal(Object *obj, s32 onlySelf) {
     /*sp+0x30*/ s32 numStackObjs;
 
     if (obj->dll != NULL) {
-        update_pi_manager_array(4, obj->id);
+        diCpuTraceObject(4, obj->id);
         obj->dll->vtbl->Free(obj, onlySelf);
-        update_pi_manager_array(4, -1);
+        diCpuTraceObject(4, -1);
         dllFree(obj->dll);
     }
 
@@ -435,12 +435,12 @@ RECOMP_PATCH void objFreeObjectInternal(Object *obj, s32 onlySelf) {
     }
 
     if (obj->def->unk87 & 0x10) {
-        lAction.unk12.asByte = 2;
-        lAction.unke = 0;
-        lAction.unk10 = obj->unkD6;
-        lAction.unk1b = 0;
+        lAction.flags = 2;
+        lAction.id = 0;
+        lAction.slot = obj->unkD6;
+        lAction.type = LACTION_TYPE_NEWLFX;
 
-        gDLL_11_Newlfx->vtbl->func0(obj, obj, &lAction, 0, 0, 0);
+        dll_newlfx->DoAction(obj, obj, &lAction, 0, 0, 0);
     }
 
     if (obj->shadow != NULL) {

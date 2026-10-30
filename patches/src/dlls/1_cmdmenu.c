@@ -759,9 +759,9 @@ RECOMP_PATCH void cmdmenu_draw_main(Gfx** gdl, Mtx** mtxs, Vertex** vtxs) {
     if (sidekick != NULL) {
         // @bug: sideCommandIndex is undefined if this sidekick func returns 0
 #ifndef AVOID_UB
-        ((DLL_ISidekick*)sidekick->dll)->vtbl->func26(sidekick, &sideCommandIndex);
+        ((DLL_ISidekick*)sidekick->dll)->vtbl->Func26(sidekick, &sideCommandIndex);
 #else
-        if (!((DLL_ISidekick*)sidekick->dll)->vtbl->func26(sidekick, &sideCommandIndex)) {
+        if (!((DLL_ISidekick*)sidekick->dll)->vtbl->Func26(sidekick, &sideCommandIndex)) {
             sideCommandIndex = sPrevSidekickCommandIndex;
         }
 #endif

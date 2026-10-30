@@ -15,7 +15,7 @@
 #include "sys/audio.h"
 #include "sys/asset.h"
 #include "sys/di_rcp.h"
-#include "sys/exception.h"
+#include "sys/di_cpu.h"
 #include "sys/rcp.h"
 #include "sys/rsp_segment.h"
 #include "sys/main.h"
@@ -236,7 +236,7 @@ RECOMP_PATCH void mainTick(void) {
 
     gUpdateRate = viFrameSync(0);
     
-    if (0) {}
+    //if (0) {}
 
     updateRate = (u32) gUpdateRate;
     if (gUpdateRate > 6) {
@@ -250,7 +250,7 @@ RECOMP_PATCH void mainTick(void) {
     gUpdateRateInverseMirrorF = 1.0f / gUpdateRateMirrorF;
 
     mainHandleMapChange();
-    write_c_file_label_pointers("main/main.c", 0x37C);
+    diCpuTraceFile("main/main.c", 0x37C);
 
     // @recomp: Track semi-unique number for each game tick
     recomp_tickCounter++;
@@ -335,7 +335,7 @@ RECOMP_PATCH void main_func_80013D80(void) {
         }
 
         menuUpdate2();
-        func_800591EC();
+        trackIntersectTick();
         map_func_8004A67C();
         mapUpdateStreaming();
         objHandleAnimseqActors();

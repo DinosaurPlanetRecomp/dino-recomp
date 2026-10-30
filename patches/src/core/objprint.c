@@ -1,14 +1,14 @@
 #include "patches.h"
 #include "matrix_groups.h"
 
-#include "dlls/objects/common/group48.h"
+#include "dlls/objects/common/weapon.h"
 #include "sys/camera.h"
 #include "sys/math.h"
 #include "sys/rsp_segment.h"
 #include "sys/map.h"
-#include "sys/segment_1D900.h"
+#include "sys/lighting.h"
 #include "sys/objprint.h"
-#include "sys/exception.h"
+#include "sys/di_cpu.h"
 #include "sys/di_rcp.h"
 #include "sys/objects.h"
 
@@ -60,7 +60,7 @@ RECOMP_PATCH void objprintDrawObject(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Trian
         return;
     }
 
-    update_pi_manager_array(2, obj->id);
+    diCpuTraceObject(2, obj->id);
     diRcpTrace(*gdl, obj->id, "objects/objprint.c", 426);
     if (obj->dll != NULL) {
         if (!(obj->stateFlags & OBJSTATE_PRINT_DISABLED)) {
@@ -89,7 +89,7 @@ RECOMP_PATCH void objprintDrawObject(Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Trian
         objHandleModelSwitch(obj->linkedObject, obj->linkedObject->modelInsts[obj->modelInstIdx], obj->linkedObject->modelInsts[obj->modelInstIdx]->model);
     }
     diRcpTrace(*gdl, (u32) -obj->id, "objects/objprint.c", 489);
-    update_pi_manager_array(2, -1);
+    diCpuTraceObject(2, -1);
 }
 
 RECOMP_PATCH void objprintDrawModel(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex** vtxs, Triangle** tris, f32 yPrescale) {
@@ -101,9 +101,9 @@ RECOMP_PATCH void objprintDrawModel(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex**
     u8 blendR;
     u8 blendG;
     u8 blendB;
-    s32 var_v0;
-    s32 var_v1;
-    s32 var_a0;
+    s32 r;
+    s32 g;
+    s32 b;
     f32 spC4;
     f32 spC0;
     f32 spBC;
@@ -111,15 +111,15 @@ RECOMP_PATCH void objprintDrawModel(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex**
     MtxF sp78;
     s32 pad;
     MtxF* sp70;
-    u8 sp6F;
-    u8 sp6E;
-    u8 sp6D;
+    u8 skylightR;
+    u8 skylightG;
+    u8 skylightB;
     Gfx* tempGdl;
     Mtx* tempMtxs;
     Vertex* tempVtxs;
     Triangle* tempTris;
 
-    func_8001F81C(&sp6F, &sp6E, &sp6D);
+    lightGetSkyLight(&skylightR, &skylightG, &skylightB);
     tempGdl = *gdl;
     tempMtxs = *mtxs;
     tempVtxs = *vtxs;
@@ -135,39 +135,39 @@ RECOMP_PATCH void objprintDrawModel(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex**
 
     model = modelInst->model;
     opacity = obj->opacityWithFade;
-    if (opacity > 0xFF) {
-        opacity = 0xFF;
+    if (opacity > 255) {
+        opacity = 255;
     }
     if (obj->def->flags & OBJDEF_SKY_LIT) {
-        if (func_8001EBE0() != 0) {
-            blendB = blendG = blendR = 0xFF;
+        if (lightGetInside() != 0) {
+            blendB = blendG = blendR = 255;
         } else {
-            blendR = sp6F;
-            blendG = sp6E;
-            blendB = sp6D;
+            blendR = skylightR;
+            blendG = skylightG;
+            blendB = skylightB;
         }
     } else {
-        blendB = blendG = blendR = 0xFF;
+        blendB = blendG = blendR = 255;
     }
     if (obj->def->numAnimatedFrames > 0) {
         objprint_func_80036890(obj, 2);
     }
     if (BYTE_80091754 != 0) {
-        var_v0 = (blendR * SHORT_800b2e14) >> 8;
-        var_v1 = (blendG * SHORT_800b2e16) >> 8;
-        var_a0 = (blendB * SHORT_800b2e18) >> 8;
-        if (var_v0 > 0xFF) {
-            var_v0 = 0xFF;
+        r = (blendR * SHORT_800b2e14) >> 8;
+        g = (blendG * SHORT_800b2e16) >> 8;
+        b = (blendB * SHORT_800b2e18) >> 8;
+        if (r > 255) {
+            r = 255;
         }
-        if (var_v1 > 0xFF) {
-            var_v1 = 0xFF;
+        if (g > 255) {
+            g = 255;
         }
-        if (var_a0 > 0xFF) {
-            var_a0 = 0xFF;
+        if (b > 255) {
+            b = 255;
         }
-        blendR = var_v0;
-        blendG = var_v1;
-        blendB = var_a0;
+        blendR = r;
+        blendG = g;
+        blendB = b;
         BYTE_80091754 = 0;
     }
     if (BYTE_80091758 != 0) {
@@ -254,14 +254,14 @@ RECOMP_PATCH void objprintDrawModel(Object* obj, Gfx** gdl, Mtx** mtxs, Vertex**
                     mod_func_8001B100(modelInst);
                 }
                 if (obj->def->flags & OBJDEF_FLAG10) {
-                    func_8001DF60(obj, modelInst);
+                    lightDynamicModelLighting(obj, modelInst);
                 }
             }
             if (obj->def->numAnimatedFrames != 0) {
-                func_8001E818(obj, model, modelInst);
+                light_func_8001E818(obj, model, modelInst);
             }
             if (model->envMapCount != 0) {
-                func_8001F094(modelInst);
+                lightModelSphereMapping(modelInst);
             }
             if (obj->unk74 != NULL) {
                 objprintUpdateLockIconCoords(obj);
@@ -399,10 +399,10 @@ RECOMP_PATCH ModelInstance *objprintDrawChildModel(Gfx** arg0, Mtx** arg1, Verte
             if (sp64->blendshapes != NULL) {
                 mod_func_8001B100(modelInst);
             }
-            func_8001DF60(arg8, modelInst);
+            lightDynamicModelLighting(arg8, modelInst);
         }
         if (sp64->envMapCount != 0) {
-            func_8001F094(modelInst);
+            lightModelSphereMapping(modelInst);
         }
         if (sp64->hitSphereCount != 0) {
             mod_func_8001A8EC(modelInst, sp64, arg8, arg7, arg4);
@@ -447,7 +447,7 @@ RECOMP_PATCH ModelInstance *objprintDrawChildModel(Gfx** arg0, Mtx** arg1, Verte
             if (arg8->parent != NULL) {
                 camLoadParentProjection(arg0);
             }
-            ((DLL_IGROUP_48 *)arg8->dll)->vtbl->func10(arg8, arg0, arg1, arg2, arg3);
+            ((DLL_IWeapon *)arg8->dll)->vtbl->func10(arg8, arg0, arg1, arg2, arg3);
             if (arg8->parent != NULL) {
                 camSetupRSPMatricesForObject(arg0, arg1, arg8->parent);
             }
