@@ -9,6 +9,7 @@
 
 #include "plume_vulkan.h"
 #include "common/rt64_user_configuration.h"
+#include "hle/rt64_application.h"
 
 #include "concurrentqueue.h"
 
@@ -36,15 +37,10 @@ namespace dino::debug_ui::backend {
 struct VulkanContext {
     VkDevice device = VK_NULL_HANDLE;
     VkRenderPass renderPass = VK_NULL_HANDLE;
-    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 
     ~VulkanContext() {
         if (renderPass != VK_NULL_HANDLE) {
             vkDestroyRenderPass(device, renderPass, nullptr);
-        }
-
-        if (descriptorPool != VK_NULL_HANDLE) {
-            vkDestroyDescriptorPool(device, descriptorPool, nullptr);
         }
     }
 };
@@ -189,21 +185,7 @@ static void checkVulkanResult(VkResult res) {
     fprintf(stderr, "Debug UI ImGui Vulkan Backend failed with error code 0x%X.\n", res);
 }
 
-// TODO: why isn't this available in imgui_impl_vulkan.h? do we have an outdated version?
-static uint32_t ImGui_ImplVulkanH_SelectQueueFamilyIndex(VkPhysicalDevice physical_device)
-{
-    uint32_t count;
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, nullptr);
-    ImVector<VkQueueFamilyProperties> queues_properties;
-    queues_properties.resize((int)count);
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, queues_properties.Data);
-    for (uint32_t i = 0; i < count; i++)
-        if (queues_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
-            return i;
-    return (uint32_t)-1;
-}
-
-static void rt64_init_hook(plume::RenderInterface* _interface, plume::RenderDevice* device) {
+void init(RT64::Application* app) {
     IMGUI_CHECKVERSION();
     
     ImGuiContext *prev_ctx = ImGui::GetCurrentContext();
@@ -219,14 +201,24 @@ static void rt64_init_hook(plume::RenderInterface* _interface, plume::RenderDevi
     switch (get_graphics_api()) {
         case RT64::UserConfiguration::GraphicsAPI::D3D12: {
 #ifdef _WIN32
-            plume::D3D12Device *interface_device = static_cast<plume::D3D12Device *>(device);
-            plume::RenderDescriptorRange descriptor_range(plume::RenderDescriptorRangeType::TEXTURE, 0, 1);
-            descriptor_set = interface_device->createDescriptorSet(plume::RenderDescriptorSetDesc(&descriptor_range, 1));
+            D3D12Device *interfaceDevice = static_cast<D3D12Device *>(app->device.get());
+            RenderDescriptorRange descriptorRange(RenderDescriptorRangeType::TEXTURE, 0, 1);
+            descriptorSet = interfaceDevice->createDescriptorSet(RenderDescriptorSetDesc(&descriptorRange, 1));
 
-            plume::D3D12DescriptorSet *interface_descriptor_set = static_cast<plume::D3D12DescriptorSet *>(descriptor_set.get());
-            const D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = interface_device->viewHeapAllocator->getCPUHandleAt(interface_descriptor_set->viewAllocation.offset);
-            const D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = interface_device->viewHeapAllocator->getGPUHandleAt(interface_descriptor_set->viewAllocation.offset);
-            ImGui_ImplDX12_Init(interface_device->d3d, 2, DXGI_FORMAT::DXGI_FORMAT_B8G8R8A8_UNORM, interface_device->viewHeapAllocator->heap, cpu_handle, gpu_handle);
+            D3D12DescriptorSet *interfaceDescriptorSet = static_cast<D3D12DescriptorSet *>(descriptorSet.get());
+            const D3D12SwapChain *interfaceSwapChain = static_cast<const D3D12SwapChain *>(app->swapChain.get());
+            const D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = interfaceDevice->viewHeapAllocator->getCPUHandleAt(interfaceDescriptorSet->viewAllocation.offset);
+            const D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = interfaceDevice->viewHeapAllocator->getGPUHandleAt(interfaceDescriptorSet->viewAllocation.offset);
+            ImGui_ImplDX12_InitInfo initInfo;
+            initInfo.Device = interfaceDevice->d3d;
+            initInfo.CommandQueue = interfaceSwapChain->commandQueue->d3d;
+            initInfo.NumFramesInFlight = 2;
+            initInfo.RTVFormat = interfaceSwapChain->nativeFormat;
+            initInfo.SrvDescriptorHeap = interfaceDevice->viewHeapAllocator->heap;
+            initInfo.LegacySingleSrvCpuDescriptor = cpuHandle;
+            initInfo.LegacySingleSrvGpuDescriptor = gpuHandle;
+
+            ImGui_ImplDX12_Init(&initInfo);
 #else
             assert(false && "Unsupported Graphics API.");
             return;
@@ -234,40 +226,30 @@ static void rt64_init_hook(plume::RenderInterface* _interface, plume::RenderDevi
             break;
         }
         case RT64::UserConfiguration::GraphicsAPI::Vulkan: {
-            plume::VulkanDevice *interfaceDevice = static_cast<plume::VulkanDevice *>(device);
-            ImGui_ImplVulkan_LoadFunctions([](const char *functionName, void *vulkanInstance) {
+            VulkanDevice *interfaceDevice = static_cast<VulkanDevice *>(app->device.get());
+            const VulkanSwapChain *interfaceSwapChain = static_cast<const VulkanSwapChain *>(app->swapChain.get());
+            ImGui_ImplVulkan_LoadFunctions(VK_API_VERSION_1_2, [](const char *functionName, void *vulkanInstance) {
                 return vkGetInstanceProcAddr(*(reinterpret_cast<VkInstance *>(vulkanInstance)), functionName);
             }, &interfaceDevice->renderInterface->instance);
 
             std::unordered_map<VkDescriptorType, uint32_t> typeCounts;
             typeCounts[VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER] = 1;
-
-            const VkFormat requestSurfaceImageFormat[] = { VK_FORMAT_B8G8R8A8_UNORM/*, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM*/ };
             
             vulkanContext = std::make_unique<VulkanContext>();
             vulkanContext->device = interfaceDevice->vk;
-            vulkanContext->renderPass = plume::VulkanGraphicsPipeline::createRenderPass(interfaceDevice, requestSurfaceImageFormat, 
-                (size_t)IM_ARRAYSIZE(requestSurfaceImageFormat), VK_FORMAT_UNDEFINED, VK_SAMPLE_COUNT_1_BIT);
-            vulkanContext->descriptorPool = plume::VulkanDescriptorSet::createDescriptorPool(interfaceDevice, typeCounts, false);
-
-            uint32_t queueFamily = ImGui_ImplVulkanH_SelectQueueFamilyIndex(interfaceDevice->physicalDevice);
-            IM_ASSERT(queueFamily != (uint32_t)-1);
-
-            VkQueue queue;
-            vkGetDeviceQueue(interfaceDevice->vk, queueFamily, 0, &queue);
+            vulkanContext->renderPass = VulkanGraphicsPipeline::createRenderPass(interfaceDevice, &interfaceSwapChain->pickedSurfaceFormat.format, 1, VK_FORMAT_UNDEFINED, VK_SAMPLE_COUNT_1_BIT);
 
             ImGui_ImplVulkan_InitInfo initInfo = {};
             initInfo.Instance = interfaceDevice->renderInterface->instance;
             initInfo.PhysicalDevice = interfaceDevice->physicalDevice;
             initInfo.Device = vulkanContext->device;
-            initInfo.QueueFamily = queueFamily;
-            initInfo.Queue = queue;
-            initInfo.DescriptorPool = vulkanContext->descriptorPool;
-            initInfo.RenderPass = vulkanContext->renderPass;
-            initInfo.Subpass = 0;
+            initInfo.QueueFamily = interfaceSwapChain->commandQueue->familyIndex;
+            initInfo.Queue = interfaceSwapChain->commandQueue->queue->vk;
+            initInfo.DescriptorPoolSize = IMGUI_IMPL_VULKAN_MINIMUM_SAMPLED_IMAGE_POOL_SIZE;
             initInfo.MinImageCount = 2;
             initInfo.ImageCount = 2;
             initInfo.CheckVkResultFn = &checkVulkanResult;
+            initInfo.PipelineInfoMain.RenderPass = vulkanContext->renderPass;
 
             ImGui_ImplVulkan_Init(&initInfo);
             break;
@@ -282,8 +264,11 @@ static void rt64_init_hook(plume::RenderInterface* _interface, plume::RenderDevi
     ImGui::SetCurrentContext(prev_ctx);
 }
 
+static void rt64_init_hook(plume::RenderInterface* _interface, plume::RenderDevice* device) { }
+
 static void rt64_draw_hook(plume::RenderCommandList* command_list, plume::RenderFramebuffer* swap_chain_framebuffer) {
     if (!b_is_open) return;
+    if (dino_imgui_ctx == nullptr) return;
     
     const std::lock_guard<std::mutex> frame_lock(frame_mutex);
 
@@ -318,6 +303,8 @@ static void rt64_draw_hook(plume::RenderCommandList* command_list, plume::Render
 }
 
 static void rt64_deinit_hook() {
+    if (dino_imgui_ctx == nullptr) return;
+
     const std::lock_guard<std::mutex> frame_lock(frame_mutex);
     assert(!b_in_ui_frame);
     b_is_open = false;

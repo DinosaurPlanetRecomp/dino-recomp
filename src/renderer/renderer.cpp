@@ -320,6 +320,9 @@ RT64Context::RT64Context(uint8_t* rdram, ultramodern::renderer::WindowHandle win
     }
 
     high_precision_fb_enabled = app->shaderLibrary->usesHDR;
+
+    // Init debug UI
+    dino::debug_ui::backend::init(app.get());
 }
 
 RT64Context::~RT64Context() = default;

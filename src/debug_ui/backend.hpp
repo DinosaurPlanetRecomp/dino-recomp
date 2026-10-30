@@ -1,5 +1,6 @@
 #pragma once
 
+#include "hle/rt64_application.h"
 #include "imgui.h"
 
 namespace dino::debug_ui::backend {
@@ -11,5 +12,7 @@ bool in_ui_frame();
 void begin();
 void end();
 void set_render_hooks();
+
+void init(RT64::Application* app);
 
 }
