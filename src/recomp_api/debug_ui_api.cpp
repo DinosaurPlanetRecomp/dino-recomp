@@ -349,7 +349,7 @@ extern "C" void dbgui_input_float_ext(uint8_t* rdram, recomp_context* ctx) {
     PTR(char) format_ptr = MEM_W(0x8, options_ptr);
     int flags = MEM_W(0xC, options_ptr);
 
-    char *format = format_ptr == NULL ? nullptr : dino::recomp_api::copy_rdram_str(format_ptr, rdram, ctx);
+    char *format = format_ptr == 0 ? nullptr : dino::recomp_api::copy_rdram_str(format_ptr, rdram, ctx);
 
     bool pressed = dino::debug_ui::input_float_ext(label, value_ptr, step, step_fast, format, flags);
 

@@ -4,6 +4,32 @@
 
 namespace dino::debug_ui {
 
+// Keep in sync with dbgui.h
+typedef int DbgUiInputTextFlags;
+enum DbgUiInputTextFlags_ {
+    // Basic filters
+    DBGUI_INPUT_TEXT_FLAGS_None                = 0,
+    DBGUI_INPUT_TEXT_FLAGS_CharsDecimal        = 1 << 0,   // Allow 0123456789.+-*/
+    DBGUI_INPUT_TEXT_FLAGS_CharsHexadecimal    = 1 << 1,   // Allow 0123456789ABCDEFabcdef
+    DBGUI_INPUT_TEXT_FLAGS_CharsScientific     = 1 << 17,  // Allow 0123456789.+-*/eE (Scientific notation input)
+    DBGUI_INPUT_TEXT_FLAGS_CharsUppercase      = 1 << 2,   // Turn a..z into A..Z
+    DBGUI_INPUT_TEXT_FLAGS_CharsNoBlank        = 1 << 3,   // Filter out spaces, tabs
+
+    // Inputs
+    DBGUI_INPUT_TEXT_FLAGS_AllowTabInput       = 1 << 10,  // Pressing TAB input a '\t' character into the text field
+    DBGUI_INPUT_TEXT_FLAGS_EnterReturnsTrue    = 1 << 5,   // Return 'true' when Enter is pressed (as opposed to every time the value was modified).
+    DBGUI_INPUT_TEXT_FLAGS_EscapeClearsAll     = 1 << 20,  // Escape key clears content if not empty, and deactivate otherwise (contrast to default behavior of Escape to revert)
+
+    // Other options
+    DBGUI_INPUT_TEXT_FLAGS_ReadOnly            = 1 << 14,  // Read-only mode
+    DBGUI_INPUT_TEXT_FLAGS_AlwaysOverwrite     = 1 << 13,  // Overwrite mode
+    DBGUI_INPUT_TEXT_FLAGS_AutoSelectAll       = 1 << 4,   // Select entire text when first taking mouse focus
+    DBGUI_INPUT_TEXT_FLAGS_ParseEmptyRefVal    = 1 << 15,  // dbgui_input_float(), dbgui_input_int() etc. only: parse empty string as zero value.
+
+    // Elide display / Alignment
+    DBGUI_INPUT_TEXT_FLAGS_ElideLeft           = 1 << 18,  // When text doesn't fit, elide left side to ensure right side stays visible.
+};
+
 bool is_open();
 
 bool want_capture_keyboard();
@@ -50,11 +76,11 @@ void end_child();
 
 bool checkbox(const char *label, bool *v);
 bool input_int(const char *label, int *v);
-bool input_int_ext(const char *label, int *v, int step, int step_fast, ImGuiInputTextFlags flags);
+bool input_int_ext(const char *label, int *v, int step, int step_fast, DbgUiInputTextFlags flags);
 bool input_float(const char *label, float *v);
-bool input_float_ext(const char *label, float *v, float step, float step_fast, const char *format, ImGuiInputTextFlags flags);
+bool input_float_ext(const char *label, float *v, float step, float step_fast, const char *format, DbgUiInputTextFlags flags);
 bool input_text(const char *label, char *buf, size_t buf_size);
-bool input_text_ext(const char *label, char *buf, size_t buf_size, ImGuiInputTextFlags flags);
+bool input_text_ext(const char *label, char *buf, size_t buf_size, DbgUiInputTextFlags flags);
 
 void set_next_item_width(float width);
 void push_item_width(float width);

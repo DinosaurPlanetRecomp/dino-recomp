@@ -7,6 +7,31 @@
 
 namespace dino::debug_ui {
 
+// Note: This mapping is important because ImGui occasionally makes breaking changes to this enum, but we want to be
+//       backwards compatible with older mods.
+static ImGuiInputTextFlags map_input_text_flags(DbgUiInputTextFlags flags) {
+    ImGuiInputTextFlags imguiFlags = 0;
+
+    if (flags & DBGUI_INPUT_TEXT_FLAGS_CharsDecimal) imguiFlags |= ImGuiInputTextFlags_CharsDecimal;
+    if (flags & DBGUI_INPUT_TEXT_FLAGS_CharsHexadecimal) imguiFlags |= ImGuiInputTextFlags_CharsHexadecimal;
+    if (flags & DBGUI_INPUT_TEXT_FLAGS_CharsScientific) imguiFlags |= ImGuiInputTextFlags_CharsScientific;
+    if (flags & DBGUI_INPUT_TEXT_FLAGS_CharsUppercase) imguiFlags |= ImGuiInputTextFlags_CharsUppercase;
+    if (flags & DBGUI_INPUT_TEXT_FLAGS_CharsNoBlank) imguiFlags |= ImGuiInputTextFlags_CharsNoBlank;
+    
+    if (flags & DBGUI_INPUT_TEXT_FLAGS_AllowTabInput) imguiFlags |= ImGuiInputTextFlags_AllowTabInput;
+    if (flags & DBGUI_INPUT_TEXT_FLAGS_EnterReturnsTrue) imguiFlags |= ImGuiInputTextFlags_EnterReturnsTrue;
+    if (flags & DBGUI_INPUT_TEXT_FLAGS_EscapeClearsAll) imguiFlags |= ImGuiInputTextFlags_EscapeClearsAll;
+
+    if (flags & DBGUI_INPUT_TEXT_FLAGS_ReadOnly) imguiFlags |= ImGuiInputTextFlags_ReadOnly;
+    if (flags & DBGUI_INPUT_TEXT_FLAGS_AlwaysOverwrite) imguiFlags |= ImGuiInputTextFlags_AlwaysOverwrite;
+    if (flags & DBGUI_INPUT_TEXT_FLAGS_AutoSelectAll) imguiFlags |= ImGuiInputTextFlags_AutoSelectAll;
+    if (flags & DBGUI_INPUT_TEXT_FLAGS_ParseEmptyRefVal) imguiFlags |= ImGuiInputTextFlags_ParseEmptyRefVal;
+
+    if (flags & DBGUI_INPUT_TEXT_FLAGS_ElideLeft) imguiFlags |= ImGuiInputTextFlags_ElideLeft;
+
+    return imguiFlags;
+}
+
 bool is_open() {
     return backend::is_open() && backend::dino_imgui_ctx->Initialized;
 }
@@ -185,9 +210,9 @@ bool input_int(const char *label, int *v) {
     return ImGui::InputInt(label, v);
 }
 
-bool input_int_ext(const char *label, int *v, int step, int step_fast, ImGuiInputTextFlags flags) {
+bool input_int_ext(const char *label, int *v, int step, int step_fast, DbgUiInputTextFlags flags) {
     assert_is_open();
-    return ImGui::InputInt(label, v, step, step_fast, flags);
+    return ImGui::InputInt(label, v, step, step_fast, map_input_text_flags(flags));
 }
 
 bool input_float(const char *label, float *v) {
@@ -195,9 +220,9 @@ bool input_float(const char *label, float *v) {
     return ImGui::InputFloat(label, v);
 }
 
-bool input_float_ext(const char *label, float *v, float step, float step_fast, const char *format, ImGuiInputTextFlags flags) {
+bool input_float_ext(const char *label, float *v, float step, float step_fast, const char *format, DbgUiInputTextFlags flags) {
     assert_is_open();
-    return ImGui::InputFloat(label, v, step, step_fast, format, flags);
+    return ImGui::InputFloat(label, v, step, step_fast, format, map_input_text_flags(flags));
 }
 
 bool input_text(const char *label, char *buf, size_t buf_size) {
@@ -205,9 +230,9 @@ bool input_text(const char *label, char *buf, size_t buf_size) {
     return ImGui::InputText(label, buf, buf_size);
 }
 
-bool input_text_ext(const char *label, char *buf, size_t buf_size, ImGuiInputTextFlags flags) {
+bool input_text_ext(const char *label, char *buf, size_t buf_size, DbgUiInputTextFlags flags) {
     assert_is_open();
-    return ImGui::InputText(label, buf, buf_size, flags);
+    return ImGui::InputText(label, buf, buf_size, map_input_text_flags(flags));
 }
 
 void set_next_item_width(float width) {
