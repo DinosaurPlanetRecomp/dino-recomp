@@ -5,6 +5,7 @@
 
 #include "common/rt64_user_configuration.h"
 #include "ultramodern/renderer_context.hpp"
+#include "librecomp/config.hpp"
 #include "librecomp/mods.hpp"
 
 namespace RT64 {
@@ -25,6 +26,7 @@ namespace dino::renderer {
 
         void enable_instant_present() override;
         void send_dl(const OSTask *task) override;
+        void send_dummy_workload(uint32_t fb_address) override;
         void update_screen() override;
         void shutdown() override;
         uint32_t get_display_framerate() const override;
@@ -52,5 +54,5 @@ namespace dino::renderer {
 
     // Texture pack enable option. Must be an enum with two options.
     // The first option is treated as disabled and the second option is treated as enabled.
-    bool is_texture_pack_enable_config_option(const recomp::mods::ConfigOption& option, bool show_errors);
+    bool is_texture_pack_enable_config_option(const recomp::config::ConfigOption& option, bool show_errors);
 }

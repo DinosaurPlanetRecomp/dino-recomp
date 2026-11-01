@@ -1,6 +1,7 @@
 #ifndef RECOMPUI_ELEMENT_MOD_MENU_H
 #define RECOMPUI_ELEMENT_MOD_MENU_H
 
+#include "librecomp/config.hpp"
 #include "librecomp/mods.hpp"
 #include "elements/ui_scroll_container.h"
 #include "ui_config_sub_menu.h"
@@ -86,7 +87,7 @@ private:
     void mod_selected(uint32_t mod_index);
     void mod_dragged(uint32_t mod_index, EventDrag drag);
     void mod_configure_requested();
-    bool handle_special_config_options(const recomp::mods::ConfigOption& option, const recomp::mods::ConfigValueVariant& config_value);
+    bool handle_special_config_options(const recomp::config::ConfigOption& option, const recomp::config::ConfigValueVariant& config_value);
     void mod_enum_option_changed(const std::string &id, uint32_t value);
     void mod_string_option_changed(const std::string &id, const std::string &value);
     void mod_number_option_changed(const std::string &id, double value);

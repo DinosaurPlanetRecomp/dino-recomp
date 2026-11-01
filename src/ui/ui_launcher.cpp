@@ -59,7 +59,7 @@ void select_rom() {
 }
 
 void start_game() {
-    recomp::start_game(supported_games[0].game_id);
+    recomp::start_game(supported_games[0].game_id, "");
     recompui::hide_all_contexts();
 }
 

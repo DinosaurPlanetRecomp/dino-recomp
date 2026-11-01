@@ -208,7 +208,9 @@
                         <br/>
                         Values above 62% will increase joystick sensitivity. <i>Warning:</i> It is not recommended to set this option below 62% as you will no longer be able to reach maximum control stick values, which may hinder gameplay.<br/>
                         <br/>
-                        If your joystick cannot reach 100% in cardinal directions then you will need to adjust this setting to be above 62% to compensate.
+                        If your joystick cannot reach 100% in cardinal directions then you will need to adjust this setting to be above 62% to compensate.<br/>
+                        <br/>
+                        Default: 64%
                     </p>
                     <p data-if="cur_config_index == 2">
                         Controls the strength of rumble when using a controller that supports it. <b>Setting this to zero will disable rumble.</b><br/>

@@ -105,7 +105,9 @@ bool get_n64_input(int controller_num, uint16_t* buttons_out, float* x_out, floa
         cur_y = get_input_analog(keyboard_input_mappings[(size_t)GameInput::Y_AXIS_POS])
                 - get_input_analog(keyboard_input_mappings[(size_t)GameInput::Y_AXIS_NEG]) + joystick_y;
 
-        float joystick_range = get_joystick_range() / 100.0f;
+        // Note: the runtime uses a range of [0,82] instead of [0,128], so we need to remap the range
+        //       option such that ~64% == 82 to allow higher percentages to increase sensitivity.
+        float joystick_range = (get_joystick_range() / 100.0f) * (128.0f / 82.0f);
         
         cur_x *= joystick_range;
         cur_y *= joystick_range;

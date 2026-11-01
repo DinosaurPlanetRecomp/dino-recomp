@@ -59,6 +59,7 @@ std::vector<recomp::GameEntry> supported_games = {
     {
         .rom_hash = 0xB231A00966BE1430,
         .internal_name = "DINO PLANET",
+        .display_name = "Dinosaur Planet",
         .game_id = u8"dino",
         .mod_game_id = "dino-planet",
         .save_type = recomp::SaveType::Flashram,
@@ -74,7 +75,6 @@ std::vector<recomp::GameEntry> supported_games = {
 };
 
 struct CliArgs {
-    bool skip_launcher = false;
     bool show_console = false;
     int window_width = 1600;
     int window_height = 960;
@@ -92,9 +92,7 @@ int main(int argc, char** argv) {
     // Parse CLI args
     for (int i = 1; i < argc; i++) {
         char *arg = argv[i];
-        if (strcmp(arg, "--skip-launcher") == 0) {
-            cli_args.skip_launcher = true;
-        } else if (strcmp(argv[i], "--show-console") == 0) {
+        if (strcmp(argv[i], "--show-console") == 0) {
             cli_args.show_console = true;
         } else if (strcmp(argv[i], "--4x3") == 0) {
             cli_args.window_width = 320 * 4;
@@ -246,14 +244,9 @@ int main(int argc, char** argv) {
 
     dino::runtime::register_mods();
 
-    if (cli_args.skip_launcher) {
-        // HACK: This relies on unsupported behavior in the runtime and requires using a fork
-        //       of the runtime with a hack to avoid an uninitialized VI origin when doing this
-        recomp::start_game(supported_games[0].game_id);
-        recompui::hide_all_contexts();
-    }
-
     recomp::Configuration config = {
+        .argc = argc,
+        .argv = argv,
         .project_version = project_version,
         .rsp_callbacks = rsp_callbacks,
         .renderer_callbacks = renderer_callbacks,
