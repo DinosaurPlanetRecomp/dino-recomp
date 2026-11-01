@@ -165,6 +165,7 @@ ConfigSubMenu::ConfigSubMenu(Element *parent) : Element(parent) {
     recompui::ContextId context = get_current_context();
     header_container = context.create_element<Container>(this, FlexDirection::Row, JustifyContent::FlexStart);
     header_container->set_flex_grow(0.0f);
+    header_container->set_flex_shrink(0.0f);
     header_container->set_align_items(AlignItems::Center);
     header_container->set_padding(12.0f);
     header_container->set_gap(24.0f);
@@ -180,14 +181,14 @@ ConfigSubMenu::ConfigSubMenu(Element *parent) : Element(parent) {
     {
         config_container = context.create_element<Container>(body_container, FlexDirection::Column, JustifyContent::Center);
         config_container->set_display(Display::Block);
-        config_container->set_flex_basis(100.0f);
+        config_container->set_flex_basis(50.0f);
         config_container->set_align_items(AlignItems::Center);
         {
             config_scroll_container = context.create_element<ScrollContainer>(config_container, ScrollDirection::Vertical);
         }
 
         description_label = context.create_element<Label>(body_container, "", LabelStyle::Small);
-        description_label->set_min_width(800.0f);
+        description_label->set_flex_basis(50.0f);
         description_label->set_padding_left(16.0f);
         description_label->set_padding_right(16.0f);
     }
