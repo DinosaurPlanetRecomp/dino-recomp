@@ -7,9 +7,9 @@ Dinosaur Planet: Recompiled is a project that uses [N64: Recompiled](https://git
 
 > **This repository and its releases do not contain game assets. The original game is required to build or run this project.**
 
-> **No-AI stance**
+> **No-AI**
 >
-> Dinosaur Planet: Recompiled development has not, does not, and will not use generative AI tools for **any purpose**. As per the [CONTRIBUTING.md](./CONTRIBUTING.md) file, contributions that use any GenAI tooling in any capacity are blanket banned. We also ask that **forks and modifications** of this repository adhere to this ban as well.
+> Dinosaur Planet: Recompiled development has not, does not, and will not make use of generative AI/LLM tools for **any purpose**. As per the [CONTRIBUTING.md](./CONTRIBUTING.md) file, contributions that use any generative AI tooling in any capacity are blanket banned. We also ask that **forks and modifications** of this repository adhere to this ban as well.
 
 ## Table of Contents
 * [System Requirements](#system-requirements)
