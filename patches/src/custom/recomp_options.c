@@ -2,6 +2,7 @@
 #include "recomp_options.h"
 #include "patches/mp3.h"
 #include "patches/1_cmdmenu.h"
+#include "patches/5_amseq.h"
 
 #include "dlls/engine/29_gplay.h"
 #include "game/gamebits.h"
@@ -22,6 +23,7 @@ enum RecompMinimapMode {
 static s32 recomp_lastDialogVolume = 100;
 static s32 recomp_lastHudMode = -1;
 static s32 recomp_lastMinimapMode = -1;
+static s32 recomp_lastAmbienceVol = -1;
 
 static f32 recomp_holdMinimapTimer = 0;
 
@@ -33,10 +35,12 @@ void recomp_pull_game_options(void) {
     }
     GplayOptions *options = gDLL_29_Gplay->vtbl->get_game_options();
 
-    s32 recompMusicVol = (recomp_get_bgm_volume() / 100.0f) * 256;
-    if (options->volumeMusic != recompMusicVol || b_firstCall) {
+    s32 recompMusicVol = (recomp_get_mus_volume() / 100.0f) * 256;
+    s32 recompAmbienceVol = (recomp_get_amb_volume() / 100.0f) * 256;
+    if (options->volumeMusic != recompMusicVol || recomp_lastAmbienceVol != recompAmbienceVol || b_firstCall) {
         options->volumeMusic = recompMusicVol;
-        gDLL_5_AMSEQ2->vtbl->set_volume_option(recompMusicVol);
+        recomp_lastAmbienceVol = recompAmbienceVol;
+        recomp_amseq_set_volume_option(recompMusicVol, recompAmbienceVol);
     }
 
     s32 recompSfxVol = (recomp_get_sfx_volume() / 100.0f) * 127;

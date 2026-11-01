@@ -109,6 +109,7 @@ The full list of game patches applied by base Dinosaur Planet: Recompiled.
 
 ### 5 - AMSEQ
 - Fix volume option setter export not affecting the 4th music player.
+- Let music and ambience use separate volume options.
 
 ### 13 - expgfx
 - Matrix group patches for frame interpolation.

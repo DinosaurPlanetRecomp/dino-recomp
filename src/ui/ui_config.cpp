@@ -399,14 +399,16 @@ void dino::config::set_minimap_mode(dino::config::MinimapMode mode) {
 
 struct SoundOptionsContext {
     std::atomic<int> main_volume; // Option to control the volume of all sound
-    std::atomic<int> bgm_volume;
+    std::atomic<int> mus_volume;
+    std::atomic<int> amb_volume;
     std::atomic<int> sfx_volume;
     std::atomic<int> dialog_volume;
 	std::atomic<int> subtitles = 1;
 
     void reset() {
         main_volume = 100;
-        bgm_volume = 100;
+        mus_volume = 100;
+        amb_volume = 100;
         sfx_volume = 100;
         dialog_volume = 100;
         subtitles = 1;
@@ -436,15 +438,26 @@ int dino::config::get_main_volume() {
     return sound_options_context.main_volume.load();
 }
 
-void dino::config::set_bgm_volume(int volume) {
-    sound_options_context.bgm_volume.store(volume);
+void dino::config::set_mus_volume(int volume) {
+    sound_options_context.mus_volume.store(volume);
     if (sound_options_model_handle) {
-        sound_options_model_handle.DirtyVariable("bgm_volume");
+        sound_options_model_handle.DirtyVariable("mus_volume");
     }
 }
 
-int dino::config::get_bgm_volume() {
-    return sound_options_context.bgm_volume.load();
+int dino::config::get_mus_volume() {
+    return sound_options_context.mus_volume.load();
+}
+
+void dino::config::set_amb_volume(int volume) {
+    sound_options_context.amb_volume.store(volume);
+    if (sound_options_model_handle) {
+        sound_options_model_handle.DirtyVariable("amb_volume");
+    }
+}
+
+int dino::config::get_amb_volume() {
+    return sound_options_context.amb_volume.load();
 }
 
 void dino::config::set_sfx_volume(int volume) {
@@ -952,7 +965,8 @@ public:
         sound_options_model_handle = constructor.GetModelHandle();
 
         bind_atomic(constructor, sound_options_model_handle, "main_volume", &sound_options_context.main_volume);
-        bind_atomic(constructor, sound_options_model_handle, "bgm_volume", &sound_options_context.bgm_volume);
+        bind_atomic(constructor, sound_options_model_handle, "mus_volume", &sound_options_context.mus_volume);
+        bind_atomic(constructor, sound_options_model_handle, "amb_volume", &sound_options_context.amb_volume);
         bind_atomic(constructor, sound_options_model_handle, "sfx_volume", &sound_options_context.sfx_volume);
         bind_atomic(constructor, sound_options_model_handle, "dialog_volume", &sound_options_context.dialog_volume);
         bind_atomic(constructor, sound_options_model_handle, "subtitles", &sound_options_context.subtitles);

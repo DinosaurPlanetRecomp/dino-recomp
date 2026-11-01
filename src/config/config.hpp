@@ -119,8 +119,10 @@ namespace dino::config {
     void reset_sound_settings();
     void set_main_volume(int volume);
     int get_main_volume();
-    void set_bgm_volume(int volume);
-    int get_bgm_volume();
+    void set_mus_volume(int volume);
+    int get_mus_volume();
+    void set_amb_volume(int volume);
+    int get_amb_volume();
     void set_sfx_volume(int volume);
     int get_sfx_volume();
     void set_dialog_volume(int volume);

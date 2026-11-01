@@ -134,8 +134,12 @@ extern "C" void recomp_get_minimap_mode(uint8_t* rdram, recomp_context* ctx) {
     _return(ctx, static_cast<int>(dino::config::get_minimap_mode()));
 }
 
-extern "C" void recomp_get_bgm_volume(uint8_t* rdram, recomp_context* ctx) {
-    _return(ctx, dino::config::get_bgm_volume());
+extern "C" void recomp_get_mus_volume(uint8_t* rdram, recomp_context* ctx) {
+    _return(ctx, dino::config::get_mus_volume());
+}
+
+extern "C" void recomp_get_amb_volume(uint8_t* rdram, recomp_context* ctx) {
+    _return(ctx, dino::config::get_amb_volume());
 }
 
 extern "C" void recomp_get_sfx_volume(uint8_t* rdram, recomp_context* ctx) {
@@ -165,7 +169,8 @@ namespace dino::recomp_api {
         REGISTER_EXPORT(recomp_time_us);
         REGISTER_EXPORT(recomp_get_hud_mode);
         REGISTER_EXPORT(recomp_get_minimap_mode);
-        REGISTER_EXPORT(recomp_get_bgm_volume);
+        REGISTER_EXPORT(recomp_get_mus_volume);
+        REGISTER_EXPORT(recomp_get_amb_volume);
         REGISTER_EXPORT(recomp_get_sfx_volume);
         REGISTER_EXPORT(recomp_get_dialog_volume);
         REGISTER_EXPORT(recomp_get_subtitles_enabled);
