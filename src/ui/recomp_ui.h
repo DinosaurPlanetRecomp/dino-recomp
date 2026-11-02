@@ -2,6 +2,7 @@
 #define __RECOMP_UI__
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <list>
@@ -58,6 +59,7 @@ namespace recompui {
     ContextId get_launcher_context_id();
     ContextId get_config_context_id();
     ContextId get_config_sub_menu_context_id();
+    std::optional<recompui::ContextId> get_prev_context_from_last_menu_close();
 
     enum class ConfigTab {
         General,

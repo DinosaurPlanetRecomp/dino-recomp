@@ -747,7 +747,8 @@ void draw_hook(plume::RenderCommandList* command_list, plume::RenderFramebuffer*
             }
 
             if (open_config) {
-                recompui::show_context(recompui::get_config_context_id(), "");
+                std::optional<recompui::ContextId> prevCtx = recompui::get_prev_context_from_last_menu_close();
+                recompui::show_context(prevCtx.value_or(recompui::get_config_context_id()), "");
             }
         }
     } // end dequeue event loop

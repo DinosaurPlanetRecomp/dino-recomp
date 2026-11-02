@@ -150,6 +150,12 @@ void dino::input::config_menu_set_cont_or_kb(bool cont_interacted) {
     }
 }
 
+static std::optional<recompui::ContextId> prev_context_from_last_menu_close = std::nullopt;
+
+std::optional<recompui::ContextId> recompui::get_prev_context_from_last_menu_close() {
+    return prev_context_from_last_menu_close;
+}
+
 void close_config_menu_impl() {
     dino::config::save_config();
 
@@ -157,9 +163,11 @@ void close_config_menu_impl() {
     recompui::ContextId sub_menu_context = recompui::get_config_sub_menu_context_id();
 
     if (recompui::is_context_shown(sub_menu_context)) {
+        prev_context_from_last_menu_close = sub_menu_context;
     	recompui::hide_context(sub_menu_context);
     }
     else {
+        prev_context_from_last_menu_close = config_context;
     	recompui::hide_context(config_context);
     }
 
