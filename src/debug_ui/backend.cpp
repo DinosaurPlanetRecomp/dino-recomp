@@ -51,7 +51,7 @@ bool b_is_open = false;
 bool b_in_ui_frame = false;
 
 static ImGuiContext *prev_ctx;
-static std::unique_ptr<plume::RenderDescriptorSet> descriptor_set;
+static std::unique_ptr<plume::RenderDescriptorSet> descriptorSet;
 static std::mutex frame_mutex;
 static moodycamel::ConcurrentQueue<SDL_Event> event_queue{};
 static std::unique_ptr<VulkanContext> vulkanContext;
@@ -316,7 +316,7 @@ static void rt64_deinit_hook() {
         case RT64::UserConfiguration::GraphicsAPI::D3D12:
 #ifdef _WIN32
             ImGui_ImplDX12_Shutdown();
-            descriptor_set.release();
+            descriptorSet.reset(nullptr);
 #else
             assert(false && "Unsupported Graphics API.");
             return;
