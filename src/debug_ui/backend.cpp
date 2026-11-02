@@ -114,6 +114,15 @@ void begin() {
     prev_ctx = ImGui::GetCurrentContext();
     ImGui::SetCurrentContext(dino_imgui_ctx);
 
+    float newScale = dino::config::get_debug_ui_scale() / 100.0f;
+    float scaleDelta = std::fabs(dino_imgui_ctx->Style.FontScaleDpi - newScale);
+    dino_imgui_ctx->Style.FontScaleDpi = newScale;
+    if (scaleDelta > 0.001f) {
+        // Rebuild fonts so it's less blurry
+        dino_imgui_ctx->IO.Fonts->Clear();
+        dino_imgui_ctx->IO.Fonts->Build();
+    }
+
     SDL_Event event{};
     while (event_queue.try_dequeue(event)) {
         if (event.type == SDL_KEYDOWN && 
@@ -195,6 +204,8 @@ void init(RT64::Application* app) {
 
     static std::string imgui_ini_path = (dino::config::get_app_folder_path() / "imgui.ini").string();
     dino_imgui_ctx->IO.IniFilename = imgui_ini_path.c_str();
+
+    dino_imgui_ctx->Style.FontScaleDpi = dino::config::get_debug_ui_scale() / 100.0f;
 
     ImGui_ImplSDL2_InitForOther(dino::runtime::get_window());
 

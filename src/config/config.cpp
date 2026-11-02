@@ -236,6 +236,7 @@ bool save_general_config(const std::filesystem::path& path) {
     config_json["dinomod_check"] = get_dinomod_check();
     config_json["hud_mode"] = get_hud_mode();
     config_json["minimap_mode"] = get_minimap_mode();
+    config_json["debug_ui_scale"] = get_debug_ui_scale();
     config_json["debug_dll_logging"] = get_debug_dll_logging_enabled();
     config_json["debug_diprintf"] = get_debug_diprintf_enabled();
     config_json["debug_reasset_loglevel"] = get_debug_reasset_loglevel();
@@ -259,6 +260,7 @@ void set_general_settings_from_json(const nlohmann::json& config_json) {
     set_dinomod_check(from_or_default(config_json, "dinomod_check", true));
     set_hud_mode(from_or_default(config_json, "hud_mode", HUDMode::Default));
     set_minimap_mode(from_or_default(config_json, "minimap_mode", MinimapMode::Default));
+    set_debug_ui_scale(from_or_default(config_json, "debug_ui_scale", 100));
     set_debug_dll_logging_enabled(from_or_default(config_json, "debug_dll_logging", false));
     set_debug_diprintf_enabled(from_or_default(config_json, "debug_diprintf", false));
     set_debug_reasset_loglevel(from_or_default(config_json, "debug_reasset_loglevel", 0));

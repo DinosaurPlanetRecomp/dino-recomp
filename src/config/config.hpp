@@ -132,6 +132,9 @@ namespace dino::config {
 
     void open_quit_game_prompt();
 
+    int get_debug_ui_scale();
+    void set_debug_ui_scale(int level);
+
     bool get_debug_dll_logging_enabled();
     void set_debug_dll_logging_enabled(bool enabled);
 

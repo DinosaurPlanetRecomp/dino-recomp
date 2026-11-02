@@ -495,6 +495,7 @@ void dino::config::set_subtitles_enabled(bool enabled) {
 
 struct DebugContext {
     Rml::DataModelHandle model_handle;
+    std::atomic<int> debug_ui_scale = 100;
 	std::atomic<int> debug_dll_logging_enabled = 0;
 	std::atomic<int> debug_diprintf_enabled = 0;
 	std::atomic<int> debug_reasset_loglevel = 0;
@@ -982,6 +983,7 @@ public:
 
 		bind_config_list_events(constructor);
 
+        bind_atomic(constructor, debug_context.model_handle, "debug_ui_scale", &debug_context.debug_ui_scale);
 		bind_atomic(constructor, debug_context.model_handle, "debug_dll_logging_enabled", &debug_context.debug_dll_logging_enabled);
 		bind_atomic(constructor, debug_context.model_handle, "debug_diprintf_enabled", &debug_context.debug_diprintf_enabled);
 		bind_atomic(constructor, debug_context.model_handle, "debug_reasset_loglevel", &debug_context.debug_reasset_loglevel);
@@ -1005,6 +1007,17 @@ public:
 
 std::unique_ptr<recompui::MenuController> recompui::create_config_menu() {
     return std::make_unique<ConfigMenu>();
+}
+
+int dino::config::get_debug_ui_scale() {
+	return debug_context.debug_ui_scale.load();
+}
+
+void dino::config::set_debug_ui_scale(int level) {
+	debug_context.debug_ui_scale.store(level);
+	if (debug_context.model_handle) {
+		debug_context.model_handle.DirtyVariable("debug_ui_scale");
+	}
 }
 
 bool dino::config::get_debug_dll_logging_enabled() {
