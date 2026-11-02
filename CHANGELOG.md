@@ -3,14 +3,15 @@
 - Added an experimental crash handler. Crash logs can now be found at:
     - Windows: `%LOCALAPPDATA%\DinoPlanetRecompiled\crash.log`
     - Linux: `~/.config/DinoPlanetRecompiled/crash.log`
-- The pause screen background is no longer black when standing in certain interiors like Volcano Force Point.
 - New UI scale option for the debug UI.
+- The pause screen background is no longer black when standing in certain interiors like Volcano Force Point.
 - Fixed foodbag inventory cheat menu.
 - Fixed some jank with the mod configuration menus.
 - Updated to the latest version of N64RecompRuntime.
     - Control stick inputs now use N64-Style Octagon Input Scaling.
 - Updated to the latest version of RT64.
     - New fallbacks for certain AMD/Intel driver versions to use Vulkan, to avoid crashes and other issues.
+- Updated SDL GameControllerDB (support for additional controllers).
 - The `--skip-launcher` command line argument has been replaced with `--game dino-planet`.
 
 
