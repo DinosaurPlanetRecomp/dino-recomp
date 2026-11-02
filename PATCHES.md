@@ -1,6 +1,9 @@
 # Patch Changelist
 The full list of game patches applied by base Dinosaur Planet: Recompiled.
 
+## Assets
+- All TEX0 font textures now use the clamped texture wrap mode to fix some artifacting that shows up only at higher resolutions.
+
 ## Misc
 - Disable mips3 float mode for non-handwritten asm code. Mips3 float mode is now only turned on temporarily for the few handwritten asm code segments that need it. The C code in Dinosaur Planet was compiled with mips2 mode in mind, which causes various issues with the vanilla behavior.
 

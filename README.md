@@ -57,6 +57,11 @@ Yes, if you place a file named `portable.txt` in the same folder as the executab
 #### Can I launch the window at 4:3 aspect ratio or at a custom size?
 The window can be launched at 1280x960 (4:3) by passing the `--4x3` command line argument. Alternatively, the window width and height can be manually specified with the `--window-width` and `--window-height` arguments (ex. `--window-width 1920 --window-height 1080`).
 
+#### The game crashed! Where can I find the crash logs?
+**Note:** Crash logs are currently an experimental feature.
+- Windows: `%LOCALAPPDATA%\DinoPlanetRecompiled\crash.log`
+- Linux: `~/.config/DinoPlanetRecompiled/crash.log`
+
 ## Modding
 Install community made mods and texture packs! Mods can change any part of the game, including adding completely new features and content. You can install mods by either dragging the mod files onto the game window before starting the game, by clicking the **Install Mods** button in the mod menu, or by placing the `.nrm` file [into the mods directory](#where-are-mods-installed-to). Mods can be toggled in the mod menu, and some mods can be configured there as well.
 
