@@ -116,8 +116,12 @@ void begin() {
 
     float newScale = dino::config::get_debug_ui_scale() / 100.0f;
     float scaleDelta = std::fabs(dino_imgui_ctx->Style.FontScaleDpi - newScale);
-    dino_imgui_ctx->Style.FontScaleDpi = newScale;
     if (scaleDelta > 0.001f) {
+        if (newScale > 1.0f) {
+            dino_imgui_ctx->Style = ImGuiStyle();
+            dino_imgui_ctx->Style.ScaleAllSizes(newScale);
+        }
+        dino_imgui_ctx->Style.FontScaleDpi = newScale;
         // Rebuild fonts so it's less blurry
         dino_imgui_ctx->IO.Fonts->Clear();
         dino_imgui_ctx->IO.Fonts->Build();
@@ -206,6 +210,9 @@ void init(RT64::Application* app) {
     dino_imgui_ctx->IO.IniFilename = imgui_ini_path.c_str();
 
     dino_imgui_ctx->Style.FontScaleDpi = dino::config::get_debug_ui_scale() / 100.0f;
+    if (dino_imgui_ctx->Style.FontScaleDpi > 1.0f) {
+        dino_imgui_ctx->Style.ScaleAllSizes(dino_imgui_ctx->Style.FontScaleDpi);
+    }
 
     ImGui_ImplSDL2_InitForOther(dino::runtime::get_window());
 
