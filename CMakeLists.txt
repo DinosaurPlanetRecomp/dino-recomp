@@ -15,6 +15,10 @@ if (WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR")
 endif()
 
+if (WIN32)
+    option(RECOMP_MOD_DEV_BUILD "Configure the build for mod developers." OFF)
+endif()
+
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     option(RECOMP_FLATPAK "Configure the build for Flatpak compatibility." OFF)
 endif()
@@ -253,14 +257,25 @@ if (WIN32)
             "${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/dxc/bin/x64/dxcompiler.dll"
             $<TARGET_FILE_DIR:DinosaurPlanetRecompiled>)
 
-    set_target_properties(
-        DinosaurPlanetRecompiled
-        PROPERTIES
-            LINK_FLAGS_DEBUG "/SUBSYSTEM:CONSOLE"
-            LINK_FLAGS_RELEASE "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup"
-            LINK_FLAGS_RELWITHDEBINFO "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup"
-            LINK_FLAGS_MINSIZEREL "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup"
-    )
+    if (RECOMP_MOD_DEV_BUILD)
+        set_target_properties(
+            DinosaurPlanetRecompiled
+            PROPERTIES
+                LINK_FLAGS_DEBUG "/SUBSYSTEM:CONSOLE"
+                LINK_FLAGS_RELEASE "/SUBSYSTEM:CONSOLE /ENTRY:mainCRTStartup"
+                LINK_FLAGS_RELWITHDEBINFO "/SUBSYSTEM:CONSOLE /ENTRY:mainCRTStartup"
+                LINK_FLAGS_MINSIZEREL "/SUBSYSTEM:CONSOLE /ENTRY:mainCRTStartup"
+        )
+    else()
+        set_target_properties(
+            DinosaurPlanetRecompiled
+            PROPERTIES
+                LINK_FLAGS_DEBUG "/SUBSYSTEM:CONSOLE"
+                LINK_FLAGS_RELEASE "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup"
+                LINK_FLAGS_RELWITHDEBINFO "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup"
+                LINK_FLAGS_MINSIZEREL "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup"
+        )
+    endif()
 
     target_sources(DinosaurPlanetRecompiled PRIVATE ${CMAKE_SOURCE_DIR}/icons/app.rc)
     target_link_libraries(DinosaurPlanetRecompiled PRIVATE SDL2 Winmm.lib)
