@@ -23,6 +23,22 @@ extern s32 *gTexLoadBuffer; // scratch space used when loading texture bin heade
 
 extern Gfx *texSetupDisplayLists(Texture *texture, Gfx *gdl);
 
+static void recomp_tex_hacks(s32 id, s32 frame, Texture *tex) {
+    s32 bank = (id & 0x8000) != 0 ? 1 : 0;
+    if (bank == 1) {
+        return;
+    }
+
+    id &= 0x7FFF;
+
+    // Force font textures to be clamped. 
+    // Fixes font rendering artifacts at higher resolutions/certain aspect ratios.
+    if ((id >= 0 && id <= 2) || (id >= 775 && id <= 911)) {
+        tex->cms |= G_TX_CLAMP;
+        tex->cmt |= G_TX_CLAMP;
+    }
+}
+
 // Note: this is based off of a nonmatch
 RECOMP_PATCH Texture* texLoadTextureActual(s32 id, u8 param2) {
     u32 binFileID; // sp74
@@ -106,6 +122,8 @@ RECOMP_PATCH Texture* texLoadTextureActual(s32 id, u8 param2) {
                 piRomLoadSection(binFileID, temp_s3, gTexLoadBuffer[frame << 1] + offset, compressedSize);
                 rarezipUncompress(temp_s3, (u8*)tex, uncompressedSize);
             }
+            // @recomp: Apply recomp-specific texture hacks
+            recomp_tex_hacks(id, frame, tex);
             // @recomp: Invoke event
             recomp_on_tex_loaded_frame_rom(id, frame, tex);
             tex->next = NULL;

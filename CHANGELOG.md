@@ -5,6 +5,7 @@
     - Linux: `~/.config/DinoPlanetRecompiled/crash.log`
 - New UI scale option for the debug UI.
 - The pause screen background is no longer black when standing in certain interiors like Volcano Force Point.
+- Fixed some minor font rendering artifacts that occurred at certain resolutions/aspect ratios.
 - Fixed foodbag inventory cheat menu.
 - Fixed some jank with the mod configuration menus.
 - Updated to the latest version of N64RecompRuntime.
