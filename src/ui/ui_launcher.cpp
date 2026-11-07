@@ -85,6 +85,7 @@ void start_game_check_dinomod() {
         recompui::open_choice_prompt("Missing Dinomod Enhanced", 
             "Warning: The mod 'Dinomod Enhanced' is not installed and enabled! "
                 "Please visit the Dinosaur Planet: Recompiled community page on Thunderstore to download the mod.\n\n"
+                "https://thunderstore.io/c/dinosaur-planet-recompiled/\n\n"
                 "The vanilla prototype ROM is not very playable on its own and you will not be able to progress past the early game!\n\n"
                 "If this is intentional, you can disable this check in the 'General' settings menu.", 
             "Continue Anyway",

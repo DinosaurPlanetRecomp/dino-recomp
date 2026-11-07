@@ -142,6 +142,9 @@ RECOMP_PATCH void mainTick(void) {
     // @recomp: Enable RT64 extended GBI commands
     gEXEnable((*gdl)++);
 
+    // @recomp: Tell RT64 about the current refresh rate
+    gEXSetRefreshRate((*gdl)++, 60 / gUpdateRate);
+
     // @recomp: Hook start of game_tick
     recomp_game_tick_start_hook();
 
