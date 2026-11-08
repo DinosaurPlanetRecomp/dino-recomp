@@ -11,6 +11,7 @@
 - Updated to the latest version of N64RecompRuntime.
     - Control stick inputs now use N64-Style Octagon Input Scaling.
 - Updated to the latest version of RT64.
+    - Support for PNG texture dumping.
     - New fallbacks for certain AMD/Intel driver versions to use Vulkan, to avoid crashes and other issues.
 - Updated SDL GameControllerDB (support for additional controllers).
 - The `--skip-launcher` command line argument has been replaced with `--game dino-planet`.
