@@ -1,6 +1,9 @@
+#include "patches.h"
 #include "dbgui.h"
 #include "builtin_dbgui.h"
 #include "patches/builtin_dbgui/graphics_window.h"
+
+static s32 cheatMenuEnabled = TRUE;
 
 static s32 dllsOpen = FALSE;
 static s32 audioOpen = FALSE;
@@ -20,10 +23,12 @@ void builtin_dbgui(void) {
             dbgui_menu_item("DLLs", &dllsOpen);
             dbgui_end_menu();
         }
-        if (dbgui_begin_menu("Cheats")) {
-            dbgui_menu_item("Player", &playerCheatOpen);
-            dbgui_menu_item("Sidekick", &sidekickCheatOpen);
-            dbgui_end_menu();
+        if (cheatMenuEnabled) {
+            if (dbgui_begin_menu("Cheats")) {
+                dbgui_menu_item("Player", &playerCheatOpen);
+                dbgui_menu_item("Sidekick", &sidekickCheatOpen);
+                dbgui_end_menu();
+            }
         }
         dbgui_end_main_menu_bar();
     }
@@ -53,6 +58,12 @@ void builtin_dbgui(void) {
 }
 
 void builtin_dbgui_game_tick(void) {
-    dbgui_cheat_game_tick();
+    if (cheatMenuEnabled) {
+        dbgui_cheat_game_tick();
+    }
     graphics_window_check_buffer_sizes();
+}
+
+RECOMP_EXPORT void recomp_disable_builtin_cheat_menu(void) {
+    cheatMenuEnabled = FALSE;
 }
