@@ -42,7 +42,7 @@ Unlike traditional N64 ports, recompilation projects are not based on the source
 
 If you would like to see this recomp improve, consider contributing to the decompilation! Progress made in the decompilation project opens the door for more and better enhancements/mods.
 
-#### Where is the savefile stored?
+#### Where is the save file stored?
 - Windows: `%LOCALAPPDATA%\DinoPlanetRecompiled\saves`
 - Linux: `~/.config/DinoPlanetRecompiled/saves`
 
