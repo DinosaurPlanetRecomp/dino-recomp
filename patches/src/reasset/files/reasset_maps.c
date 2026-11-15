@@ -647,8 +647,8 @@ void reasset_maps_patch(void) {
                         s32 resolvedID = reasset_resolve_map_lookup(curveResolveMap, reasset_id(mapObj->owner, linkUID));
                         if (resolvedID != -1) {
                             curve->links[linkno] = resolvedID;
-                        } else if (!recomputil_u32_hashset_contains(curveOriginalSet, linkUID)) { // if not base curve UID
-                            reasset_log_warning("[reasset] WARN: Failed to patch curve (%s:%d) link %d UID 0x%X. Curve was not defined!",
+                        } else if (!recomputil_u32_hashset_contains(curveOriginalSet, reasset_base_id(linkUID))) { // if not base curve UID
+                            reasset_log_warning("[reasset] WARN: Failed to patch curve (%s:%d) link %d UID 0x%X. Curve was not defined!\n",
                                 namespaceName, identifier, linkno, linkUID);
                         }
                     }
@@ -665,7 +665,7 @@ void reasset_maps_patch(void) {
                     s32 mapObjIdentifier;
                     reasset_id_lookup_name(mapObj->id, &mapObjNamespaceName, &mapObjIdentifier);
 
-                    reasset_log_warning("[reasset] WARN: Failed to map (%s:%d) object (%s:0x%X). Object ID 0x%X was not defined!",
+                    reasset_log_warning("[reasset] WARN: Failed to map (%s:%d) object (%s:0x%X). Object ID 0x%X was not defined!\n",
                         namespaceName, identifier, 
                         mapObjNamespaceName, mapObjIdentifier,
                         setup->objId);
