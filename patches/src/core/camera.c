@@ -59,10 +59,7 @@ static MtxF recomp_viewWorldOffsetResetMtx = {
         0.0f, 0.0f, 0.0f, 1.0f
     }
 };
-// Save these separately so we can avoid the precision issue noted below
-// when the game restores the camera viewProj matrix
-static Mtx *recomp_lastCamViewMtx;
-static Mtx *recomp_lastCamProjMtx;
+static MtxF* recomp_viewProjRSPPtr;
 _Bool recomp_skipCameraInterp = FALSE;
 static MatrixSlot *recomp_matrixPool; // Custom matrix pool with increased size
 
@@ -70,6 +67,28 @@ MtxF *recomp_objParentMtx = NULL;
 
 void recomp_skip_camera_interp(void) {
     recomp_skipCameraInterp = TRUE;
+}
+
+static void recomp_mtxf_4x3_copy(MtxF* src, MtxF* dst) {
+    dst->m[0][0] = src->m[0][0];
+    dst->m[0][1] = src->m[0][1];
+    dst->m[0][2] = src->m[0][2];
+    dst->m[0][3] = 0.0f;
+
+    dst->m[1][0] = src->m[1][0];
+    dst->m[1][1] = src->m[1][1];
+    dst->m[1][2] = src->m[1][2];
+    dst->m[1][3] = 0.0f;
+
+    dst->m[2][0] = src->m[2][0];
+    dst->m[2][1] = src->m[2][1];
+    dst->m[2][2] = src->m[2][2];
+    dst->m[2][3] = 0.0f;
+
+    dst->m[3][0] = src->m[3][0];
+    dst->m[3][1] = src->m[3][1];
+    dst->m[3][2] = src->m[3][2];
+    dst->m[3][3] = 1.0f;
 }
 
 RECOMP_PATCH void camSetupRSPMatrices(Gfx **gdl, Mtx **rspMtxs) {
@@ -120,19 +139,19 @@ RECOMP_PATCH void camSetupRSPMatrices(Gfx **gdl, Mtx **rspMtxs) {
 
     //gRSPMtxList = *rspMtxs;
 
-    // @recomp: Submit view and projection matrices separately to avoid a nasty float precision
+    // @recomp: Keep view-projection matrix in floating-point form to avoid a nasty float precision
     // issue with this game's projection matrix. After viewProj is converted from float -> long -> float
     // from here to RT64, m[0][2] and m[0][3], which are very small values, end up less precise. When
     // RT64 decomposes this matrix, this lack of precision is amplified greatly resulting in a very
     // wrong projection matrix on some frames.
-    mathMtxF2L(&gProjectionMtx, *rspMtxs);
-    mathMtxF2L(&gViewMtx, *rspMtxs + 1);
+    //
+    // Note: Originally, this was solved by submitting the view and projection matrices separately but
+    // by also keeping the whole thing in floating-point form a separate issue with camera jitter is fixed.
+    bcopy(&gViewProjMtx, *rspMtxs, sizeof(MtxF));
 
-    recomp_lastCamProjMtx = (*rspMtxs + 0);
-    recomp_lastCamViewMtx = (*rspMtxs + 1);
+    recomp_viewProjRSPPtr = (MtxF*)(*rspMtxs);
 
-    gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_PROJECTION | G_MTX_LOAD);
-    gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_PROJECTION | G_MTX_MUL);
+    gEXMatrixFloat((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_PROJECTION | G_MTX_LOAD);
 
     // @recomp: Projection slot changed, so the parent matrix is no longer valid (if any leaked over to this point)
     recomp_objParentMtx = NULL;
@@ -209,14 +228,18 @@ RECOMP_PATCH void camSetupObjectSRTMatrix(Gfx **gdl, Mtx **rspMtxs, SRT *srt, f3
         }
 
         if (outMtx == NULL) {
-            mathMtx4x3F2L(mtx, *rspMtxs);
-            gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_LOAD | G_MTX_MODELVIEW);
+            // @recomp: Keep matrix in floating-point form to avoid precision loss
+            recomp_mtxf_4x3_copy(mtx, (MtxF*)*rspMtxs);
+            gEXMatrixFloat((*gdl)++, OS_K0_TO_PHYSICAL((*rspMtxs)++), G_MTX_LOAD | G_MTX_MODELVIEW);
         } else {
-            // Output matrix was given, so don't add matrix to the global rsp matrix list but add to
-            // the matrix pool so it still gets converted to the long format later before the display
-            // list is processed.
-            gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(outMtx), G_MTX_LOAD | G_MTX_MODELVIEW);
-            camAddMatrixToPool(outMtx, 1);
+            // Output matrix was given, so don't add matrix to the global rsp matrix list.
+            // @recomp: Keep matrix in floating-point form to avoid precision loss
+            gEXMatrixFloat((*gdl)++, OS_K0_TO_PHYSICAL(outMtx), G_MTX_LOAD | G_MTX_MODELVIEW);
+            // @recomp: Ensure model matrix is at least in 4x3 form since we're skipping the long conversion
+            outMtx->m[0][3] = 0.0f;
+            outMtx->m[1][3] = 0.0f;
+            outMtx->m[2][3] = 0.0f;
+            outMtx->m[3][3] = 1.0f;
         }
 
         srt->transl.x += gWorldX;
@@ -268,12 +291,9 @@ RECOMP_PATCH void camSetupRSPMatricesForObject(Gfx **gdl, Mtx **rspMtxs, Object 
         }
 
         mathMtxCatF(&MtxF_800a6a60, &gViewProjMtx, &gAuxMtx2);
-        // @recomp: Don't store matrix concat'd with view-projection, just store the parent model matrix
-        if (recomp_frameInterpActive) {
-            bcopy(&MtxF_800a6a60, *rspMtxs, sizeof(MtxF));
-        } else {
-            mathMtxF2L(&MtxF_800a6a60, *rspMtxs);
-        }
+        // @recomp: Don't store matrix concat'd with view-projection, just store the parent model matrix.
+        //          Also keep matrix in floating-point form to avoid precision loss.
+        bcopy(&MtxF_800a6a60, *rspMtxs, sizeof(MtxF));
         gRSPMatrices[origObject->matrixIdx] = *rspMtxs;
         (*rspMtxs)++;
     }
@@ -282,11 +302,10 @@ RECOMP_PATCH void camSetupRSPMatricesForObject(Gfx **gdl, Mtx **rspMtxs, Object 
         // @recomp: Don't change projection matrix, just save the parent matrix for draws to use
         recomp_objParentMtx = (MtxF*)gRSPMatrices[origObject->matrixIdx];
     } else {
-        // @recomp: Submit projection and view separately to avoid precision issues.
-        // See above notes in setup_rsp_camera_matrices
-        gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(recomp_lastCamProjMtx), G_MTX_PROJECTION | G_MTX_LOAD);
-        gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(recomp_lastCamViewMtx), G_MTX_PROJECTION | G_MTX_MUL);
-        gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(gRSPMatrices[origObject->matrixIdx]), G_MTX_PROJECTION | G_MTX_MUL);
+        // @recomp: Keep matrix in floating-point form to avoid precision loss.
+        //          Also see above notes in camSetupRSPMatrices
+        gEXMatrixFloat((*gdl)++, OS_K0_TO_PHYSICAL(recomp_viewProjRSPPtr), G_MTX_PROJECTION | G_MTX_LOAD);
+        gEXMatrixFloat((*gdl)++, OS_K0_TO_PHYSICAL(gRSPMatrices[origObject->matrixIdx]), G_MTX_PROJECTION | G_MTX_MUL);
         
         recomp_objParentMtx = NULL;
     }
@@ -297,10 +316,9 @@ RECOMP_PATCH void camLoadParentProjection(Gfx **gdl) {
         // @recomp: Don't change projection matrix, just clear the parent matrix
         recomp_objParentMtx = NULL;
     } else {
-        // @recomp: Submit projection and view separately instead of [gRSPMtxList] to avoid precision issues.
-        // See above notes in setup_rsp_camera_matrices
-        gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(recomp_lastCamProjMtx), G_MTX_PROJECTION | G_MTX_LOAD);
-        gSPMatrix((*gdl)++, OS_K0_TO_PHYSICAL(recomp_lastCamViewMtx), G_MTX_PROJECTION | G_MTX_MUL);
+        // @recomp: Keep matrix in floating-point form to avoid precision loss.
+        //          Also see above notes in camSetupRSPMatrices
+        gEXMatrixFloat((*gdl)++, OS_K0_TO_PHYSICAL(recomp_viewProjRSPPtr), G_MTX_PROJECTION | G_MTX_LOAD);
         
         recomp_objParentMtx = NULL;
     }
