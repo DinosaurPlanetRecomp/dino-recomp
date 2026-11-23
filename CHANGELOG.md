@@ -5,7 +5,8 @@
     - Linux: `~/.config/DinoPlanetRecompiled/crash.log`
 - New UI scale option for the debug UI.
 - The pause screen background is no longer black when standing in certain interiors like Volcano Force Point.
-- Fixed camera jitter.
+- Model blend shapes and texture animations now support interpolation (notably for facial expressions and eye movement).
+- Fixed subtle camera jitter due to precision loss.
 - Fixed some minor font rendering artifacts that occurred at certain resolutions/aspect ratios.
 - Fixed foodbag inventory cheat menu.
 - Fixed some jank with the mod configuration menus.

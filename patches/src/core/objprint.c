@@ -33,10 +33,35 @@ static void recomp_push_obj_model_matrix_group(Model* model, Gfx** gdl, s32 id, 
         gEXMatrixGroupSkipAll((*gdl)++, id, G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
     } else {
         _Bool hasBones = model->animCount != 0;
+        _Bool hasBlendShapes = model->blendshapes != NULL;
+        _Bool hasTexAnims = model->textureAnimations != NULL;
         if (hasBones) {
-            gEXMatrixGroupSimpleNormal((*gdl)++, id, G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+            gEXMatrixGroup((*gdl)++, id, G_EX_INTERPOLATE_SIMPLE, G_EX_PUSH, G_MTX_MODELVIEW, 
+                /*pos*/     G_EX_COMPONENT_INTERPOLATE, 
+                /*rot*/     G_EX_COMPONENT_INTERPOLATE, 
+                /*scale*/   G_EX_COMPONENT_INTERPOLATE, 
+                /*skew*/    G_EX_COMPONENT_INTERPOLATE, 
+                /*persp*/   G_EX_COMPONENT_INTERPOLATE, 
+                /*vert*/    hasBlendShapes ? G_EX_COMPONENT_INTERPOLATE : G_EX_COMPONENT_SKIP, 
+                /*tile*/    G_EX_COMPONENT_INTERPOLATE, 
+                /*order*/   G_EX_ORDER_LINEAR, 
+                /*edit*/    G_EX_EDIT_NONE, 
+                /*aspect*/  G_EX_ASPECT_AUTO, 
+                /*tc*/      hasTexAnims ? G_EX_COMPONENT_INTERPOLATE : G_EX_COMPONENT_SKIP, 
+                /*lookat*/  G_EX_COMPONENT_AUTO);
         } else {
-            gEXMatrixGroupDecomposedNormal((*gdl)++, id, G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+            gEXMatrixGroupDecomposed((*gdl)++, id, G_EX_PUSH, G_MTX_MODELVIEW, 
+                /*pos*/     G_EX_COMPONENT_INTERPOLATE, 
+                /*rot*/     G_EX_COMPONENT_INTERPOLATE, 
+                /*scale*/   G_EX_COMPONENT_INTERPOLATE, 
+                /*skew*/    G_EX_COMPONENT_INTERPOLATE, 
+                /*persp*/   G_EX_COMPONENT_INTERPOLATE, 
+                /*vert*/    hasBlendShapes ? G_EX_COMPONENT_INTERPOLATE : G_EX_COMPONENT_SKIP, 
+                /*tile*/    G_EX_COMPONENT_INTERPOLATE, 
+                /*order*/   G_EX_ORDER_LINEAR,
+                /*edit*/    G_EX_EDIT_NONE, 
+                /*tc*/      hasTexAnims ? G_EX_COMPONENT_INTERPOLATE : G_EX_COMPONENT_SKIP, 
+                /*lookat*/  G_EX_COMPONENT_AUTO);
         }
     }
 }
