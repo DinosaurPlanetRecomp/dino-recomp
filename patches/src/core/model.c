@@ -1,7 +1,9 @@
 #include "patches.h"
 #include "recompdata.h"
+#include "rt64_extended_gbi.h"
 #include "matrix_groups.h"
 
+#include "PR/gbi.h"
 #include "sys/gfx/model.h"
 #include "sys/camera.h"
 #include "sys/math.h"
@@ -75,6 +77,48 @@ static void recomp_free_obj_absolute_matrices(ModelInstance *modelInst) {
     mmFree(absMatrices);
 
     recomputil_u32_value_hashmap_erase(recomp_objAbsoluteMatrixMap, (collection_key_t)modelInst);
+}
+
+static void recomp_patch_model_matrix_commands(Model* model) {
+    s32 numMtxCommands = 0;
+
+    for (s32 i = 0; i < model->displayListLength; i++) {
+        Gfx* g = &model->displayList[i];
+        s32 cmd = _SHIFTR(g->words.w0, 24, 8);
+
+        switch (cmd) {
+            case G_MTX:
+                numMtxCommands++;
+                break;
+        }
+    }
+
+    s32 newDisplayListLength = model->displayListLength + (numMtxCommands * 3);
+    Gfx* newDisplayList = mmAlloc(newDisplayListLength * sizeof(Gfx), ALLOC_TAG_MODELS_COL, 0);
+
+    bcopy(model->displayList, newDisplayList, model->displayListLength * sizeof(Gfx));
+    Gfx* extraPtr = newDisplayList + model->displayListLength;
+
+    for (s32 i = 0; i < model->displayListLength; i++) {
+        Gfx* g = &newDisplayList[i];
+        s32 cmd = _SHIFTR(g->words.w0, 24, 8);
+
+        switch (cmd) {
+            case G_MTX: {
+                s32 p = _SHIFTR((g->words.w0), 0, 8) ^ G_MTX_PUSH;
+                u32 m = g->words.w1;
+                if (SEGMENT_NUMBER(m) == 3) {
+                    gSPDisplayList(g, extraPtr);
+                    gEXMatrixFloat(extraPtr++, m, p);
+                    gSPEndDisplayList(extraPtr++);
+                }
+                break;
+            }
+        }
+    }
+
+    model->displayList = newDisplayList;
+    model->displayListLength = newDisplayListLength;
 }
 
 RECOMP_PATCH ModelInstance* modLoadModelActual(s32 id, u32 flags) {
@@ -230,6 +274,8 @@ RECOMP_PATCH ModelInstance* modLoadModelActual(s32 id, u32 flags) {
             }
         }
         modPatchModelDisplayListForTextures(model);
+        // @recomp:
+        recomp_patch_model_matrix_commands(model);
         uncompressedSize += (u32)model;
         uncompressedSize = mmAlign8(uncompressedSize);
         if (makeModelAnimation(model, id, (u8*)uncompressedSize) == 0) {
@@ -299,6 +345,32 @@ RECOMP_PATCH void modFreeModel(ModelInstance* modelInst) {
         MODEL_SLOT_MODEL(gLoadedModels, i) = -1;
         freeModel(sp1C);
     }
+}
+
+RECOMP_PATCH void freeModel(Model* model) {
+    s32 i;
+
+    for (i = 0; i < model->textureCount; i++)
+    {
+        if ((&model->materials[i])->texture) {
+            texFreeTexture((&model->materials[i])->texture);
+        }
+    }
+
+    if (model->anims != 0) {
+        i = 0;
+        if (model->animCount != 0) {
+            do {
+                modFreeAnim(model->anims[i]);
+                i++;
+            } while (i < model->animCount);
+        }
+    }
+
+    // @recomp:
+    mmFree(model->displayList);
+
+    mmFree(model);
 }
 
 MtxF* recomp_model_instance_setup_absolute_matrices(ModelInstance *modelInst, s32 count) {

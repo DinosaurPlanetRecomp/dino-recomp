@@ -456,11 +456,19 @@ RECOMP_PATCH void camInit(void) {
 
 RECOMP_PATCH void camAddMatrixToPool(MtxF *mf, s32 count) {
     // @recomp: Use custom matrix pool
-    recomp_matrixPool[gMatrixCount].mtx = (Mtx_MtxF*)mf;
-    recomp_matrixPool[gMatrixCount++].count = count;
+// recomp_matrixPool[gMatrixCount].mtx = (Mtx_MtxF*)mf;
+// recomp_matrixPool[gMatrixCount++].count = count;
 
-    if (gMatrixCount == 400) {
-        recomp_eprintf("Camera matrix pool overflow!\n");
+// if (gMatrixCount == 400) {
+//     recomp_eprintf("Camera matrix pool overflow!\n");
+// }
+
+    for (s32 i = 0; i < count; i++) {
+        MtxF* mtx = &mf[i];
+        mtx->m[0][3] = 0.0f;
+        mtx->m[1][3] = 0.0f;
+        mtx->m[2][3] = 0.0f;
+        mtx->m[3][3] = 1.0f;
     }
 }
 
